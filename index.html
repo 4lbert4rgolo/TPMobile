@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gestor de Escalas de Carrinho - Testemunho Público</title>
+  
+  <!-- Tailwind CSS & FontAwesome -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- SheetJS (XLSX) para exportação para Excel -->
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+  <style>
+    @media print {
+      body * { visibility: hidden; }
+      #area-impressao, #area-impressao * { visibility: visible; }
+      #area-impressao { position: absolute; left: 0; top: 0; width: 100%; }
+      .no-print { display: none !important; }
+    }
+  </style>
+</head>
+<body class="bg-slate-100 text-slate-800 font-sans min-h-screen flex flex-col">
+
+  <!-- Cabeçalho -->
+  <header class="bg-blue-900 text-white shadow-md no-print">
+    <div class="max-w-7xl mx-auto px-4 py-4 flex flex-col md:flex-row justify-between items-center gap-4">
+      <div class="flex items-center gap-3">
+        <i class="fa-solid fa-cube text-3xl text-blue-300"></i>
+        <div>
+          <h1 class="text-xl font-bold">Gestor de Escalas de Carrinho</h1>
+          <p class="text-xs text-blue-200">Testemunho Público de Congregação</p>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-2 text-sm">
+        <button onclick="mudarAba('publicadores')" id="btn-publicadores" class="px-3 py-2 rounded bg-blue-800 hover:bg-blue-700 font-medium transition">
+          <i class="fa-solid fa-users mr-1"></i> Publicadores
+        </button>
+        <button onclick="mudarAba('configuracoes')" id="btn-configuracoes" class="px-3 py-2 rounded bg-blue-800 hover:bg-blue-700 font-medium transition">
+          <i class="fa-solid fa-gear mr-1"></i> Configurações & Eventos
+        </button>
+        <button onclick="mudarAba('enquete')" id="btn-enquete" class="px-3 py-2 rounded bg-blue-800 hover:bg-blue-700 font-medium transition">
+          <i class="fa-solid fa-poll mr-1"></i> Lançar Votos
+        </button>
+        <button onclick="mudarAba('escala')" id="btn-escala" class="px-3 py-2 rounded bg-blue-800 hover:bg-blue-700 font-medium transition">
+          <i class="fa-solid fa-table-cells mr-1"></i> Matriz da Escala
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Conteúdo Principal -->
+  <main class="max-w-7xl mx-auto px-4 py-6 flex-grow w-full">
+
+    <!-- ABA 1: PUBLICADORES -->
+    <section id="aba-publicadores" class="space-y-6">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-user-plus text-blue-600"></i> Cadastrar Publicador
+        </h2>
+        <form id="form-publicador" onsubmit="salvarPublicador(event)" class="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Nome Completo</label>
+            <input type="text" id="pub-nome" required class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm" placeholder="Ex: Maria Silva">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Gênero</label>
+            <select id="pub-genero" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="F">Irmã</option>
+              <option value="M">Irmão</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Cônjuge / Par Fixo (Opcional)</label>
+            <select id="pub-conjuge" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="">Nenhum</option>
+            </select>
+          </div>
+          <div class="flex items-center gap-2 pt-6">
+            <input type="checkbox" id="pub-idosa" class="w-4 h-4 text-blue-600 rounded">
+            <label for="pub-idosa" class="text-xs font-semibold text-slate-700">Requer Trio (Irmã Idosa / Apoio)</label>
+          </div>
+          <div class="md:col-span-4 flex justify-end gap-2">
+            <button type="button" onclick="carregarExemploPublicadores()" class="px-4 py-2 text-xs font-semibold text-slate-600 bg-slate-100 hover:bg-slate-200 rounded-lg">
+              Carregar Dados de Exemplo
+            </button>
+            <button type="submit" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-lg shadow-sm">
+              Salvar Publicador
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- Tabela de Publicadores -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-4">
+          <h3 class="font-bold text-slate-800">Publicadores Cadastrados (<span id="total-publicadores">0</span>)</h3>
+        </div>
+        <div class="overflow-x-auto">
+          <table class="w-full text-left text-sm text-slate-600">
+            <thead class="bg-slate-50 text-slate-700 uppercase text-xs font-bold border-b">
+              <tr>
+                <th class="p-3">Nome</th>
+                <th class="p-3">Gênero</th>
+                <th class="p-3">Condição Especial</th>
+                <th class="p-3">Cônjuge/Par</th>
+                <th class="p-3 text-right">Ações</th>
+              </tr>
+            </thead>
+            <tbody id="lista-publicadores" class="divide-y">
+              <!-- Preenchido via JavaScript -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- ABA 2: CONFIGURAÇÕES E EVENTOS -->
+    <section id="aba-configuracoes" class="space-y-6 hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
+          <i class="fa-solid fa-calendar-days text-blue-600"></i> Configuração da Semana & Reuniões
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Início da Semana (Segunda)</label>
+            <input type="date" id="data-inicio" onchange="atualizarPeriodoSemana()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Dia da Reunião de Meio de Semana</label>
+            <select id="dia-reuniao" onchange="salvarConfiguracoes()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="4">Quinta-feira</option>
+              <option value="3">Quarta-feira</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Dia da Reunião de Fim de Semana</label>
+            <select id="dia-reuniao-fim" onchange="salvarConfiguracoes()" class="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 outline-none text-sm">
+              <option value="6">Sábado</option>
+              <option value="0">Domingo</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Eventos Especiais -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h3 class="font-bold text-slate-800 mb-2">Eventos Especiais (Congresso, Assembleia, Visita)</h3>
+        <p class="text-xs text-slate-500 mb-4">Marque dias especiais para bloquear ou adicionar anotações automáticas na matriz.</p>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Dia do Evento</label>
+            <select id="evento-dia" class="w-full px-3 py-2 border rounded-lg text-sm">
+              <option value="Segunda">Segunda-feira</option>
+              <option value="Terça">Terça-feira</option>
+              <option value="Quarta">Quarta-feira</option>
+              <option value="Quinta">Quinta-feira</option>
+              <option value="Sexta">Sexta-feira</option>
+              <option value="Sábado">Sábado</option>
+              <option value="Domingo">Domingo</option>
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Descrição do Evento</label>
+            <input type="text" id="evento-desc" placeholder="Ex: Congresso de Distrito" class="w-full px-3 py-2 border rounded-lg text-sm">
+          </div>
+          <div class="flex items-end">
+            <button onclick="adicionarEvento()" class="w-full px-4 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700">
+              Adicionar Evento
+            </button>
+          </div>
+        </div>
+
+        <div id="lista-eventos" class="space-y-2">
+          <!-- Lista dinâmica de eventos -->
+        </div>
+      </div>
+
+      <!-- Gerador de Texto para WhatsApp -->
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <div class="flex justify-between items-center mb-2">
+          <h3 class="font-bold text-slate-800">Gerar Texto da Enquete para o WhatsApp</h3>
+          <button onclick="copiarTextoEnquete()" class="px-3 py-1 bg-green-600 text-white rounded text-xs font-semibold hover:bg-green-700">
+            <i class="fa-solid fa-copy"></i> Copiar Texto
+          </button>
+        </div>
+        <textarea id="texto-enquete-whatsapp" rows="6" readonly class="w-full p-3 bg-slate-50 border rounded-lg text-xs font-mono text-slate-700"></textarea>
+      </div>
+    </section>
+
+    <!-- ABA 3: ENQUETE / VOTOS -->
+    <section id="aba-enquete" class="space-y-6 hidden">
+      <div class="bg-white p-6 rounded-xl shadow-sm border border-slate-200">
+        <h2 class="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+          <i class="fa-solid fa-poll text-blue-600"></i> Lançar Votos da Enquete do WhatsApp
+        </h2>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Selecione o Publicador</label>
+            <select id="voto-publicador" class="w-full px-3 py-2 border rounded-lg text-sm">
+              <!-- Lista via JS -->
+            </select>
+          </div>
+          <div>
+            <label class="block text-xs font-semibold text-slate-600 uppercase mb-1">Local Votado</label>
+            <select id="voto-local" class="w-full px-3 py-2 border rounded-lg text-sm">
+              <option value="Bairro Novo">Bairro Novo</option>
+              <option value="Atacadão Novo Mix">Atacadão Novo Mix</option>
+              <option value="Morada dos Canários e Sabiás">Morada dos Canários e Sabiás</option>
+            </select>
+          </div>
+        </div>
+
+        <label class="block text-xs font-semibold text-slate-600 uppercase mb-2">Selecione os Turnos Disponíveis</label>
+        <div class="grid grid-cols-2 md:grid-cols-3 gap-2 mb-4" id="grid-turnos-voto">
+          <!-- Turnos dinâmicos -->
+        </div>
+
+        <button onclick="salvarVotos()" class="w-full py-2 bg-blue-600 text-white rounded-lg font-semibold hover:bg-blue-700 text-sm">
+          Registrar Disponibilidade do Publicador
+        </button>
+      </div>
+    </section>
+
+    <!-- ABA 4: MATRIZ DE ESCALA -->
+    <section id="aba-escala" class="space-y-6 hidden">
+      <div class="bg-white p-4 rounded-xl shadow-sm border border-slate-200 flex flex-wrap justify-between items-center gap-4 no-print">
+        <div class="flex items-center gap-2">
+          <button onclick="gerarEscalaAutomatica()" class="px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-lg hover:bg-blue-700 shadow-sm">
+            <i class="fa-solid fa-wand-magic-sparkles mr-1"></i> Gerar Escala Automática
+          </button>
+          <select id="filtro-ponto" onchange="renderizarMatriz()" class="px-3 py-2 border rounded-lg text-sm bg-white font-semibold">
+            <option value="Bairro Novo">Ponto: Bairro Novo</option>
+            <option value="Atacadão Novo Mix">Ponto: Atacadão Novo Mix</option>
+            <option value="Morada dos Canários e Sabiás">Ponto: Morada dos Canários e Sabiás</option>
+          </select>
+        </div>
+        <div class="flex gap-2">
+          <button onclick="exportarExcel()" class="px-3 py-2 bg-green-700 text-white text-sm font-semibold rounded-lg hover:bg-green-800">
+            <i class="fa-solid fa-file-excel mr-1"></i> Exportar Matriz Excel (.xlsx)
+          </button>
+          <button onclick="window.print()" class="px-3 py-2 bg-slate-800 text-white text-sm font-semibold rounded-lg hover:bg-slate-700">
+            <i class="fa-solid fa-print mr-1"></i> Imprimir / PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- ÁREA DE IMPRESSÃO DA MATRIZ -->
+      <div id="area-impressao" class="bg-white p-6 rounded-xl border border-slate-300 shadow-sm">
+        <div class="text-center mb-4 border-b pb-3">
+          <h2 id="matriz-titulo-ponto" class="text-xl font-bold uppercase tracking-wide text-slate-800">
+            Testemunho Público Bairro Novo
+          </h2>
+          <p id="matriz-subtitulo-semana" class="text-sm font-semibold text-slate-600 mt-1">
+            Semana de 26/10 a 31/10
+          </p>
+        </div>
+
+        <div class="overflow-x-auto">
+          <table class="w-full border-collapse border border-slate-900 text-center text-xs">
+            <thead>
+              <tr class="bg-slate-100 text-slate-900 font-bold border-b border-slate-900">
+                <th class="border border-slate-900 p-2 w-28">Horários</th>
+                <th class="border border-slate-900 p-2">Segunda - Feira</th>
+                <th class="border border-slate-900 p-2">Terça - Feira</th>
+                <th class="border border-slate-900 p-2">Quarta - Feira</th>
+                <th class="border border-slate-900 p-2">Quinta - Feira</th>
+                <th class="border border-slate-900 p-2">Sexta - Feira</th>
+                <th class="border border-slate-900 p-2">Sábado</th>
+              </tr>
+            </thead>
+            <tbody id="matriz-corpo" class="divide-y divide-slate-900">
+              <!-- Matriz renderizada dinamicamente pelo JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script>
+    // ESTADO DA APLICAÇÃO
+    let publicadores = JSON.parse(localStorage.getItem('carrinho_pub')) || [];
+    let configuracoes = JSON.parse(localStorage.getItem('carrinho_cfg')) || {
+      dataInicio: '2026-10-26',
+      diaReuniao: '4',
+      diaReuniaoFim: '6',
+      eventos: []
+    };
+    let votos = JSON.parse(localStorage.getItem('carrinho_votos')) || [];
+    let escalaMatriz = JSON.parse(localStorage.getItem('carrinho_escala')) || {};
+
+    const horáriosPadrao = [
+      '06:00 às 08:00',
+      '08:00 às 10:00',
+      '10:00 às 12:00',
+      '14:00 às 16:00',
+      '16:00 às 18:00',
+      '18:00 às 20:00'
+    ];
+
+    const diasSemana = ['Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado'];
+
+    // INICIALIZAÇÃO
+    window.onload = function() {
+      document.getElementById('data-inicio').value = configuracoes.dataInicio;
+      document.getElementById('dia-reuniao').value = configuracoes.diaReuniao;
+      renderizarPublicadores();
+      renderizarEventos();
+      atualizarOpcoesConjuge();
+      atualizarGridVotos();
+      gerarTextoEnqueteWhatsApp();
+      renderizarMatriz();
+    };
+
+    function mudarAba(aba) {
+      ['publicadores', 'configuracoes', 'enquete', 'escala'].forEach(a => {
+        document.getElementById(`aba-${a}`).classList.add('hidden');
+      });
+      document.getElementById(`aba-${aba}`).classList.remove('hidden');
+    }
+
+    // GESTÃO DE PUBLICADORES
+    function salvarPublicador(e) {
+      e.preventDefault();
+      const nome = document.getElementById('pub-nome').value.trim();
+      const genero = document.getElementById('pub-genero').value;
+      const conjuge = document.getElementById('pub-conjuge').value;
+      const idosa = document.getElementById('pub-idosa').checked;
+
+      publicadores.push({ id: Date.now(), nome, genero, conjuge, idosa });
+      localStorage.setItem('carrinho_pub', JSON.stringify(publicadores));
+
+      document.getElementById('form-publicador').reset();
+      renderizarPublicadores();
+      atualizarOpcoesConjuge();
+    }
+
+    function renderizarPublicadores() {
+      const lista = document.getElementById('lista-publicadores');
+      document.getElementById('total-publicadores').innerText = publicadores.length;
+      lista.innerHTML = '';
+
+      publicadores.forEach(p => {
+        lista.innerHTML += `
+          <tr class="hover:bg-slate-50 border-b">
+            <td class="p-3 font-semibold text-slate-800">${p.nome}</td>
+            <td class="p-3">${p.genero === 'M' ? 'Irmão' : 'Irmã'}</td>
+            <td class="p-3">${p.idosa ? '<span class="bg-amber-100 text-amber-800 px-2 py-1 rounded text-xs font-semibold">Trio / Idosa</span>' : '-'}</td>
+            <td class="p-3">${p.conjuge || '-'}</td>
+            <td class="p-3 text-right">
+              <button onclick="excluirPublicador(${p.id})" class="text-red-600 hover:text-red-800"><i class="fa-solid fa-trash"></i></button>
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    function excluirPublicador(id) {
+      publicadores = publicadores.filter(p => p.id !== id);
+      localStorage.setItem('carrinho_pub', JSON.stringify(publicadores));
+      renderizarPublicadores();
+      atualizarOpcoesConjuge();
+    }
+
+    function atualizarOpcoesConjuge() {
+      const selectPub = document.getElementById('voto-publicador');
+      const selectConj = document.getElementById('pub-conjuge');
+      
+      selectPub.innerHTML = '';
+      selectConj.innerHTML = '<option value="">Nenhum</option>';
+
+      publicadores.forEach(p => {
+        selectPub.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+        selectConj.innerHTML += `<option value="${p.nome}">${p.nome}</option>`;
+      });
+    }
+
+    function carregarExemploPublicadores() {
+      publicadores = [
+        { id: 1, nome: "Anderson", genero: "M", conjuge: "Bianca", idosa: false },
+        { id: 2, nome: "Bianca", genero: "F", conjuge: "Anderson", idosa: false },
+        { id: 3, nome: "Regina", genero: "F", conjuge: "", idosa: false },
+        { id: 4, nome: "Felipa", genero: "F", conjuge: "", idosa: false },
+        { id: 5, nome: "Milena", genero: "F", conjuge: "", idosa: false },
+        { id: 6, nome: "Evillyn Bispo", genero: "F", conjuge: "", idosa: false },
+        { id: 7, nome: "Sophia", genero: "F", conjuge: "", idosa: false },
+        { id: 8, nome: "Adrielle", genero: "F", conjuge: "Jil", idosa: false },
+        { id: 9, nome: "Jil", genero: "M", conjuge: "Adrielle", idosa: false },
+        { id: 10, nome: "Irmã Tereza", genero: "F", conjuge: "", idosa: true },
+        { id: 11, nome: "Samuel", genero: "M", conjuge: "Fernanda", idosa: false },
+        { id: 12, nome: "Fernanda", genero: "F", conjuge: "Samuel", idosa: false }
+      ];
+      localStorage.setItem('carrinho_pub', JSON.stringify(publicadores));
+      renderizarPublicadores();
+      atualizarOpcoesConjuge();
+    }
+
+    // CONFIGURAÇÕES & EVENTOS
+    function salvarConfiguracoes() {
+      configuracoes.dataInicio = document.getElementById('data-inicio').value;
+      configuracoes.diaReuniao = document.getElementById('dia-reuniao').value;
+      configuracoes.diaReuniaoFim = document.getElementById('dia-reuniao-fim').value;
+      localStorage.setItem('carrinho_cfg', JSON.stringify(configuracoes));
+      gerarTextoEnqueteWhatsApp();
+      renderizarMatriz();
+    }
+
+    function adicionarEvento() {
+      const dia = document.getElementById('evento-dia').value;
+      const desc = document.getElementById('evento-desc').value.trim();
+
+      if (!desc) return;
+
+      configuracoes.eventos.push({ dia, desc });
+      localStorage.setItem('carrinho_cfg', JSON.stringify(configuracoes));
+      document.getElementById('evento-desc').value = '';
+      renderizarEventos();
+      renderizarMatriz();
+    }
+
+    function removerEvento(index) {
+      configuracoes.eventos.splice(index, 1);
+      localStorage.setItem('carrinho_cfg', JSON.stringify(configuracoes));
+      renderizarEventos();
+      renderizarMatriz();
+    }
+
+    function renderizarEventos() {
+      const lista = document.getElementById('lista-eventos');
+      lista.innerHTML = '';
+      configuracoes.eventos.forEach((e, idx) => {
+        lista.innerHTML += `
+          <div class="flex justify-between items-center bg-amber-50 p-2 rounded border border-amber-200 text-xs">
+            <span><strong>${e.dia}:</strong> ${e.desc}</span>
+            <button onclick="removerEvento(${idx})" class="text-red-600 font-bold">X</button>
+          </div>
+        `;
+      });
+    }
+
+    function gerarTextoEnqueteWhatsApp() {
+      const txt = `*Disponibilidades do Carrinho*\n*Semana:* ${configuracoes.dataInicio}\n\n*Opções de Locais:*\n1. Bairro Novo\n2. Atacadão Novo Mix\n3. Morada dos Canários e Sabiás\n\n*Por favor, votem nos dias e horários que possuem disponibilidade!*`;
+      document.getElementById('texto-enquete-whatsapp').value = txt;
+    }
+
+    function copiarTextoEnquete() {
+      const copyText = document.getElementById("texto-enquete-whatsapp");
+      copyText.select();
+      navigator.clipboard.writeText(copyText.value);
+      alert("Texto copiado para o WhatsApp!");
+    }
+
+    // ENQUETES & VOTOS
+    function atualizarGridVotos() {
+      const grid = document.getElementById('grid-turnos-voto');
+      grid.innerHTML = '';
+      diasSemana.forEach(dia => {
+        horáriosPadrao.forEach(horario => {
+          grid.innerHTML += `
+            <label class="flex items-center gap-1 bg-slate-50 p-2 border rounded text-xs cursor-pointer">
+              <input type="checkbox" value="${dia}_${horario}" class="chk-turno">
+              <span>${dia} (${horario})</span>
+            </label>
+          `;
+        });
+      });
+    }
+
+    function salvarVotos() {
+      const pub = document.getElementById('voto-publicador').value;
+      const local = document.getElementById('voto-local').value;
+      const selecionados = Array.from(document.querySelectorAll('.chk-turno:checked')).map(c => c.value);
+
+      votos = votos.filter(v => !(v.pub === pub && v.local === local));
+      votos.push({ pub, local, turnos: selecionados });
+
+      localStorage.setItem('carrinho_votos', JSON.stringify(votos));
+      alert(`Votos salvos para ${pub}!`);
+    }
+
+    // MATRIZ & ESCALA AUTOMÁTICA
+    function gerarEscalaAutomatica() {
+      let novaEscala = {};
+
+      const pontoFiltro = document.getElementById('filtro-ponto').value;
+      novaEscala[pontoFiltro] = {};
+
+      diasSemana.forEach(dia => {
+        novaEscala[pontoFiltro][dia] = {};
+        horáriosPadrao.forEach(horario => {
+          // Lógica de bloqueio por reunião
+          if ((dia === 'Quinta' && configuracoes.diaReuniao === '4' && horario === '18:00 às 20:00') ||
+              (dia === 'Quarta' && configuracoes.diaReuniao === '3' && horario === '18:00 às 20:00')) {
+            novaEscala[pontoFiltro][dia][horario] = "Reunião";
+            return;
+          }
+
+          // Bloqueio de eventos especiais
+          const evt = configuracoes.eventos.find(e => e.dia === dia);
+          if (evt) {
+            novaEscala[pontoFiltro][dia][horario] = evt.desc;
+            return;
+          }
+
+          // Filtra publicadores que votaram neste ponto e turno
+          const chaveTurno = `${dia}_${horario}`;
+          const disponiveisNomes = votos.filter(v => v.local === pontoFiltro && v.turnos.includes(chaveTurno)).map(v => v.pub);
+          const disponiveisObjs = publicadores.filter(p => disponiveisNomes.includes(p.nome));
+
+          if (disponiveisObjs.length >= 2) {
+            // Prioridade para trios com irmãs idosas
+            const idosa = disponiveisObjs.find(p => p.idosa);
+            if (idosa) {
+              const acompanhantes = disponiveisObjs.filter(p => p.genero === 'F' && p.nome !== idosa.nome).slice(0, 2);
+              if (acompanhantes.length >= 2) {
+                novaEscala[pontoFiltro][dia][horario] = `${idosa.nome}, ${acompanhantes[0].nome} e ${acompanhantes[1].nome}`;
+                return;
+              }
+            }
+
+            // Dupla normal / casal
+            novaEscala[pontoFiltro][dia][horario] = `${disponiveisObjs[0].nome} e ${disponiveisObjs[1].nome}`;
+          } else {
+            novaEscala[pontoFiltro][dia][horario] = "Pregação";
+          }
+        });
+      });
+
+      escalaMatriz = novaEscala;
+      localStorage.setItem('carrinho_escala', JSON.stringify(escalaMatriz));
+      renderizarMatriz();
+    }
+
+    function renderizarMatriz() {
+      const ponto = document.getElementById('filtro-ponto').value;
+      document.getElementById('matriz-titulo-ponto').innerText = `Testemunho Público ${ponto}`;
+      
+      const corpo = document.getElementById('matriz-corpo');
+      corpo.innerHTML = '';
+
+      horáriosPadrao.forEach(horario => {
+        let tr = `<tr class="border-b border-slate-900"><td class="border border-slate-900 p-2 font-bold bg-slate-50">${horario}</td>`;
+        
+        diasSemana.forEach(dia => {
+          let conteudo = "Pregação";
+          
+          if (escalaMatriz[ponto] && escalaMatriz[ponto][dia] && escalaMatriz[ponto][dia][horario]) {
+            conteudo = escalaMatriz[ponto][dia][horario];
+          }
+
+          let estilo = "";
+          if (conteudo === "Reunião") estilo = "font-bold italic bg-slate-100";
+          if (conteudo === "Pregação") estilo = "font-bold italic";
+
+          tr += `<td class="border border-slate-900 p-2 ${estilo}">${conteudo}</td>`;
+        });
+
+        tr += `</tr>`;
+        corpo.innerHTML += tr;
+      });
+    }
+
+    // EXPORTAR EXCEL (.XLSX)
+    function exportarExcel() {
+      const ponto = document.getElementById('filtro-ponto').value;
+      const wb = XLSX.utils.book_new();
+      
+      let dadosExcel = [
+        [`Testemunho Público ${ponto}`],
+        [`Semana de ${configuracoes.dataInicio}`],
+        ["Horários", "Segunda - Feira", "Terça - Feira", "Quarta - Feira", "Quinta - Feira", "Sexta - Feira", "Sábado"]
+      ];
+
+      horáriosPadrao.forEach(horario => {
+        let linha = [horario];
+        diasSemana.forEach(dia => {
+          let val = "Pregação";
+          if (escalaMatriz[ponto] && escalaMatriz[ponto][dia] && escalaMatriz[ponto][dia][horario]) {
+            val = escalaMatriz[ponto][dia][horario];
+          }
+          linha.push(val);
+        });
+        dadosExcel.push(linha);
+      });
+
+      const ws = XLSX.utils.aoa_to_sheet(dadosExcel);
+      XLSX.utils.book_append_sheet(wb, ws, "Escala");
+      XLSX.writeFile(wb, `Escala_Carrinho_${ponto.replace(/\s+/g, '_')}.xlsx`);
+    }
+  </script>
+</body>
+</html>
