@@ -1,0 +1,31 @@
+body { font-family: 'Inter', sans-serif; }
+
+/* Letras maiores: o app usa rem, então basta aumentar a base */
+html.fonte-grande { font-size: 20px; }
+
+.tabela-escala { border-collapse: collapse; width: 100%; font-size: 0.8125rem; }
+.tabela-escala th, .tabela-escala td { border: 1px solid #cbd5e1; padding: 6px 8px; vertical-align: top; }
+.tabela-escala th { background: #f1f5f9; font-weight: 600; text-align: center; }
+.tabela-escala td.horario { background: #f8fafc; font-weight: 600; white-space: nowrap; }
+.tabela-escala td.celula-editavel { cursor: pointer; }
+.tabela-escala td.celula-editavel:hover { background: #eff6ff; }
+.celula-erro { outline: 2px solid #ef4444; outline-offset: -2px; }
+.celula-aviso { outline: 2px solid #f59e0b; outline-offset: -2px; }
+.celula-minha { background: #dbeafe; }
+.celula-bloqueio { background: #f1f5f9; color: #64748b; font-style: italic; text-align: center; }
+.celula-vazia { color: #94a3b8; font-style: italic; text-align: center; }
+
+.chip-turno { border: 1px solid #cbd5e1; border-radius: 9999px; padding: 0.5rem 0.9rem; min-height: 2.75rem; font-size: 0.875rem; background: #fff; }
+.chip-turno[aria-pressed="true"] { background: #2563eb; border-color: #2563eb; color: #fff; }
+.chip-turno[disabled] { background: #f1f5f9; color: #94a3b8; cursor: not-allowed; text-decoration: line-through; }
+
+#area-impressao { display: none; }
+
+@media print {
+    #app, #modal, #toasts { display: none !important; }
+    #area-impressao { display: block !important; }
+    .pagina-impressao { page-break-after: always; }
+    .pagina-impressao:last-child { page-break-after: auto; }
+    .celula-minha { background: transparent; }
+    @page { size: A4 landscape; margin: 10mm; }
+}

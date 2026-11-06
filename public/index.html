@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gestor de Escalas de Carrinho - Testemunho Público</title>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%233b82f6'><path d='M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-2 10h-4v4h-2v-4H7v-2h4V7h2v4h4v2z'/></svg>">
+    <meta name="theme-color" content="#1d4ed8">
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="Carrinho">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/tailwind.css">
+    <link rel="stylesheet" href="css/app.css">
+</head>
+<body class="bg-slate-50 text-slate-800">
+    <div id="app"><p class="p-8 text-center text-slate-500" data-carregando>Carregando…</p></div>
+    <div id="modal"></div>
+    <div id="toasts" class="fixed bottom-4 right-4 z-[60] space-y-2"></div>
+    <div id="area-impressao"></div>
+
+    <script>
+    // Se o app não iniciar, explica o que fazer em vez de ficar "Carregando…" para sempre.
+    (function () {
+        function falha(titulo, texto) {
+            var app = document.getElementById('app');
+            if (!app || !app.querySelector('[data-carregando]')) return;
+            app.innerHTML = '<div style="max-width:34rem;margin:3rem auto;padding:1.25rem;background:#fff;border:1px solid #fecaca;border-radius:.75rem;font-family:sans-serif;line-height:1.5">'
+                + '<h1 style="font-size:1.1rem;font-weight:700;margin:0 0 .5rem">' + titulo + '</h1>'
+                + '<p style="margin:0;color:#334155">' + texto + '</p></div>';
+        }
+        if (location.protocol === 'file:') {
+            falha('Abra pelo endereço do site, não pelo arquivo',
+                'Este app não funciona abrindo o index.html direto do computador (endereço começando com file://), porque o navegador bloqueia os scripts. '
+                + 'Use <b>npm run serve</b> e abra http://localhost:8080, ou, no Laragon, coloque a pasta do projeto em C:\\laragon\\www e abra http://tpmobile.test, ou use o endereço publicado no Firebase.');
+        } else {
+            setTimeout(function () {
+                falha('O app não conseguiu iniciar',
+                    'Atualize a página com Ctrl+F5. Se continuar assim, aperte F12, abra a aba Console e envie a mensagem de erro em vermelho.');
+            }, 8000);
+        }
+    })();
+    </script>
+    <script type="module" src="js/app.js"></script>
+</body>
+</html>

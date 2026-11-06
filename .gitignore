@@ -1,0 +1,77 @@
+# ---------------------------------------------------------------------------
+# Dependências e builds
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+build/
+coverage/
+
+# ---------------------------------------------------------------------------
+# Firebase: arquivos gerados na sua máquina
+# ---------------------------------------------------------------------------
+.firebase/
+firebase-debug.log*
+firebase-debug.*.log*
+firestore-debug.log
+ui-debug.log
+pubsub-debug.log
+.runtimeconfig.json
+
+# ---------------------------------------------------------------------------
+# Segredos (nunca enviar)
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+# chaves de conta de serviço baixadas do Firebase/Google Cloud
+*-firebase-adminsdk-*.json
+*serviceAccount*.json
+*service-account*.json
+*credentials*.json
+
+# ---------------------------------------------------------------------------
+# Dados de pessoas: exportações e cópias da escala (têm nomes reais)
+# ---------------------------------------------------------------------------
+*.xlsx
+*.xls
+*.csv
+Escala*.pdf
+backup*/
+exportacao*/
+exportacoes/
+
+# ---------------------------------------------------------------------------
+# Logs e temporários
+# ---------------------------------------------------------------------------
+*.log
+npm-debug.log*
+*.tmp
+*.bak
+*.swp
+*~
+.cache/
+.eslintcache
+
+# ---------------------------------------------------------------------------
+# Sistema operacional e editores
+# ---------------------------------------------------------------------------
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# ---------------------------------------------------------------------------
+# Ferramentas de IA e agentes (locais)
+# ---------------------------------------------------------------------------
+.agents/
+skills-lock.json
+.claude/
+.cursor/
+.gemini/
+.windsurf/

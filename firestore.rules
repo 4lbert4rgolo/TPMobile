@@ -1,0 +1,116 @@
+rules_version = '2';
+
+// Regras de segurança do TPMobile.
+// Quem protege os dados é este arquivo (no servidor), não a tela do app.
+//
+// Perfis (campo "papel" em usuarios/{uid}):
+//   pendente  - criou a conta e espera aprovação: não lê nada além do próprio cadastro
+//   votante   - vota nas enquetes abertas e vê escalas publicadas
+//   removido  - teve o acesso retirado: não lê nada
+//   servo, anciao - ajustam enquetes, publicadores e escalas
+//   admin     - tudo isso, mais aprovar usuários e definir perfis
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function logado() {
+      return request.auth != null;
+    }
+
+    function cadastro() {
+      return get(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data;
+    }
+
+    function papel() {
+      return exists(/databases/$(database)/documents/usuarios/$(request.auth.uid))
+        ? cadastro().papel
+        : 'nenhum';
+    }
+
+    function aprovado() {
+      return logado() && papel() in ['votante', 'servo', 'anciao', 'admin'];
+    }
+
+    function organizador() {
+      return logado() && papel() in ['servo', 'anciao', 'admin'];
+    }
+
+    function administrador() {
+      return logado() && papel() == 'admin';
+    }
+
+    function meuPublicadorId() {
+      return cadastro().publicadorId;
+    }
+
+    // Cada pessoa cria o próprio cadastro:
+    //  - com e-mail e senha: sempre como "pendente", até o administrador aprovar;
+    //  - pelo link pessoal: como "votante", ligado ao publicador daquele link.
+    // Só o administrador muda perfil e vínculo.
+    match /usuarios/{uid} {
+      allow read: if logado() && (request.auth.uid == uid || administrador());
+      allow create: if logado()
+        && request.auth.uid == uid
+        && (
+          (request.auth.token.firebase.sign_in_provider != 'anonymous'
+            && request.resource.data.papel == 'pendente'
+            && request.resource.data.publicadorId == null
+            && request.resource.data.keys().hasOnly(['nome', 'email', 'papel', 'publicadorId', 'criadoEm']))
+          ||
+          (request.resource.data.papel == 'votante'
+            && request.resource.data.keys().hasOnly(['nome', 'email', 'papel', 'publicadorId', 'conviteId', 'criadoEm'])
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.ativo == true
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.publicadorId == request.resource.data.publicadorId
+            && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.nome == request.resource.data.nome)
+        );
+      allow update, delete: if administrador();
+    }
+
+    // Link pessoal: o código secreto é o próprio id do documento.
+    // Quem conhece o código abre só esse convite; ninguém consegue listar os convites.
+    match /convites/{codigo} {
+      allow get: if logado();
+      allow list, write: if administrador();
+    }
+
+    // A lista de publicadores é só dos organizadores.
+    // O votante lê apenas o próprio registro.
+    match /publicadores/{id} {
+      allow read: if organizador() || (aprovado() && id == meuPublicadorId());
+      allow write: if organizador();
+    }
+
+    // Pontos e horários padrão.
+    match /config/{doc} {
+      allow read: if aprovado();
+      allow write: if organizador();
+    }
+
+    match /enquetes/{enqueteId} {
+      // Rascunhos só os organizadores veem.
+      allow read: if organizador()
+        || (aprovado() && resource.data.status in ['aberta', 'fechada', 'publicada']);
+      allow write: if organizador();
+
+      // O votante só grava o próprio voto, e só com a votação aberta.
+      match /votos/{pubId} {
+        allow read: if organizador() || (aprovado() && pubId == meuPublicadorId());
+        allow write: if organizador()
+          || (aprovado()
+              && pubId == meuPublicadorId()
+              && request.resource.data.publicadorId == pubId
+              && get(/databases/$(database)/documents/enquetes/$(enqueteId)).data.status == 'aberta');
+        allow delete: if organizador();
+      }
+
+      // A escala só aparece para os votantes depois de publicada.
+      match /escala/{doc} {
+        allow read: if organizador()
+          || (aprovado()
+              && resource.data.publicada == true
+              && get(/databases/$(database)/documents/enquetes/$(enqueteId)).data.status == 'publicada');
+        allow write: if organizador();
+      }
+    }
+  }
+}

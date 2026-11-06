@@ -1,0 +1,16 @@
+{
+  "name": "tpmobile",
+  "private": true,
+  "description": "Gestor de escalas de carrinho (testemunho público)",
+  "scripts": {
+    "css": "tailwindcss -c tailwind.config.js -i src/input.css -o public/css/tailwind.css --minify",
+    "test": "node --test",
+    "serve": "npx --yes http-server public -p 8080 -c-1",
+    "verificar": "node scripts/verificar-publicacao.mjs",
+    "deploy": "npm run verificar && firebase deploy --only hosting",
+    "deploy:regras": "firebase deploy --only firestore:rules"
+  },
+  "devDependencies": {
+    "tailwindcss": "^3.4.17"
+  }
+}
