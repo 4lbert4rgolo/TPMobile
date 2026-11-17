@@ -135,7 +135,11 @@ export async function criarBackendFirebase(cfg) {
       await F.setDoc(ref('publicadores', id), semId(p));
       return id;
     },
-    excluirPublicador: (id) => F.deleteDoc(ref('publicadores', id)),
+    async excluirPublicador(id) {
+      await F.deleteDoc(ref('publicadores', id));
+      // apaga também o "costume" do publicador, para não deixar dado órfão
+      try { await F.deleteDoc(ref('disponibilidadePadrao', id)); } catch (e) { /* sem costume ou sem permissão */ }
+    },
 
     async getConfig() {
       return (await um('config', 'geral')) || { ...CONFIG_PADRAO };
@@ -372,7 +376,10 @@ export function criarBackendDemo() {
       gravar('publicadores', lista);
       return id;
     },
-    async excluirPublicador(id) { gravar('publicadores', ler('publicadores', []).filter((p) => p.id !== id)); },
+    async excluirPublicador(id) {
+      gravar('publicadores', ler('publicadores', []).filter((p) => p.id !== id));
+      const padroes = { ...ler('padroes', {}) }; delete padroes[id]; gravar('padroes', padroes);
+    },
 
     async getConfig() { return ler('config', { ...CONFIG_PADRAO }); },
     async salvarConfig(c) { gravar('config', c); },
