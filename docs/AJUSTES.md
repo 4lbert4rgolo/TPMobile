@@ -82,3 +82,7 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 **Para publicar:** rode `npm run deploy` (site) **e** `npm run deploy:regras` (regras do Firestore, nova coleção `disponibilidadePadrao`). Sem as regras novas, salvar o costume dá erro de permissão (o voto em si continua sendo salvo). Alternativa: copiar o conteúdo de `firestore.rules` em Firebase Console > Firestore > Regras > Publicar.
 
 **Telefone no cadastro.** O cadastro do publicador tem o campo opcional "Telefone com WhatsApp" (DDD + número; o 55 do Brasil é acrescentado sozinho). Com telefone, os botões **Lembrar** e **Enviar link** abrem a conversa direto com a pessoa; sem telefone, o WhatsApp deixa você escolher o contato. O "Lembrar o grupo" continua igual. Os telefones ficam no Firestore, visíveis só para os organizadores (e para a própria pessoa), e nunca no código do GitHub.
+
+## v2.7 — Novo visual (verde, como o AlpDesk) e novo ícone
+
+Cores trocadas do azul para o verde do AlpDesk (`#0f7a68` nos botões e cabeçalho, `#0b5f51` nos textos de destaque, `#1eb39a` como realce). Novo ícone: calendário com visto, nos arquivos `public/icons/` (192, 512, maskable, iPhone), `favicon.svg` e `favicon.png`, e também no cabeçalho do app. Quem já instalou o app no celular pode precisar remover e instalar de novo para o ícone da tela inicial mudar.
