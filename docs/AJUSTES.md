@@ -67,3 +67,18 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 - Arquivos novos: `public/manifest.webmanifest`, `public/sw.js`, `public/icons/*` (ícones feitos a partir do seu ícone azul), `docs/APP_INSTALAVEL.md`.
 - `firebase.json`: o manifesto também não fica em cache. `scripts/verificar-publicacao.mjs`: confere os arquivos novos antes de publicar.
 - Não precisa mexer em regras do Firestore nem em Authentication.
+
+## v2.5 — Lembretes, horários de costume e separador na escala
+
+**Separador na escala.** Quem está na mesma dupla/trio aparece assim: `Ana / Bruno / Carlos` (tela, impressão e Excel). Para usar "e", troque a constante `SEPARADOR_ESCALA` em `public/js/app.js` por `' e '`.
+
+**Avisar quem não votou.**
+- Aba *Enquetes*: cada enquete aberta mostra "12 de 40 já votaram" e o atalho "ver quem falta e lembrar".
+- Aba *Votos*: barra de progresso, botão **Lembrar** em cada pessoa que não votou (abre o WhatsApp com a mensagem pronta; você escolhe o contato e envia) e botão **Lembrar o grupo** (texto pronto com o link geral e quantos faltam, sem citar nomes).
+- Se a pessoa tem link pessoal (aba *Links de acesso*, só o administrador enxerga), a mensagem leva o link pessoal; senão, leva o link geral.
+
+**Horários de costume.** Ao salvar o voto, a caixa "Guardar como meu costume" grava os horários por *dia da semana + horário + ponto*. Nas próximas enquetes, quem ainda não votou já encontra tudo marcado com o aviso "Marcamos os seus horários de costume. Confira e salve". Horários bloqueados e dias sem carrinho nunca são marcados. Quem já votou tem o botão "Marcar meus horários de costume".
+
+**Para publicar:** rode `npm run deploy` (site) **e** `npm run deploy:regras` (regras do Firestore, nova coleção `disponibilidadePadrao`). Sem as regras novas, salvar o costume dá erro de permissão (o voto em si continua sendo salvo). Alternativa: copiar o conteúdo de `firestore.rules` em Firebase Console > Firestore > Regras > Publicar.
+
+**Telefone no cadastro.** O cadastro do publicador tem o campo opcional "Telefone com WhatsApp" (DDD + número; o 55 do Brasil é acrescentado sozinho). Com telefone, os botões **Lembrar** e **Enviar link** abrem a conversa direto com a pessoa; sem telefone, o WhatsApp deixa você escolher o contato. O "Lembrar o grupo" continua igual. Os telefones ficam no Firestore, visíveis só para os organizadores (e para a própria pessoa), e nunca no código do GitHub.

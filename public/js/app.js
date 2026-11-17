@@ -367,15 +367,59 @@ function escolherEnquetePadrao(lista) {
 
 /* ============================================================ votar */
 
+const diaDaSemana = (data) => { const [a, m, d] = data.split('-').map(Number); return new Date(a, m - 1, d).getDay(); };
+
+/** Transforma o "costume" (dia da semana + horário) nos horários desta enquete, respeitando bloqueios. */
+function horariosDoCostume(enquete, padrao) {
+  const disp = Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set()]));
+  if (!padrao) return disp;
+  for (const ponto of enquete.pontos) {
+    const usuais = new Set(padrao[ponto] || []);
+    for (const dia of enquete.dias) {
+      if (dia.ativo === false) continue;
+      for (const turno of enquete.turnos) {
+        if (usuais.has(`${diaDaSemana(dia.data)}|${turno}`) && !celulaBloqueada(enquete, dia.data, turno, ponto)) disp[ponto].add(chave(dia.data, turno));
+      }
+    }
+  }
+  return disp;
+}
+
+/** Guarda o voto como "costume": troca a data pelo dia da semana, para valer em qualquer semana. */
+function costumeDoVoto(disponibilidade) {
+  return Object.fromEntries(Object.entries(disponibilidade).map(([ponto, lista]) => [
+    ponto,
+    [...new Set(lista.map((k) => { const [data, ...turno] = k.split('|'); return `${diaDaSemana(data)}|${turno.join('|')}`; }))],
+  ]));
+}
+
 async function carregarVoto(enquete, pubId) {
   const existente = await estado.backend.getVoto(enquete.id, pubId);
+  let padrao = null;
+  try { padrao = (await estado.backend.getPadrao(pubId))?.padrao || null; } catch { /* sem costume guardado */ }
+  const temCostume = Boolean(padrao && Object.values(padrao).some((l) => l.length));
+  const doCostume = !existente && temCostume;
   estado.voto = {
     enqueteId: enquete.id,
     pubId,
     jaVotou: Boolean(existente),
     filtro: lerPref('filtro-ponto') || '',
-    disp: Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.disponibilidade?.[ponto] || [])])),
+    padrao: temCostume ? padrao : null,
+    preenchidoDoCostume: doCostume,
+    guardarPadrao: !temCostume,
+    disp: doCostume
+      ? horariosDoCostume(enquete, padrao)
+      : Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.disponibilidade?.[ponto] || [])])),
   };
+}
+
+function usarCostume() {
+  const e = enqueteAtual();
+  estado.voto.disp = horariosDoCostume(e, estado.voto.padrao);
+  estado.voto.preenchidoDoCostume = true;
+  estado.voto.salvo = false;
+  renderAreaVoto();
+  toast('Horários de costume marcados. Confira e salve.');
 }
 
 /** Pontos em que esta pessoa vota (todos, se não houver restrição no cadastro). */
@@ -449,10 +493,18 @@ function htmlVoto(enquete, leitura = false) {
       <div class="sticky bottom-0 bg-slate-50/95 py-3 flex flex-wrap items-center gap-3">
         <button class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold" data-acao="salvar-voto">Salvar meus votos</button>
         <span class="text-sm text-slate-600" id="contagem-voto">${totalMarcado()} horário(s) marcado(s)</span>
+        <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-acao="guardar-costume" ${v.guardarPadrao ? 'checked' : ''}> ${v.padrao ? 'Atualizar' : 'Guardar como'} meu costume (para já vir marcado nas próximas)</label>
       </div>`
     : `<p class="text-sm text-slate-500">${enquete.status === 'aberta' ? '' : 'A votação desta enquete está encerrada.'}</p>`;
 
-  return nota + filtro + pontos + rodape;
+  const avisoCostume = aberta && v.preenchidoDoCostume && !v.salvo
+    ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 rounded-xl p-3 mb-3 text-sm"><strong>Marcamos os seus horários de costume.</strong> Confira, mude o que precisar e toque em <strong>Salvar meus votos</strong>.</div>'
+    : '';
+  const botaoCostume = aberta && v.padrao && !v.preenchidoDoCostume
+    ? '<button type="button" class="px-3 py-1 rounded-lg bg-blue-50 text-blue-800 text-sm mb-3" data-acao="usar-costume">↺ Marcar meus horários de costume</button>'
+    : '';
+
+  return nota + avisoCostume + botaoCostume + filtro + pontos + rodape;
 }
 
 function renderAreaVoto() {
@@ -535,6 +587,10 @@ async function salvarVoto() {
     Object.entries(v.disp).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
   );
   const ok = await tentar(() => estado.backend.salvarVoto(e.id, v.pubId, { disponibilidade, nome: pub?.nome || '' }), 'Votos salvos!');
+  if (ok && v.guardarPadrao) {
+    const padrao = costumeDoVoto(disponibilidade);
+    try { await estado.backend.salvarPadrao(v.pubId, padrao); v.padrao = padrao; v.guardarPadrao = false; } catch { toast('O voto foi salvo, mas não deu para guardar o costume.', 'erro'); }
+  }
   if (ok && $('#modal').innerHTML) { fecharModal(); renderAba(); return; }
   if (ok) {
     estado.voto.salvo = true;
@@ -560,10 +616,22 @@ async function renderVotos() {
   const ativos = estado.pubs.filter((p) => p.ativo !== false).sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
   const porPub = new Map(estado.votos.map((v) => [v.publicadorId, v]));
   const votaram = ativos.filter((p) => porPub.has(p.id)).length;
+  const aberta = enquete.status === 'aberta';
+  const faltam = ativos.length - votaram;
+  const pct = ativos.length ? Math.round((votaram / ativos.length) * 100) : 0;
+  if (ehAdmin()) {
+    try { estado.convites = (await estado.backend.listarConvites()).filter((cv) => cv.ativo !== false); } catch { estado.convites = []; }
+  }
 
   c.innerHTML = `
     ${seletorEnquete(estado.enquetes, 'escolher-enquete')}
-    <p class="mb-3 text-slate-700"><strong>${votaram} de ${ativos.length}</strong> publicadores já votaram.</p>
+    <div class="mb-3">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <p class="text-slate-700"><strong>${votaram} de ${ativos.length}</strong> publicadores já votaram${faltam ? ` · faltam ${faltam}` : ' · todos votaram 🎉'}.</p>
+        ${aberta && faltam ? '<button class="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-semibold" data-acao="lembrar-grupo">📣 Lembrar o grupo</button>' : ''}
+      </div>
+      <div class="h-2 bg-slate-200 rounded-full mt-2 overflow-hidden" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="h-2 bg-green-500 rounded-full" style="width:${pct}%"></div></div>
+    </div>
     <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-slate-100 text-left"><tr><th class="p-3">Publicador</th><th class="p-3">Situação</th><th class="p-3"></th></tr></thead>
@@ -575,12 +643,50 @@ async function renderVotos() {
             return `<tr class="border-t">
               <td class="p-3 font-medium">${esc(p.nome)}</td>
               <td class="p-3">${v ? `<span class="text-green-700">Votou · ${n} horário(s)</span>` : '<span class="text-slate-400">Ainda não votou</span>'}</td>
-              <td class="p-3 text-right"><button class="text-blue-700 underline" data-acao="votar-por" data-id="${esc(p.id)}">${v ? 'Editar votos' : 'Lançar votos'}</button></td>
+              <td class="p-3 text-right whitespace-nowrap">${!v && aberta ? `<button class="text-green-700 underline mr-3 font-semibold" data-acao="lembrar" data-id="${esc(p.id)}">Lembrar</button>` : ''}<button class="text-blue-700 underline" data-acao="votar-por" data-id="${esc(p.id)}">${v ? 'Editar votos' : 'Lançar votos'}</button></td>
             </tr>`;
           }).join('')}
         </tbody>
       </table>
     </div>`;
+}
+
+/** Só os dígitos, com 55 (Brasil) na frente quando vier sem o código do país. */
+function numeroWhats(tel) {
+  const d = String(tel || '').replace(/\D/g, '').replace(/^0+/, '');
+  if (!d) return '';
+  return d.length <= 11 ? `55${d}` : d;
+}
+const urlWhats = (pub, texto) => `https://wa.me/${numeroWhats(pub?.telefone)}?text=${encodeURIComponent(texto)}`;
+
+const linkGeral = () => `${location.origin}${location.pathname.replace(/index\.html$/, '')}`;
+
+/** Abre o WhatsApp com o lembrete pronto. Usa o link pessoal, se existir; senão, o link geral. */
+function lembrar(pubId) {
+  const e = enqueteAtual();
+  const pub = pubPorId(pubId);
+  if (!e || !pub) return;
+  const cv = estado.convites.find((x) => x.publicadorId === pubId);
+  const url = cv ? urlDoLink(cv.id) : linkGeral();
+  const texto = `Olá, ${pub.nome}! 🛒 A enquete do carrinho "${e.titulo}" está aberta e ainda falta o seu voto. É rapidinho, é só tocar no link:\n${url}\nVocê pode mudar o voto depois, até a enquete encerrar.`;
+  window.open(urlWhats(pub, texto), '_blank', 'noopener');
+}
+
+function abrirLembreteGrupo() {
+  const e = enqueteAtual();
+  if (!e) return;
+  const ativos = estado.pubs.filter((p) => p.ativo !== false);
+  const votaram = new Set(estado.votos.map((v) => v.publicadorId));
+  const faltam = ativos.filter((p) => !votaram.has(p.id)).length;
+  const texto = `🛒 *Lembrete — ${e.titulo}*\n\nA votação do carrinho ainda está aberta e faltam ${faltam} de ${ativos.length} irmãos votarem.\n\nVote pelo aplicativo:\n${linkGeral()}\n\nVocê pode mudar o voto até a enquete encerrar.`;
+  abrirModal(`
+    <h2 class="font-bold mb-2">Lembrete para o grupo</h2>
+    <textarea id="texto-whats" class="w-full border rounded-lg p-2 text-sm" rows="9" readonly>${esc(texto)}</textarea>
+    <div class="flex flex-wrap justify-end gap-2 mt-3">
+      <button class="px-4 py-2 rounded-lg bg-slate-100" data-acao="fechar-modal">Fechar</button>
+      <button class="px-4 py-2 rounded-lg bg-blue-100 text-blue-800 font-semibold" data-acao="copiar-whats">Copiar</button>
+      <button class="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold" data-acao="abrir-whats-texto">Abrir no WhatsApp</button>
+    </div>`);
 }
 
 async function votarPor(pubId) {
@@ -646,6 +752,9 @@ function formularioPublicador(id) {
         <select id="pb-genero" class="w-full border rounded-lg p-2">
           <option value="M" ${p?.genero !== 'F' ? 'selected' : ''}>Irmão</option>
           <option value="F" ${p?.genero === 'F' ? 'selected' : ''}>Irmã</option></select></div>
+      <div><label class="text-sm font-medium" for="pb-tel">Telefone com WhatsApp (opcional)</label>
+        <input id="pb-tel" type="tel" inputmode="tel" autocomplete="off" placeholder="(11) 91234-5678" class="w-full border rounded-lg p-2" value="${esc(p?.telefone || '')}">
+        <p class="text-xs text-slate-500 mt-1">Só serve para o botão "Lembrar" abrir a conversa direto com a pessoa. Fica visível apenas para os organizadores.</p></div>
       <div><label class="text-sm font-medium" for="pb-conjuge">Par fixo (opcional)</label>
         <select id="pb-conjuge" class="w-full border rounded-lg p-2"><option value="">Nenhum</option>
           ${outros.map((o) => `<option value="${esc(o.id)}" ${p?.conjuge === o.id ? 'selected' : ''}>${esc(o.nome)}</option>`).join('')}</select></div>
@@ -672,8 +781,11 @@ async function salvarPublicadorForm(form) {
   const onde = document.querySelector('input[name=pb-onde]:checked')?.value;
   const marcados = [...document.querySelectorAll('input[name=pb-ponto]:checked')].map((i) => i.value);
   if (onde === 'alguns' && !marcados.length) return toast('Marque pelo menos um ponto ou escolha "Todos os pontos".', 'erro');
+  const telefone = $('#pb-tel').value.trim();
+  if (telefone && numeroWhats(telefone).length < 12) return toast('Telefone incompleto. Use DDD + número, ex.: (11) 91234-5678.', 'erro');
   const dados = {
     nome,
+    telefone,
     pontosVoto: onde === 'alguns' ? marcados : [],
     genero: $('#pb-genero').value,
     conjuge: $('#pb-conjuge').value,
@@ -792,6 +904,12 @@ async function renderEnquetes() {
   const c = $('#conteudo');
   if (estado.ed) return renderEditor();
 
+  const ativosIds = new Set(estado.pubs.filter((p) => p.ativo !== false).map((p) => p.id));
+  const progresso = new Map();
+  await Promise.all(estado.enquetes.filter((e) => e.status === 'aberta').map(async (e) => {
+    try { progresso.set(e.id, (await estado.backend.listarVotos(e.id)).filter((v) => ativosIds.has(v.publicadorId)).length); } catch { /* sem contador */ }
+  }));
+
   c.innerHTML = `
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <h2 class="text-lg font-bold">Enquetes</h2>
@@ -818,6 +936,7 @@ async function renderEnquetes() {
               <p class="text-sm text-slate-500">${dataCurta(e.inicio)} a ${dataCurta(e.fim)} · ${e.pontos.length} ponto(s) · ${e.tipo === 'evento' ? 'Evento' : 'Semana'}</p></div>
             <span class="text-xs font-semibold px-3 py-1 rounded-full ${cor}">${rotuloStatus}</span>
           </div>
+          ${progresso.has(e.id) ? `<p class="text-sm mt-2"><strong>${progresso.get(e.id)} de ${ativosIds.size}</strong> já votaram · <button class="text-green-700 underline font-semibold" data-acao="ver-votos" data-id="${esc(e.id)}">ver quem falta e lembrar</button></p>` : ''}
           <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm">
             ${botoes.map(([a, r]) => `<button class="${a === 'excluir-enquete' ? 'text-red-600' : 'text-blue-700'} underline" data-acao="${a}" data-id="${esc(e.id)}">${r}</button>`).join('')}
           </div></article>`;
@@ -1025,6 +1144,9 @@ function abrirTextoWhats(id) {
 
 /* ============================================================ escala */
 
+/** Separador entre as pessoas da mesma dupla/trio. Para usar "e", troque por ' e '. */
+const SEPARADOR_ESCALA = ' / ';
+
 function htmlMatriz(enquete, matriz, ponto, { editavel = false, avisos = [], meuId = null } = {}) {
   const marcas = new Map();
   for (const a of avisos) {
@@ -1048,7 +1170,9 @@ function htmlMatriz(enquete, matriz, ponto, { editavel = false, avisos = [], meu
       cel.tipo === 'vazio' ? 'celula-vazia' : '',
     ].join(' ');
     const dados = editavel ? `data-acao="editar-celula" data-ponto="${esc(ponto)}" data-data="${esc(dia.data)}" data-turno="${esc(turno)}" tabindex="0"` : '';
-    const conteudo = cel.tipo === 'equipe' ? cel.pessoas.map((p) => `<div>${esc(p.nome)}</div>`).join('') : 'Pregação';
+    const conteudo = cel.tipo === 'equipe'
+      ? cel.pessoas.map((p) => `<span class="nome-escala">${esc(p.nome)}</span>`).join(`<span class="sep-escala" aria-hidden="true">${SEPARADOR_ESCALA}</span>`)
+      : 'Pregação';
     return `<td class="${classes}" ${dados}>${conteudo}</td>`;
   };
 
@@ -1271,7 +1395,7 @@ function exportarExcel() {
       linhas.push([turno, ...e.dias.map((d) => {
         const cel = estado.escala.matriz?.[ponto]?.[d.data]?.[turno];
         if (!cel) return '';
-        if (cel.tipo === 'equipe') return cel.pessoas.map((p) => p.nome).join(' / ');
+        if (cel.tipo === 'equipe') return cel.pessoas.map((p) => p.nome).join(SEPARADOR_ESCALA);
         if (cel.tipo === 'bloqueio') return cel.nota || 'Sem carrinho';
         return 'Pregação';
       })]);
@@ -1475,7 +1599,7 @@ async function copiarLink(token) {
 function enviarLinkWhats(token) {
   const cv = estado.convites.find((x) => x.id === token);
   if (!cv) return;
-  window.open(`https://wa.me/?text=${encodeURIComponent(mensagemDoLink(cv.nome, urlDoLink(token)))}`, '_blank', 'noopener');
+  window.open(urlWhats(pubPorId(cv.publicadorId), mensagemDoLink(cv.nome, urlDoLink(token))), '_blank', 'noopener');
 }
 
 async function revogarLink(token) {
@@ -1526,6 +1650,11 @@ const acoes = {
   'marcar-tudo': (el) => marcarPonto(el.dataset.ponto, true),
   'limpar-ponto': (el) => marcarPonto(el.dataset.ponto, false),
   'salvar-voto': salvarVoto,
+  'usar-costume': usarCostume,
+  'guardar-costume': (el) => { estado.voto.guardarPadrao = el.checked; },
+  'lembrar': (el) => lembrar(el.dataset.id),
+  'lembrar-grupo': () => abrirLembreteGrupo(),
+  'abrir-whats-texto': () => window.open(`https://wa.me/?text=${encodeURIComponent($('#texto-whats').value)}`, '_blank', 'noopener'),
   'copiar-ponto': (el) => copiarPonto(el.dataset.ponto),
   'filtro-ponto': (el) => { estado.voto.filtro = el.dataset.ponto; gravarPref('filtro-ponto', estado.voto.filtro); renderAreaVoto(); },
   'votar-por': (el) => votarPor(el.dataset.id),

@@ -8,6 +8,7 @@
     "serve": "npx --yes http-server public -p 8080 -c-1",
     "verificar": "node scripts/verificar-publicacao.mjs",
     "deploy": "npm run verificar && firebase deploy --only hosting",
+    "deploy:regras": "firebase deploy --only firestore:rules",
     "deploy:regras": "firebase deploy --only firestore:rules"
   },
   "devDependencies": {

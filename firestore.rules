@@ -80,6 +80,14 @@ service cloud.firestore {
       allow write: if organizador();
     }
 
+    // Horários de costume de cada publicador (já vêm marcados nas novas enquetes).
+    // O votante lê e grava só o próprio; os organizadores acessam todos.
+    match /disponibilidadePadrao/{pubId} {
+      allow read: if organizador() || (aprovado() && pubId == meuPublicadorId());
+      allow write: if organizador()
+        || (aprovado() && pubId == meuPublicadorId() && request.resource.data.publicadorId == pubId);
+    }
+
     // Pontos e horários padrão.
     match /config/{doc} {
       allow read: if aprovado();

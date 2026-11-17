@@ -166,6 +166,10 @@ export async function criarBackendFirebase(cfg) {
     salvarVoto: (enqueteId, pubId, dados) =>
       F.setDoc(ref('enquetes', enqueteId, 'votos', pubId), { ...dados, publicadorId: pubId, atualizadoEm: F.serverTimestamp() }),
 
+    getPadrao: (pubId) => um('disponibilidadePadrao', pubId),
+    salvarPadrao: (pubId, padrao) =>
+      F.setDoc(ref('disponibilidadePadrao', pubId), { padrao, publicadorId: pubId, atualizadoEm: F.serverTimestamp() }),
+
     getEscala: (enqueteId) => um('enquetes', enqueteId, 'escala', 'atual'),
     salvarEscala: (enqueteId, dados) =>
       F.setDoc(ref('enquetes', enqueteId, 'escala', 'atual'), { ...semId(dados), atualizadoEm: F.serverTimestamp() }),
@@ -401,6 +405,9 @@ export function criarBackendDemo() {
       votos[enqueteId][pubId] = { ...dados, publicadorId: pubId };
       gravar('votos', votos);
     },
+
+    async getPadrao(pubId) { const p = ler('padroes', {})[pubId]; return p ? { id: pubId, padrao: p } : null; },
+    async salvarPadrao(pubId, padrao) { const todos = ler('padroes', {}); todos[pubId] = padrao; gravar('padroes', todos); },
 
     async getEscala(enqueteId) { return ler('escalas', {})[enqueteId] || null; },
     async salvarEscala(enqueteId, dados) {
