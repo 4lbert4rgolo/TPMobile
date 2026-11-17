@@ -316,7 +316,7 @@ function renderApp() {
     <header class="bg-blue-700 text-white">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         <div class="flex items-center gap-3">
-          <img src="icons/icon-192.png" alt="" width="40" height="40" style="border-radius:10px">
+          <img src="icons/icon-192.png?v=27" alt="" width="40" height="40" style="border-radius:10px">
           <div>
             <h1 class="font-bold leading-tight">Gestor de Escalas de Carrinho</h1>
             <p class="text-xs text-blue-100">Testemunho Público</p>
