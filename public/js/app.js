@@ -513,7 +513,8 @@ function htmlVoto(enquete, leitura = false) {
 function renderAreaVoto() {
   const e = enqueteAtual();
   const area = $('#area-voto');
-  if (e && area) area.innerHTML = htmlVoto(e);
+  // Organizador lançando voto por outra pessoa pode ajustar mesmo com a votação fechada.
+  if (e && area) area.innerHTML = htmlVoto(estado.voto?.forcarAberta ? { ...e, status: 'aberta' } : e);
 }
 
 async function renderVotar() {
@@ -697,6 +698,7 @@ async function votarPor(pubId) {
   const pub = pubPorId(pubId);
   if (!e || !pub) return;
   await carregarVoto(e, pubId);
+  estado.voto.forcarAberta = true;
   abrirModal(`
     <div class="flex items-center justify-between mb-3">
       <h2 class="font-bold">Votos de ${esc(pub.nome)}</h2>
