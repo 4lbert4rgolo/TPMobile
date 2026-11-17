@@ -33,3 +33,6 @@ html.fonte-grande { font-size: 20px; }
 /* Nomes na escala: ficam na mesma linha, separados por " / ", e quebram só nos separadores */
 .nome-escala { white-space: nowrap; }
 .sep-escala { color: #94a3b8; font-weight: 400; white-space: pre-wrap; }
+
+/* Caixas e botões de marcar no verde do tema */
+input[type="checkbox"], input[type="radio"] { accent-color: #0f7a68; }
