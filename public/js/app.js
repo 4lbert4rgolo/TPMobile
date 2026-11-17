@@ -315,9 +315,12 @@ function renderApp() {
     ${faixaDemo()}
     <header class="bg-blue-700 text-white">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <div>
-          <h1 class="font-bold leading-tight">Gestor de Escalas de Carrinho</h1>
-          <p class="text-xs text-blue-100">Testemunho Público</p>
+        <div class="flex items-center gap-3">
+          <img src="icons/icon-192.png" alt="" width="40" height="40" style="border-radius:10px">
+          <div>
+            <h1 class="font-bold leading-tight">Gestor de Escalas de Carrinho</h1>
+            <p class="text-xs text-blue-100">Testemunho Público</p>
+          </div>
         </div>
         <div class="text-right text-sm">
           <p class="font-semibold">${esc(p.nome)}</p>
@@ -629,7 +632,7 @@ async function renderVotos() {
     <div class="mb-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="text-slate-700"><strong>${votaram} de ${ativos.length}</strong> publicadores já votaram${faltam ? ` · faltam ${faltam}` : ' · todos votaram 🎉'}.</p>
-        ${aberta && faltam ? '<button class="bg-green-600 text-white rounded-lg px-4 py-2 text-sm font-semibold" data-acao="lembrar-grupo">📣 Lembrar o grupo</button>' : ''}
+        ${aberta && faltam ? '<button class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold" data-acao="lembrar-grupo">📣 Lembrar o grupo</button>' : ''}
       </div>
       <div class="h-2 bg-slate-200 rounded-full mt-2 overflow-hidden" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="h-2 bg-green-500 rounded-full" style="width:${pct}%"></div></div>
     </div>
