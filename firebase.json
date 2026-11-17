@@ -16,7 +16,7 @@
         ]
       },
       {
-        "source": "**/*.@(js|css|html|webmanifest)",
+        "source": "**/*.@(js|css|html|webmanifest|png|svg|ico)",
         "headers": [{ "key": "Cache-Control", "value": "no-cache" }]
       }
     ]
