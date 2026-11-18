@@ -86,3 +86,20 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 ## v2.7 — Novo visual (verde, como o AlpDesk) e novo ícone
 
 Cores trocadas do azul para o verde do AlpDesk (`#0f7a68` nos botões e cabeçalho, `#0b5f51` nos textos de destaque, `#1eb39a` como realce). Novo ícone: calendário com visto, nos arquivos `public/icons/` (192, 512, maskable, iPhone), `favicon.svg` e `favicon.png`, e também no cabeçalho do app. Quem já instalou o app no celular pode precisar remover e instalar de novo para o ícone da tela inicial mudar.
+
+
+## v2.8 — Menu hambúrguer, privacidade, backup e código organizado
+
+**Menu hambúrguer.** O botão **☰ Menu** (canto direito do cabeçalho) abre um painel com as seções do seu perfil, "Letras maiores", "Instalar app", "Privacidade e dados" e "Sair". Fecha com o ✕, tocando fora do painel ou com a tecla Esc. O cabeçalho mostra a seção atual.
+
+**Privacidade e dados.** Tela com o que o app guarda, quem vê o quê, por quanto tempo (3 meses) e como pedir correção ou remoção. O prazo fica em `MESES_DE_RETENCAO` (`public/js/retencao.js`).
+
+**Backup e dados antigos (só administrador).**
+- *Baixar backup*: arquivo `tpmobile-backup-AAAA-MM-DD.json` com publicadores, enquetes, votos, escalas, costumes e usuários. Links pessoais ficam de fora de propósito (quem tem o link entra no app).
+- *Apagar dados antigos*: lista as enquetes que terminaram há mais de 3 meses (nunca as que estão com votação aberta), baixa o backup e só então apaga, depois de confirmar. Nada é apagado sozinho.
+
+**Código separado por área** (`public/js/`): `nucleo.js` (estado e utilidades), `sessao.js` (login e início), `shell.js` (cabeçalho, menu e troca de seção), `votar.js`, `votos.js`, `publicadores.js`, `enquetes.js`, `telaEscala.js`, `usuarios.js`, `links.js`, `dados.js`, `retencao.js`, `instalar.js`, e `app.js` (liga os botões às ações). Nada mudou no funcionamento. Continua sendo uma única página (`index.html`).
+
+**Testes automáticos.** `npm test` roda no GitHub a cada envio e **antes de cada publicação** (se falhar, o site não é publicado). As regras do Firestore têm testes próprios (`npm run test:regras`, precisa de Java), que rodam no GitHub.
+
+**Para publicar:** nada de regras novas. Basta fazer o merge da branch `melhorias-urgentes` no `master`.

@@ -9,9 +9,11 @@
     "verificar": "node scripts/verificar-publicacao.mjs",
     "deploy": "npm run verificar && firebase deploy --only hosting",
     "deploy:regras": "firebase deploy --only firestore:rules",
-    "deploy:regras": "firebase deploy --only firestore:rules"
+    "test:regras": "npx --yes firebase-tools@13 emulators:exec --only firestore --project demo-tpmobile \"node --test tests-regras/regras.spec.mjs\""
   },
   "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.4",
+    "firebase": "^10.14.1",
     "tailwindcss": "^3.4.17"
   }
 }

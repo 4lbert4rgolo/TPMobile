@@ -1,0 +1,280 @@
+// Testes das regras de segurança do Firestore (firestore.rules), rodando no emulador.
+// Como rodar: npm run test:regras   (precisa de Java; o GitHub Actions já faz isso sozinho)
+//
+// A ideia: montamos um "banco de mentira" com alguns usuários e conferimos, caso a caso,
+// o que cada perfil PODE e o que NÃO PODE fazer. Se alguém mudar uma regra e abrir uma
+// brecha (ex.: votante lendo a lista de publicadores), um destes testes falha.
+
+import test, { before, after, beforeEach } from 'node:test';
+import { readFileSync } from 'node:fs';
+import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
+
+const CONVITE = 'a'.repeat(32);
+let env;
+
+before(async () => {
+  env = await initializeTestEnvironment({
+    projectId: 'demo-tpmobile',
+    firestore: { rules: readFileSync(new URL('../firestore.rules', import.meta.url), 'utf8') },
+  });
+});
+after(async () => { await env?.cleanup(); });
+
+// Dados iniciais (gravados sem passar pelas regras).
+beforeEach(async () => {
+  await env.clearFirestore();
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore();
+    const usuarios = {
+      adm: { nome: 'Admin', papel: 'admin' },
+      servo: { nome: 'Servo', papel: 'servo' },
+      anc: { nome: 'Ancião', papel: 'anciao' },
+      vot: { nome: 'Votante', papel: 'votante', publicadorId: 'p1' },
+      pend: { nome: 'Pendente', papel: 'pendente', publicadorId: null },
+      rem: { nome: 'Removido', papel: 'removido', publicadorId: 'p3' },
+    };
+    for (const [uid, d] of Object.entries(usuarios)) await setDoc(doc(db, 'usuarios', uid), d);
+    await setDoc(doc(db, 'publicadores', 'p1'), { nome: 'Pub Um', telefone: '5511900000001' });
+    await setDoc(doc(db, 'publicadores', 'p2'), { nome: 'Pub Dois', telefone: '5511900000002' });
+    await setDoc(doc(db, 'config', 'geral'), { pontos: ['A'] });
+    await setDoc(doc(db, 'enquetes', 'aberta'), { titulo: 'Aberta', status: 'aberta' });
+    await setDoc(doc(db, 'enquetes', 'fechada'), { titulo: 'Fechada', status: 'fechada' });
+    await setDoc(doc(db, 'enquetes', 'rascunho'), { titulo: 'Rascunho', status: 'rascunho' });
+    await setDoc(doc(db, 'enquetes', 'pub'), { titulo: 'Publicada', status: 'publicada' });
+    await setDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: {} });
+    await setDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p2'), { publicadorId: 'p2', disponibilidade: {} });
+    await setDoc(doc(db, 'enquetes', 'pub', 'escala', 'atual'), { publicada: true, celulas: {} });
+    await setDoc(doc(db, 'enquetes', 'fechada', 'escala', 'atual'), { publicada: false, celulas: {} });
+    await setDoc(doc(db, 'disponibilidadePadrao', 'p1'), { publicadorId: 'p1', padrao: {} });
+    await setDoc(doc(db, 'disponibilidadePadrao', 'p2'), { publicadorId: 'p2', padrao: {} });
+    await setDoc(doc(db, 'convites', CONVITE), { ativo: true, nome: 'Pub Um', publicadorId: 'p1' });
+  });
+});
+
+const como = (uid, provedor = 'password') => env.authenticatedContext(uid, { firebase: { sign_in_provider: provedor } }).firestore();
+const anonimo = () => env.unauthenticatedContext().firestore();
+
+/* ---------------------------------------------------------------- sem login */
+
+test('sem login: não lê nada', async () => {
+  const db = anonimo();
+  await assertFails(getDoc(doc(db, 'publicadores', 'p1')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'pub')));
+  await assertFails(getDoc(doc(db, 'config', 'geral')));
+  await assertFails(getDoc(doc(db, 'convites', CONVITE)));
+  await assertFails(getDoc(doc(db, 'usuarios', 'vot')));
+});
+
+/* ---------------------------------------------------------------- pendente e removido */
+
+test('pendente: lê só o próprio cadastro', async () => {
+  const db = como('pend');
+  await assertSucceeds(getDoc(doc(db, 'usuarios', 'pend')));
+  await assertFails(getDoc(doc(db, 'usuarios', 'vot')));
+  await assertFails(getDoc(doc(db, 'publicadores', 'p1')));
+  await assertFails(getDoc(doc(db, 'config', 'geral')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'aberta')));
+});
+
+test('pendente: não consegue se promover a administrador', async () => {
+  await assertFails(updateDoc(doc(como('pend'), 'usuarios', 'pend'), { papel: 'admin' }));
+});
+
+test('removido: perde o acesso aos dados', async () => {
+  const db = como('rem');
+  await assertFails(getDoc(doc(db, 'publicadores', 'p3')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'pub')));
+  await assertFails(getDoc(doc(db, 'config', 'geral')));
+});
+
+/* ---------------------------------------------------------------- votante */
+
+test('votante: lê só o próprio publicador (e não o telefone dos outros)', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'publicadores', 'p1')));
+  await assertFails(getDoc(doc(db, 'publicadores', 'p2')));
+  await assertFails(getDocs(collection(db, 'publicadores')));
+});
+
+test('votante: não altera cadastro de publicadores', async () => {
+  const db = como('vot');
+  await assertFails(setDoc(doc(db, 'publicadores', 'p1'), { nome: 'Outro nome' }));
+  await assertFails(deleteDoc(doc(db, 'publicadores', 'p1')));
+});
+
+test('votante: vê enquetes abertas, fechadas e publicadas, mas não rascunhos', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'enquetes', 'aberta')));
+  await assertSucceeds(getDoc(doc(db, 'enquetes', 'fechada')));
+  await assertSucceeds(getDoc(doc(db, 'enquetes', 'pub')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'rascunho')));
+});
+
+test('votante: não cria, altera nem apaga enquetes', async () => {
+  const db = como('vot');
+  await assertFails(setDoc(doc(db, 'enquetes', 'nova'), { titulo: 'x', status: 'aberta' }));
+  await assertFails(updateDoc(doc(db, 'enquetes', 'aberta'), { status: 'publicada' }));
+  await assertFails(deleteDoc(doc(db, 'enquetes', 'aberta')));
+});
+
+test('votante: grava o próprio voto com a votação aberta', async () => {
+  await assertSucceeds(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: { x: 1 } }));
+});
+
+test('votante: não grava voto de outra pessoa', async () => {
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p2'), { publicadorId: 'p2', disponibilidade: {} }));
+});
+
+test('votante: não grava o próprio voto com o publicadorId trocado', async () => {
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p2', disponibilidade: {} }));
+});
+
+test('votante: não vota em enquete fechada', async () => {
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'fechada', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: {} }));
+});
+
+test('votante: lê o próprio voto, não o dos outros', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p1')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p2')));
+  await assertFails(getDocs(collection(db, 'enquetes', 'aberta', 'votos')));
+});
+
+test('votante: só vê a escala publicada', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'enquetes', 'pub', 'escala', 'atual')));
+  await assertFails(getDoc(doc(db, 'enquetes', 'fechada', 'escala', 'atual')));
+});
+
+test('votante: não altera a escala', async () => {
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'pub', 'escala', 'atual'), { publicada: true, celulas: { a: 1 } }));
+});
+
+test('votante: costume — lê e grava só o próprio', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'disponibilidadePadrao', 'p1')));
+  await assertSucceeds(setDoc(doc(db, 'disponibilidadePadrao', 'p1'), { publicadorId: 'p1', padrao: { ponto: ['1|x'] } }));
+  await assertFails(getDoc(doc(db, 'disponibilidadePadrao', 'p2')));
+  await assertFails(setDoc(doc(db, 'disponibilidadePadrao', 'p2'), { publicadorId: 'p2', padrao: {} }));
+  await assertFails(setDoc(doc(db, 'disponibilidadePadrao', 'p1'), { publicadorId: 'p2', padrao: {} }));
+});
+
+test('votante: lê a configuração, mas não altera', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'config', 'geral')));
+  await assertFails(setDoc(doc(db, 'config', 'geral'), { pontos: [] }));
+});
+
+test('votante: não lê a lista de usuários nem muda o próprio perfil', async () => {
+  const db = como('vot');
+  await assertFails(getDocs(collection(db, 'usuarios')));
+  await assertFails(getDoc(doc(db, 'usuarios', 'adm')));
+  await assertFails(updateDoc(doc(db, 'usuarios', 'vot'), { papel: 'admin' }));
+});
+
+/* ---------------------------------------------------------------- organizadores */
+
+for (const uid of ['servo', 'anc']) {
+  test(`${uid}: lê todos os publicadores e edita o cadastro`, async () => {
+    const db = como(uid);
+    await assertSucceeds(getDocs(collection(db, 'publicadores')));
+    await assertSucceeds(setDoc(doc(db, 'publicadores', 'p9'), { nome: 'Novo' }));
+    await assertSucceeds(deleteDoc(doc(db, 'publicadores', 'p9')));
+  });
+
+  test(`${uid}: cria enquete, vê rascunhos, lê votos e mexe na escala`, async () => {
+    const db = como(uid);
+    await assertSucceeds(setDoc(doc(db, 'enquetes', 'n1'), { titulo: 'N', status: 'rascunho' }));
+    await assertSucceeds(getDoc(doc(db, 'enquetes', 'rascunho')));
+    await assertSucceeds(getDocs(collection(db, 'enquetes', 'aberta', 'votos')));
+    await assertSucceeds(setDoc(doc(db, 'enquetes', 'fechada', 'votos', 'p2'), { publicadorId: 'p2', disponibilidade: {} }));
+    await assertSucceeds(setDoc(doc(db, 'enquetes', 'fechada', 'escala', 'atual'), { publicada: false, celulas: {} }));
+    await assertSucceeds(getDoc(doc(db, 'disponibilidadePadrao', 'p2')));
+  });
+
+  test(`${uid}: não lê a lista de usuários nem muda perfis`, async () => {
+    const db = como(uid);
+    await assertFails(getDocs(collection(db, 'usuarios')));
+    await assertFails(updateDoc(doc(db, 'usuarios', 'vot'), { papel: 'admin' }));
+    await assertFails(updateDoc(doc(db, 'usuarios', uid), { papel: 'admin' }));
+  });
+
+  test(`${uid}: não lista nem cria links pessoais`, async () => {
+    const db = como(uid);
+    await assertFails(getDocs(collection(db, 'convites')));
+    await assertFails(setDoc(doc(db, 'convites', 'b'.repeat(32)), { ativo: true, nome: 'X', publicadorId: 'p2' }));
+  });
+}
+
+/* ---------------------------------------------------------------- administrador */
+
+test('administrador: lê e altera usuários, lista e cria convites', async () => {
+  const db = como('adm');
+  await assertSucceeds(getDocs(collection(db, 'usuarios')));
+  await assertSucceeds(updateDoc(doc(db, 'usuarios', 'pend'), { papel: 'votante' }));
+  await assertSucceeds(getDocs(collection(db, 'convites')));
+  await assertSucceeds(setDoc(doc(db, 'convites', 'c'.repeat(32)), { ativo: true, nome: 'Pub Dois', publicadorId: 'p2' }));
+  await assertSucceeds(updateDoc(doc(db, 'convites', CONVITE), { ativo: false }));
+});
+
+test('administrador: apaga enquete com votos e escala (limpeza de dados antigos)', async () => {
+  const db = como('adm');
+  await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p1')));
+  await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'pub', 'escala', 'atual')));
+  await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'pub')));
+});
+
+/* ---------------------------------------------------------------- cadastro de usuário */
+
+test('cadastro por e-mail: só entra como pendente', async () => {
+  const db = como('novo');
+  await assertSucceeds(setDoc(doc(db, 'usuarios', 'novo'), { nome: 'Novo', email: 'n@x.com', papel: 'pendente', publicadorId: null }));
+});
+
+test('cadastro por e-mail: não entra já como administrador nem com publicador vinculado', async () => {
+  const db = como('novo');
+  await assertFails(setDoc(doc(db, 'usuarios', 'novo'), { nome: 'Novo', email: 'n@x.com', papel: 'admin', publicadorId: null }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'novo'), { nome: 'Novo', email: 'n@x.com', papel: 'pendente', publicadorId: 'p1' }));
+});
+
+test('cadastro por e-mail: não aceita campos extras', async () => {
+  await assertFails(setDoc(doc(como('novo'), 'usuarios', 'novo'), { nome: 'Novo', email: 'n@x.com', papel: 'pendente', publicadorId: null, extra: 1 }));
+});
+
+test('ninguém cria cadastro em nome de outra pessoa', async () => {
+  await assertFails(setDoc(doc(como('novo'), 'usuarios', 'outro'), { nome: 'X', email: 'x@x.com', papel: 'pendente', publicadorId: null }));
+});
+
+test('link pessoal: convite válido cria votante ligado ao publicador do link', async () => {
+  const db = como('anon1', 'anonymous');
+  await assertSucceeds(getDoc(doc(db, 'convites', CONVITE)));
+  await assertSucceeds(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'votante', publicadorId: 'p1', conviteId: CONVITE }));
+});
+
+test('link pessoal: não dá para usar o link de um e virar outro publicador', async () => {
+  const db = como('anon1', 'anonymous');
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'votante', publicadorId: 'p2', conviteId: CONVITE }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Outro Nome', email: null, papel: 'votante', publicadorId: 'p1', conviteId: CONVITE }));
+});
+
+test('link pessoal: convite revogado não cria acesso', async () => {
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), 'convites', CONVITE), { ativo: false }));
+  const db = como('anon1', 'anonymous');
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'votante', publicadorId: 'p1', conviteId: CONVITE }));
+});
+
+test('link pessoal: acesso anônimo sem convite não vira votante', async () => {
+  const db = como('anon1', 'anonymous');
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'X', email: null, papel: 'votante', publicadorId: 'p1', conviteId: 'z'.repeat(32) }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'X', email: null, papel: 'pendente', publicadorId: null }));
+});
+
+/* ---------------------------------------------------------------- convites */
+
+test('convites: quem está logado abre um convite pelo código, mas ninguém lista', async () => {
+  const db = como('vot');
+  await assertSucceeds(getDoc(doc(db, 'convites', CONVITE)));
+  await assertFails(getDocs(collection(db, 'convites')));
+  await assertFails(updateDoc(doc(db, 'convites', CONVITE), { ativo: false }));
+});
