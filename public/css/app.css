@@ -36,3 +36,24 @@ html.fonte-grande { font-size: 20px; }
 
 /* Caixas e botões de marcar no verde do tema */
 input[type="checkbox"], input[type="radio"] { accent-color: #0f7a68; }
+
+/* Menu hambúrguer */
+.botao-menu { display: inline-flex; align-items: center; gap: 0.5rem; min-height: 2.75rem; padding: 0.4rem 0.8rem; border-radius: 0.6rem; background: rgba(255,255,255,0.15); color: #fff; font-weight: 600; font-size: 0.9rem; }
+.botao-menu:hover { background: rgba(255,255,255,0.25); }
+.botao-menu-barras { display: inline-flex; flex-direction: column; gap: 4px; }
+.botao-menu-barras i { display: block; width: 20px; height: 2px; background: #fff; border-radius: 2px; }
+.menu-fundo { position: fixed; inset: 0; z-index: 40; background: rgba(15,23,42,0.45); display: flex; justify-content: flex-end; }
+.menu-painel { width: 18rem; max-width: 86vw; height: 100%; background: #fff; color: #1e293b; display: flex; flex-direction: column; padding: 0.75rem; overflow-y: auto; box-shadow: -8px 0 24px rgba(0,0,0,0.2); animation: menu-entra 160ms ease-out; }
+@keyframes menu-entra { from { transform: translateX(24px); opacity: 0; } }
+.menu-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.25rem 0.75rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.25rem; }
+.menu-fechar { min-width: 2.75rem; min-height: 2.75rem; border-radius: 0.5rem; font-size: 1.1rem; color: #475569; }
+.menu-fechar:hover { background: #f1f5f9; }
+.menu-titulo { margin: 0.9rem 0.5rem 0.25rem; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: #64748b; }
+.menu-item { display: block; width: 100%; text-align: left; min-height: 2.75rem; padding: 0.6rem 0.75rem; border-radius: 0.6rem; font-size: 0.95rem; color: #1e293b; }
+.menu-item:hover { background: #f1f5f9; }
+.menu-item.ativo { background: #d5f1ec; color: #0b5f51; font-weight: 700; }
+.menu-item[hidden] { display: none; }
+.menu-fim { margin-top: auto; padding-top: 0.75rem; border-top: 1px solid #e2e8f0; }
+.menu-sair { color: #b91c1c; font-weight: 600; }
+.menu-sair:hover { background: #fef2f2; }
+@media print { #menu { display: none !important; } }

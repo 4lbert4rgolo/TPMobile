@@ -4,16 +4,23 @@ import { copiarLink, criarLinkPara, enviarLinkWhats, gerarTodosLinks, revogarLin
 import { $, SEM_ACESSO, erroAmigavel, estado, fecharModal, fonteGrande, gravarPref, pubPorId, rotuloFonte, tentar, toast } from './nucleo.js';
 import { excluirPublicador, formularioPublicador, salvarPublicadorForm } from './publicadores.js';
 import { carregarBase, entrarComLink, iniciar, renderLogin } from './sessao.js';
-import { renderAba, renderApp } from './shell.js';
+import { abrirMenu, fecharMenu, renderAba, renderApp } from './shell.js';
 import { atualizarResumoCelula, desenharEscala, editarCelula, exportarExcel, gerarEscalaAcao, gravarCelula, imprimir, publicarEscala } from './telaEscala.js';
 import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario } from './usuarios.js';
 import { alternarVoto, copiarPonto, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
 import { abrirLembreteGrupo, lembrar, votarPor } from './votos.js';
+import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
 
 /* ============================================================ eventos */
 
 const acoes = {
   aba: (el) => { estado.aba = el.dataset.id; estado.ed = null; renderApp(); },
+  menu: () => (estado.menuAberto ? fecharMenu() : abrirMenu()),
+  'fechar-menu': fecharMenu,
+  privacidade: () => { fecharMenu(); abrirPrivacidade(); },
+  backup: baixarBackup,
+  'limpar-antigos': limparDadosAntigos,
+  'fechar-menu-fundo': (el, e) => { if (e.target === el) fecharMenu(); },
   sair: () => {
     if (estado.perfil?.conviteId && !confirm('Se sair, você vai precisar tocar no seu link pessoal outra vez para entrar. Sair mesmo?')) return;
     estado.backend.sair();
@@ -27,7 +34,7 @@ const acoes = {
   'entrar-demo': (el) => estado.backend.entrarDemo(el.dataset.id),
   'reiniciar-demo': () => { if (confirm('Voltar aos dados de exemplo?')) { estado.backend.reiniciarDemo(); location.reload(); } },
   'modo-login': (el) => renderLogin(el.dataset.id),
-  instalar: instalarApp,
+  instalar: () => { fecharMenu(); instalarApp(); },
   'entrar-com-link': entrarComLink,
   'previa-login': () => { estado.previaLogin = true; renderLogin('entrar'); },
   'sair-previa': () => { estado.previaLogin = false; renderLogin(); },
@@ -133,7 +140,7 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     e.target.click();
   }
-  if (e.key === 'Escape') fecharModal();
+  if (e.key === 'Escape') { if ($('#modal').innerHTML) fecharModal(); else fecharMenu(); }
 });
 
 document.addEventListener('change', (e) => {

@@ -7,7 +7,7 @@ const VERSAO = 'tpmobile-v2.8';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
   'js/app.js', 'js/nucleo.js', 'js/instalar.js', 'js/sessao.js', 'js/shell.js', 'js/votar.js', 'js/votos.js',
-  'js/publicadores.js', 'js/enquetes.js', 'js/telaEscala.js', 'js/usuarios.js', 'js/links.js',
+  'js/publicadores.js', 'js/enquetes.js', 'js/telaEscala.js', 'js/usuarios.js', 'js/links.js', 'js/dados.js', 'js/retencao.js',
   'js/data.js', 'js/escala.js', 'js/firebase-config.js',
   'css/tailwind.css', 'css/app.css', 'icons/icon-192.png',
 ];

@@ -28,6 +28,7 @@ export const estado = {
   usuarios: [],
   convites: [],
   avisoLink: null,
+  menuAberto: false,
 };
 
 export const SEM_ACESSO = ['pendente', 'removido'];

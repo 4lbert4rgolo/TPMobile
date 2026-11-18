@@ -21,41 +21,80 @@ export function abasDoPerfil() {
   return abas;
 }
 
+/** Painel do menu hambúrguer: seções, preferências e saída. Fica fora da tela principal para abrir sem recarregá-la. */
+export function htmlMenu(abas) {
+  const p = estado.perfil;
+  const itens = abas.map(([id, rotulo]) => `
+    <button class="menu-item ${estado.aba === id ? 'ativo' : ''}" data-acao="aba" data-id="${id}" ${estado.aba === id ? 'aria-current="page"' : ''}>${rotulo}</button>`).join('');
+  return `
+    <div class="menu-fundo" data-acao="fechar-menu-fundo">
+      <nav class="menu-painel" id="menu-painel" aria-label="Menu principal">
+        <div class="menu-topo">
+          <div>
+            <p class="font-semibold">${esc(p.nome)}</p>
+            <p class="text-xs text-slate-500">${esc(PAPEIS[p.papel] || p.papel)}</p>
+          </div>
+          <button class="menu-fechar" data-acao="fechar-menu" aria-label="Fechar menu">✕</button>
+        </div>
+        ${itens ? `<p class="menu-titulo">Seções</p>${itens}` : ''}
+        <p class="menu-titulo">Preferências</p>
+        ${botaoInstalar('menu-item')}
+        <button class="menu-item" data-acao="fonte">${rotuloFonte()}</button>
+        <p class="menu-titulo">Sobre</p>
+        <button class="menu-item" data-acao="privacidade">Privacidade e dados</button>
+        <div class="menu-fim"><button class="menu-item menu-sair" data-acao="sair">Sair</button></div>
+      </nav>
+    </div>`;
+}
+
 export function renderApp() {
   const p = estado.perfil;
   if (!estado.aba) estado.aba = ehOrganizador() ? 'enquetes' : 'votar';
+  estado.menuAberto = false;
   const abas = abasDoPerfil();
+  const nomeAba = (abas.find(([id]) => id === estado.aba) || [])[1] || '';
 
   $('#app').innerHTML = `
     ${faixaDemo()}
     <header class="bg-blue-700 text-white">
       <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-3 min-w-0">
           <img src="icons/icon-192.png?v=27" alt="" width="40" height="40" style="border-radius:10px">
-          <div>
+          <div class="min-w-0">
             <h1 class="font-bold leading-tight">Gestor de Escalas de Carrinho</h1>
-            <p class="text-xs text-blue-100">Testemunho Público</p>
+            <p class="text-xs text-blue-100">Testemunho Público${nomeAba ? ` · ${esc(nomeAba)}` : ''}</p>
           </div>
         </div>
-        <div class="text-right text-sm">
-          <p class="font-semibold">${esc(p.nome)}</p>
-          <p class="text-xs text-blue-100">${esc(PAPEIS[p.papel] || p.papel)}</p>
-          ${botaoInstalar('text-xs underline mr-3')}
-          <button class="text-xs underline mr-3" data-acao="fonte">${rotuloFonte()}</button>
-          <button class="text-xs underline" data-acao="sair">Sair</button>
-        </div>
+        <button class="botao-menu" data-acao="menu" aria-label="Abrir menu" aria-expanded="false" aria-controls="menu-painel">
+          <span class="botao-menu-barras" aria-hidden="true"><i></i><i></i><i></i></span>
+          <span class="botao-menu-texto">Menu</span>
+        </button>
       </div>
     </header>
+    <div id="menu"></div>
     <main class="max-w-6xl mx-auto p-4 sm:p-6">
-      ${SEM_ACESSO.includes(p.papel) ? telaPendente() : `
-        <nav class="flex flex-wrap gap-2 mb-5" aria-label="Seções">
-          ${abas.map(([id, rotulo]) => `<button class="px-4 py-2 rounded-lg text-sm font-semibold ${estado.aba === id ? 'bg-blue-600 text-white' : 'bg-white text-slate-700 border'}" data-acao="aba" data-id="${id}">${rotulo}</button>`).join('')}
-        </nav>
-        <div id="conteudo"></div>`}
+      ${SEM_ACESSO.includes(p.papel) ? telaPendente() : '<div id="conteudo"></div>'}
     </main>
     <footer class="text-center text-xs text-slate-400 py-6">© 2026 TPMobile</footer>`;
 
   if (!SEM_ACESSO.includes(p.papel)) renderAba();
+}
+
+export function abrirMenu() {
+  estado.menuAberto = true;
+  $('#menu').innerHTML = htmlMenu(abasDoPerfil());
+  document.querySelector('[data-acao=menu]')?.setAttribute('aria-expanded', 'true');
+  $('#menu-painel .menu-item')?.focus();
+}
+
+export function fecharMenu() {
+  if (!estado.menuAberto) return;
+  estado.menuAberto = false;
+  const m = $('#menu');
+  if (m) m.innerHTML = '';
+  const b = document.querySelector('[data-acao=menu]');
+  b?.setAttribute('aria-expanded', 'false');
+  b?.focus();
 }
 
 export async function renderAba() {
