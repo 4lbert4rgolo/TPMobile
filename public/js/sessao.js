@@ -2,7 +2,7 @@ import { botaoInstalar, pedirArmazenamentoPersistente } from './instalar.js';
 import { $, SEM_ACESSO, ehOrganizador, erroAmigavel, estado, lerPref, rotuloFonte, toast, tokenDoLink } from './nucleo.js';
 import { renderApp } from './shell.js';
 import { firebaseConfig } from './firebase-config.js';
-import { criarBackendFirebase, criarBackendDemo, configurado, CONFIG_PADRAO } from './data.js';
+import { criarBackendFirebase, criarBackendDemo, configurado, CONFIG_PADRAO, normalizarPapel } from './data.js';
 
 export async function entrarComLink() {
   const achado = /([a-f0-9]{32})/i.exec($('#colar-link').value);
@@ -65,7 +65,7 @@ export async function aoAutenticar(u) {
       await estado.backend.criarUsuarioPendente(u.uid, u.nome || u.email, u.email);
       perfil = await estado.backend.getUsuario(u.uid);
     }
-    estado.perfil = { ...perfil, uid: u.uid };
+    estado.perfil = { ...perfil, papel: normalizarPapel(perfil.papel), uid: u.uid };
     if (!SEM_ACESSO.includes(estado.perfil.papel)) await carregarBase();
     renderApp();
     pedirArmazenamentoPersistente();
@@ -119,8 +119,7 @@ export function renderLogin(modo = 'entrar') {
           <p class="text-sm text-slate-600 mb-3">Escolha um perfil para ver como o app funciona:</p>
           <div class="space-y-2">
             <button class="w-full bg-blue-600 text-white rounded-lg py-2 font-semibold" data-acao="entrar-demo" data-id="admin">Entrar como Administrador</button>
-            <button class="w-full bg-blue-100 text-blue-800 rounded-lg py-2 font-semibold" data-acao="entrar-demo" data-id="anciao">Entrar como Ancião</button>
-            <button class="w-full bg-blue-100 text-blue-800 rounded-lg py-2 font-semibold" data-acao="entrar-demo" data-id="servo">Entrar como Servo ministerial</button>
+            <button class="w-full bg-blue-100 text-blue-800 rounded-lg py-2 font-semibold" data-acao="entrar-demo" data-id="servo">Entrar como Servo Ministerial</button>
             <button class="w-full bg-slate-100 text-slate-700 rounded-lg py-2 font-semibold" data-acao="entrar-demo" data-id="votante">Entrar como Votante</button>
           </div>
           <button class="text-sm text-blue-700 underline mt-4" data-acao="previa-login">Ver a tela de login por e-mail e senha</button>` : `

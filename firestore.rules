@@ -7,8 +7,9 @@ rules_version = '2';
 //   pendente  - criou a conta e espera aprovação: não lê nada além do próprio cadastro
 //   votante   - vota nas enquetes abertas e vê escalas publicadas
 //   removido  - teve o acesso retirado: não lê nada
-//   servo, anciao - ajustam enquetes, publicadores e escalas
-//   admin     - tudo isso, mais aprovar usuários e definir perfis
+//   servo     - Servo Ministerial: ajusta enquetes, publicadores e escalas
+//   admin     - Administrador (inclui os anciãos): tudo isso, mais aprovar usuários e definir perfis
+//   anciao    - perfil antigo, vale como admin até o app regravar o cadastro como "admin"
 
 service cloud.firestore {
   match /databases/{database}/documents {
@@ -36,7 +37,7 @@ service cloud.firestore {
     }
 
     function administrador() {
-      return logado() && papel() == 'admin';
+      return logado() && papel() in ['admin', 'anciao'];
     }
 
     function meuPublicadorId() {

@@ -2,6 +2,7 @@ import { $, esc, estado, pubPorId, tentar, toast } from './nucleo.js';
 import { renderAba } from './shell.js';
 import { recarregarUsuarios } from './usuarios.js';
 import { urlWhats } from './votos.js';
+import { campoBusca, textoBusca } from './busca.js';
 
 /* ============================================================ links de acesso (administrador) */
 
@@ -25,13 +26,14 @@ export async function renderLinks() {
       Quem tiver o link entra como aquela pessoa (só para votar e ver a escala). Mande cada link só para a pessoa certa.
       Se um link for parar em mãos erradas, toque em <strong>Revogar</strong>: ele para de funcionar e os aparelhos que o usavam saem.
     </div>
+    ${campoBusca('Buscar publicador')}
     <div class="mb-3"><button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold ${semLink ? '' : 'opacity-50'}" data-acao="gerar-todos-links" ${semLink ? '' : 'disabled'}>Gerar links para quem ainda não tem (${semLink})</button></div>
     <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-slate-100 text-left"><tr><th class="p-3">Publicador</th><th class="p-3">Link</th><th class="p-3"></th></tr></thead>
         <tbody>${lista.map((p) => {
           const cv = porPub.get(p.id);
-          return `<tr class="border-t">
+          return `<tr class="border-t" data-busca="${esc(textoBusca(p.nome, cv ? 'ativo' : 'sem link'))}">
             <td class="p-3 font-medium">${esc(p.nome)}</td>
             <td class="p-3">${cv ? `<span class="text-green-700">Ativo</span> <span class="text-xs text-slate-500">· ${aparelhos(cv.id)} aparelho(s)</span>` : '<span class="text-slate-400">Sem link</span>'}</td>
             <td class="p-3 text-right whitespace-nowrap">${cv ? `

@@ -29,7 +29,7 @@ Esqueceu a senha? Na tela de entrada, **Esqueci a minha senha** manda um e-mail 
 
 ## Para o administrador (liberar e cuidar dos acessos)
 1. Entre no app e abra a aba **Usuários**. Quem acabou de criar conta aparece no topo, em amarelo.
-2. Escolha o **perfil** (Votante, Servo ministerial, Ancião ou Administrador).
+2. Escolha o **perfil** (Votante, Servo Ministerial ou Administrador; anciãos ficam como Administrador).
 3. Escolha o **publicador** da lista que corresponde à pessoa. Se o nome da conta for igual ao da lista, o app já sugere.
 4. Toque em **Salvar**.
 
@@ -37,7 +37,7 @@ Para **alterar** alguém, mude o nome, o perfil ou o publicador na própria linh
 Para **remover**, toque em **Remover acesso** (ou **Recusar**, para quem ainda aguarda): a pessoa perde o acesso na hora. Em "Acessos removidos" você pode **Reativar como votante** ou **Excluir registro**.
 O app não deixa remover a si mesmo nem tirar o perfil do único administrador.
 
-Quem não usa o celular continua podendo votar: um servo ou ancião lança os votos em nome dele na aba **Votos**.
+Quem não usa o celular continua podendo votar: um servo ministerial ou administrador lança os votos em nome dele na aba **Votos**.
 
 ## Texto pronto para o grupo
 > Irmãos, a enquete do carrinho agora é pelo aplicativo: [LINK]
@@ -47,4 +47,4 @@ Quem não usa o celular continua podendo votar: um servo ou ancião lança os vo
 > Quem tiver dificuldade pode votar aqui no grupo, que alguém lança por você.
 
 ## Se alguém não tem e-mail
-O login do app usa e-mail e senha. Quem não tem e-mail pode criar um gratuito (Gmail, por exemplo) ou votar pelo grupo, com um servo ou ancião lançando o voto na aba Votos.
+O login do app usa e-mail e senha. Quem não tem e-mail pode criar um gratuito (Gmail, por exemplo) ou votar pelo grupo, com um servo ministerial ou administrador lançando o voto na aba Votos.

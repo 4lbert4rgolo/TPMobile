@@ -31,7 +31,7 @@ export function abrirPrivacidade() {
         <h3 class="font-semibold text-slate-900">Quem vê o quê</h3>
         <ul class="list-disc pl-5 space-y-1">
           <li>Quem só vota enxerga o próprio voto e a escala depois de publicada.</li>
-          <li>Servos ministeriais e anciãos veem o cadastro e os votos para montar a escala.</li>
+          <li>Servos ministeriais e administradores veem o cadastro e os votos para montar a escala.</li>
           <li>Só o administrador gerencia acessos, links pessoais e backups.</li>
         </ul>
       </div>

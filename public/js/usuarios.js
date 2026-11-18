@@ -1,7 +1,8 @@
 import { $, SEM_ACESSO, esc, estado, tentar, toast } from './nucleo.js';
 import { carregarBase } from './sessao.js';
 import { renderAba, renderApp } from './shell.js';
-import { PAPEIS } from './data.js';
+import { PAPEIS, normalizarPapel } from './data.js';
+import { campoBusca } from './busca.js';
 
 /* ============================================================ usuários (administrador) */
 
@@ -22,7 +23,16 @@ export const ehUltimoAdmin = (uid) => {
 };
 
 export async function recarregarUsuarios() {
-  estado.usuarios = await estado.backend.listarUsuarios();
+  const lista = await estado.backend.listarUsuarios();
+  // Perfil antigo "anciao": grava como "admin" (anciãos têm o mesmo acesso do administrador).
+  for (const u of lista.filter((x) => x.papel === 'anciao')) {
+    try {
+      await estado.backend.atualizarUsuario(u.id, { papel: 'admin' });
+    } catch (e) {
+      console.error(e); // sem permissão agora: a tela mostra como Administrador mesmo assim
+    }
+  }
+  estado.usuarios = lista.map((u) => ({ ...u, papel: normalizarPapel(u.papel) }));
 }
 
 export async function renderUsuarios() {
@@ -39,7 +49,8 @@ export async function renderUsuarios() {
     const sugerido = publicadorSugerido(u);
     const escolhido = u.publicadorId || sugerido;
     const pendente = u.papel === 'pendente';
-    return `<tr class="border-t ${pendente ? 'bg-amber-50' : ''}" data-uid="${esc(u.id)}">
+    const pub = estado.pubs.find((p) => p.id === u.publicadorId);
+    return `<tr class="border-t ${pendente ? 'bg-amber-50' : ''}" data-uid="${esc(u.id)}" data-busca="${esc(semAcento([u.nome, u.email, pub?.nome, PAPEIS[u.papel]].filter(Boolean).join(' ')))}">
       <td class="p-3">
         <input class="border rounded-lg p-1 w-full min-w-[9rem]" value="${esc(u.nome || '')}" data-campo-usuario="nome" aria-label="Nome">
         <p class="text-xs text-slate-500 mt-1">${u.conviteId ? 'Entrou pelo link pessoal' : esc(u.email || '')}</p></td>
@@ -62,7 +73,8 @@ export async function renderUsuarios() {
 
   c.innerHTML = `
     <h2 class="text-lg font-bold mb-1">Usuários</h2>
-    <p class="text-sm text-slate-600 mb-4">Defina o perfil de cada pessoa e ligue o acesso dela ao nome na lista de publicadores. <strong>Remover acesso</strong> bloqueia na hora, e você pode reativar depois.</p>
+    <p class="text-sm text-slate-600 mb-4">Defina o perfil de cada pessoa e ligue o acesso dela ao nome na lista de publicadores. <strong>Remover acesso</strong> bloqueia na hora, e você pode reativar depois. Anciãos devem ter o perfil <strong>Administrador</strong>.</p>
+    ${campoBusca('Buscar por nome, e-mail ou perfil')}
 
     ${pendentes.length ? `<h3 class="font-bold text-amber-800 mb-2">Aguardando aprovação (${pendentes.length})</h3>${tabela(pendentes)}` : ''}
 
@@ -72,7 +84,7 @@ export async function renderUsuarios() {
     <details class="mb-6" ${removidos.length ? '' : 'hidden'}>
       <summary class="cursor-pointer font-bold">Acessos removidos (${removidos.length})</summary>
       <div class="bg-white rounded-xl shadow-sm border overflow-x-auto mt-2"><table class="w-full text-sm"><tbody>
-        ${removidos.map((u) => `<tr class="border-t first:border-t-0">
+        ${removidos.map((u) => `<tr class="border-t first:border-t-0" data-busca="${esc(semAcento([u.nome, u.email].filter(Boolean).join(' ')))}">
           <td class="p-3"><p class="font-medium">${esc(u.nome || '—')}</p><p class="text-xs text-slate-500">${u.conviteId ? 'Entrava pelo link pessoal' : esc(u.email || '')}</p></td>
           <td class="p-3 text-right whitespace-nowrap">
             <button class="text-blue-700 underline mr-3" data-acao="reativar-usuario" data-id="${esc(u.id)}">Reativar como votante</button>

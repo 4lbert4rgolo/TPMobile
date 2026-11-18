@@ -1,8 +1,8 @@
 import { recarregarEnquetes } from './enquetes.js';
-import { $, abrirModal, ehOrganizador, enqueteAtual, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
+import { $, abrirModal, ehOrganizador, enqueteAtual, erroAmigavel, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
 import { renderAba } from './shell.js';
 import { escolherEnquetePadrao, seletorEnquete } from './votar.js';
-import { gerarEscala, validarEscala, contarParticipacoes, chave, nomeDia, dataCurta, celulaBloqueada, REGRAS_PADRAO } from './escala.js';
+import { gerarEscala, validarEscala, contarParticipacoes, chave, nomeDia, dataCurta, celulaBloqueada, REGRAS_PADRAO, trocarCelula, exigirVersao, historicoDeParticipacoes, SEMANAS_EQUILIBRIO } from './escala.js';
 
 /* ============================================================ escala */
 
@@ -106,6 +106,7 @@ export function desenharEscala() {
     </div>
     <div class="bg-white rounded-xl border p-3">${htmlMatriz(enquete, escala.matriz, estado.ponto, { editavel: org, avisos, meuId })}</div>
     ${org ? `<p class="text-xs text-slate-500 mt-2">Clique em um horário para trocar as pessoas. Contorno vermelho = regra quebrada; amarelo = atenção.</p>
+      ${escala.ajustadoPor && quando(escala.ajustadoEm) ? `<p class="text-xs text-slate-500">Última alteração: ${esc(escala.ajustadoPor)}, ${quando(escala.ajustadoEm)}.</p>` : ''}
       ${painelAvisos(avisos)}${painelParticipacoes(enquete, escala.matriz)}` : (meuId ? '<p class="text-xs text-slate-500 mt-2">Os horários em que você está escalado aparecem destacados em azul.</p>' : '')}`;
 }
 
@@ -137,6 +138,7 @@ export function painelParticipacoes(enquete, matriz) {
 export function editarCelula(ponto, data, turno) {
   const enquete = enqueteAtual();
   const atual = estado.escala.matriz?.[ponto]?.[data]?.[turno];
+  estado.celulaAntes = atual ? structuredClone(atual) : null; // para saber se alguém mudou este horário enquanto o modal estava aberto
   const selecionados = new Set(atual?.tipo === 'equipe' ? atual.pessoas.map((p) => p.id) : []);
   const k = chave(data, turno);
   const voluntarios = new Set(estado.votos.filter((v) => (v.disponibilidade?.[ponto] || []).includes(k)).map((v) => v.publicadorId));
@@ -187,23 +189,69 @@ export function atualizarResumoCelula() {
 export async function gravarCelula(pessoas) {
   const lista = $('#lista-celula');
   const { ponto, data, turno } = lista.dataset;
-  const matriz = estado.escala.matriz;
-  matriz[ponto][data][turno] = pessoas.length ? { tipo: 'equipe', pessoas } : { tipo: 'vazio' };
-  const ok = await persistirEscala('Escala atualizada.');
+  const depois = pessoas.length ? { tipo: 'equipe', pessoas } : { tipo: 'vazio' };
+  const antes = estado.celulaAntes;
+  const ok = await gravarComVersao(
+    (atual) => ({ ...trocarCelula(atual, { ponto, data, turno, antes, depois, matrizLocal: estado.escala.matriz }), ajustadoPor: estado.perfil.nome }),
+    'Escala atualizada.'
+  );
   if (ok) { fecharModal(); desenharEscala(); }
 }
 
-export async function persistirEscala(mensagem) {
+/** Hora curta de uma data ISO: "18/11 às 14:32". */
+function quando(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')} às ${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
+}
+
+/**
+ * Grava a escala pelo backend.atualizarEscala (que confere a versão no banco).
+ * Se outro organizador mudou no meio do caminho, mostra a versão nova e avisa, sem apagar nada.
+ */
+export async function gravarComVersao(alterar, mensagem) {
   const e = enqueteAtual();
-  const dados = {
-    matriz: estado.escala.matriz,
-    publicada: Boolean(estado.escala.publicada),
-    geradoEm: estado.escala.geradoEm || new Date().toISOString(),
-    ajustadoPor: estado.perfil.nome,
-  };
-  const ok = await tentar(() => estado.backend.salvarEscala(e.id, dados), mensagem);
-  if (ok) estado.escala = { ...estado.escala, ...dados };
-  return ok;
+  try {
+    estado.escala = await estado.backend.atualizarEscala(e.id, alterar);
+    if (mensagem) toast(mensagem);
+    return true;
+  } catch (err) {
+    if (err?.code !== 'app/conflito-escala') {
+      console.error(err);
+      toast(erroAmigavel(err), 'erro');
+      return false;
+    }
+    const quem = err.atual?.ajustadoPor || 'Outro organizador';
+    estado.escala = err.atual;
+    fecharModal();
+    desenharEscala();
+    toast(`${quem} mudou ${err.tipo === 'celula' ? 'este horário' : 'a escala'} enquanto você editava. A tela já mostra a versão mais nova: confira e faça de novo.`, 'erro');
+    return false;
+  }
+}
+
+/**
+ * Enquetes anteriores a esta (pela data de início), das mais novas para as mais velhas.
+ * Rascunhos não contam.
+ */
+export function enquetesAnteriores(e, enquetes = estado.enquetes, quantas = SEMANAS_EQUILIBRIO) {
+  return enquetes
+    .filter((x) => x.id !== e.id && x.status !== 'rascunho' && (x.inicio || '') < (e.inicio || ''))
+    .sort((a, b) => (b.inicio || '').localeCompare(a.inicio || ''))
+    .slice(0, quantas);
+}
+
+/** Participações nas últimas escalas, para o equilíbrio entre semanas. */
+async function historicoAnterior(e) {
+  if (e.regras?.equilibrarSemanas === false) return new Map();
+  try {
+    const escalas = await Promise.all(enquetesAnteriores(e).map((x) => estado.backend.getEscala(x.id)));
+    return historicoDeParticipacoes(escalas.map((item) => item?.matriz));
+  } catch (err) {
+    console.error(err); // sem histórico, a escala sai só com o equilíbrio da semana
+    return new Map();
+  }
 }
 
 export async function gerarEscalaAcao() {
@@ -212,24 +260,29 @@ export async function gerarEscalaAcao() {
   if (temEquipes && !confirm('Gerar de novo apaga os ajustes manuais desta escala. Continuar?')) return;
   if (!estado.votos.length) toast('Ainda não há votos nesta enquete: a escala sairá vazia.', 'erro');
 
-  const { matriz } = gerarEscala({ enquete: e, publicadores: estado.pubs, votos: estado.votos });
-  estado.escala = { ...(estado.escala || {}), matriz, geradoEm: new Date().toISOString() };
-  if (await persistirEscala('Escala gerada. Confira os avisos e ajuste se precisar.')) desenharEscala();
+  const historico = await historicoAnterior(e);
+  const { matriz } = gerarEscala({ enquete: e, publicadores: estado.pubs, votos: estado.votos, historico });
+  const versaoNaTela = estado.escala?.versao;
+  const ok = await gravarComVersao((atual) => {
+    exigirVersao(atual, versaoNaTela);
+    return { ...(atual || {}), matriz, publicada: Boolean(atual?.publicada), geradoEm: new Date().toISOString(), ajustadoPor: estado.perfil.nome };
+  }, 'Escala gerada. Confira os avisos e ajuste se precisar.');
+  if (ok) desenharEscala();
 }
 
 export async function publicarEscala(publicar) {
   const e = enqueteAtual();
-  estado.escala.publicada = publicar;
-  const ok = await tentar(async () => {
-    await estado.backend.salvarEscala(e.id, {
-      matriz: estado.escala.matriz,
-      publicada: publicar,
-      geradoEm: estado.escala.geradoEm || new Date().toISOString(),
-      ajustadoPor: estado.perfil.nome,
-    });
-    await estado.backend.salvarEnquete({ ...e, status: publicar ? 'publicada' : 'fechada' });
-  }, publicar ? 'Escala publicada para todos.' : 'Escala retirada da publicação.');
-  if (ok) { await recarregarEnquetes(); renderAba(); }
+  const versaoNaTela = estado.escala?.versao;
+  const ok = await gravarComVersao((atual) => {
+    exigirVersao(atual, versaoNaTela);
+    return { ...(atual || {}), matriz: atual?.matriz || estado.escala.matriz, publicada: publicar, ajustadoPor: estado.perfil.nome };
+  });
+  if (!ok) return;
+  const okEnquete = await tentar(
+    () => estado.backend.salvarEnquete({ ...e, status: publicar ? 'publicada' : 'fechada' }),
+    publicar ? 'Escala publicada para todos.' : 'Escala retirada da publicação.'
+  );
+  if (okEnquete) { await recarregarEnquetes(); renderAba(); }
 }
 
 export function imprimir(todos) {

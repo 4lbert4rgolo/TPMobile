@@ -46,7 +46,7 @@ O primeiro administrador precisa ser definido à mão, uma única vez:
 2. **Jeito mais fácil (recomendado para quem tem dificuldade com tecnologia):** na aba **Links de acesso**, gere um link pessoal para cada publicador e envie pelo WhatsApp. A pessoa só toca no link.
 3. **Alternativa:** peça ao irmão que abra o site e **crie a conta** dele com e-mail e senha. Depois, na aba **Usuários**, escolha o perfil e **ligue o acesso ao nome** na lista de publicadores:
    - **Votante**: só vota e vê a escala publicada.
-   - **Servo ministerial / Ancião**: criam e ajustam enquetes, publicadores e escalas.
+   - **Servo Ministerial**: cria e ajusta enquetes, publicadores e escalas. Anciãos recebem o perfil **Administrador**.
    - **Administrador**: tudo isso, mais aprovar pessoas e definir perfis.
 
 ## Cuidados com os dados

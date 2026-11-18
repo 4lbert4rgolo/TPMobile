@@ -23,7 +23,7 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 ## 3. Ponto de votação e bloqueios por ponto (esta versão)
 - **Publicador, campo "Onde vota":** "Todos os pontos" (padrão) ou "Somente em" um ou mais pontos. A tabela de publicadores ganhou a coluna **Pontos**.
 - **Tela de votar:** a pessoa vê só os pontos dela e a frase "Você vota apenas em …". Quem vota em mais de um ponto tem o filtro **Mostrar** (Todos os pontos ou um só), lembrado no aparelho. O botão "Copiar para todos os pontos" copia só para os pontos dela, e o voto salvo guarda só esses pontos.
-- **Escala:** o gerador nunca escala alguém fora do ponto dele. Se um servo ou ancião puser a pessoa em outro ponto à mão, aparece o aviso "… está configurado para votar só em …".
+- **Escala:** o gerador nunca escala alguém fora do ponto dele. Se um organizador puser a pessoa em outro ponto à mão, aparece o aviso "… está configurado para votar só em …".
 - **Bloqueios na enquete:** cada bloqueio agora pode valer para **todos os pontos** ou para **um ponto só**, e pode ser de um horário ou do **dia todo**. Os bloqueios antigos (sem ponto) continuam valendo em todos os pontos.
 - O texto do WhatsApp ganhou a seção "Atenção", com os bloqueios e o ponto de cada um.
 - Testes: 11 testes do gerador e 66 verificações da interface no navegador (modo demonstração).
@@ -103,3 +103,20 @@ Cores trocadas do azul para o verde do AlpDesk (`#0f7a68` nos botões e cabeçal
 **Testes automáticos.** `npm test` roda no GitHub a cada envio e **antes de cada publicação** (se falhar, o site não é publicado). As regras do Firestore têm testes próprios (`npm run test:regras`, precisa de Java), que rodam no GitHub.
 
 **Para publicar:** nada de regras novas. Basta fazer o merge da branch `melhorias-urgentes` no `master`.
+
+
+## v2.9 — Perfis, escala sem sobrescrita, equilíbrio entre semanas, Minha escala e busca
+
+**Perfis.** Agora são três: **Votante**, **Servo Ministerial** e **Administrador**. O perfil "Ancião" deixou de existir: anciãos têm o mesmo acesso do administrador. Quem estava como "Ancião" passa a valer como Administrador na hora, e o cadastro é regravado como `admin` na primeira vez que um administrador abre a tela **Usuários**. As regras do Firestore aceitam o valor antigo `anciao` como administrador, para ninguém perder acesso no meio da troca.
+
+**Dois organizadores ao mesmo tempo.** A escala ganhou um número de versão. Ao trocar um horário, o app grava só aquele horário em cima da versão que está no banco naquele momento (transação do Firestore): se outra pessoa mudou outro horário, a mudança dela é mantida. Se ela mudou o **mesmo** horário enquanto você editava, nada é apagado: aparece "Fulano mudou este horário enquanto você editava" e a tela mostra a versão nova. "Gerar escala" e "Publicar" só gravam se ninguém mexeu desde que você abriu a escala. Embaixo da escala aparece "Última alteração: nome, data e hora".
+
+**Equilíbrio entre semanas.** Ao gerar a escala, o app olha as últimas 4 escalas (enquetes anteriores que não são rascunho) e dá prioridade a quem participou menos. Cada participação média por escala vale meia participação da semana atual, então o equilíbrio da semana continua mandando e as regras (limite das irmãs, par fixo, trio, ponto de votação) continuam valendo. Pode ser desligado em cada enquete, em *Regras da escala*. Os números ficam em `SEMANAS_EQUILIBRIO` e `PESO_HISTORICO` (`public/js/escala.js`).
+
+**Minha escala.** Nova seção no menu para quem tem o acesso ligado a um publicador (votantes e organizadores). Mostra os próximos horários da pessoa nas escalas publicadas, agrupados por dia, com os companheiros de equipe. Cada horário tem o link **Google Agenda** (bom para Android), e o botão **Levar tudo para o calendário** baixa um arquivo `.ics` (abre direto no Calendário do iPhone), com lembrete 1 hora antes. Os horários que já passaram ficam numa seção recolhida.
+
+**Busca.** Campo de busca nas listas de **Publicadores**, **Usuários** e **Links de acesso**. Não diferencia acento nem maiúscula ("marcia" acha "Márcia") e aceita mais de uma palavra.
+
+**Arquivos novos:** `public/js/busca.js`, `public/js/agenda.js` (regras da Minha escala e do calendário), `public/js/telaMinha.js`, `tests/melhorias.test.mjs`. Também: `scripts/apps-script/` (backup automático no Google Drive, ver o README da pasta).
+
+**Para publicar:** faça o merge da branch `melhorias-em-breve` no `master` e rode `npm run deploy:regras` (regras do Firestore com o perfil antigo `anciao` valendo como administrador). Sem as regras novas, o app funciona, mas um ancião que ainda não foi regravado como administrador não consegue abrir Usuários e Links até um administrador abrir a tela Usuários.

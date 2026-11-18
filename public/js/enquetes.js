@@ -1,7 +1,7 @@
 import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from './nucleo.js';
 import { renderAba } from './shell.js';
 import { lembrar } from './votos.js';
-import { gerarDias, nomeDia, dataCurta, parseISO, toISO } from './escala.js';
+import { gerarDias, nomeDia, dataCurta, parseISO, toISO, SEMANAS_EQUILIBRIO } from './escala.js';
 
 /* ============================================================ enquetes (organizadores) */
 
@@ -41,7 +41,7 @@ export function novoEditor(tipo = 'semana') {
     dias: gerarDias(inicio, fim),
     turnosTexto: cfg.turnos.join('\n'),
     pontos: new Set(cfg.pontos),
-    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixoJunto: true,
+    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixoJunto: true, equilibrarSemanas: true,
   };
   aplicarBloqueiosPadrao(ed);
   ed.titulo = tituloSugerido(ed);
@@ -64,6 +64,7 @@ export function editorDe(e, copia = false) {
     maxIrmas: e.regras?.maxIrmas ?? 3,
     maxIrmaos: e.regras?.maxIrmaos ?? '',
     parFixoJunto: e.regras?.parFixoJunto ?? true,
+    equilibrarSemanas: e.regras?.equilibrarSemanas ?? true,
   };
   return ed;
 }
@@ -190,6 +191,7 @@ export function renderEditor() {
           <label class="flex items-center gap-2">Máximo por irmão
             <select class="border rounded-lg p-1" data-campo="maxIrmaos"><option value="">Sem limite</option>${[3, 4, 5, 6, 8, 10].map((n) => `<option ${Number(ed.maxIrmaos) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
           <label class="flex items-center gap-2"><input type="checkbox" ${ed.parFixoJunto ? 'checked' : ''} data-campo="parFixoJunto"> Quem tem par fixo só participa junto com o par</label>
+          <label class="flex items-center gap-2"><input type="checkbox" ${ed.equilibrarSemanas ? 'checked' : ''} data-campo="equilibrarSemanas"> Dar prioridade a quem participou menos nas últimas ${SEMANAS_EQUILIBRIO} escalas</label>
         </div>
         <p class="text-xs text-slate-500 mt-2">Quem "precisa de trio" sempre entra em equipe de 3 pessoas. As demais equipes são duplas.</p>
       </section>
@@ -229,6 +231,7 @@ export function campoMudou(el, digitando = false) {
     case 'maxIrmas': ed.maxIrmas = el.value; break;
     case 'maxIrmaos': ed.maxIrmaos = el.value; break;
     case 'parFixoJunto': ed.parFixoJunto = el.checked; break;
+    case 'equilibrarSemanas': ed.equilibrarSemanas = el.checked; break;
     default: break;
   }
 }
@@ -256,7 +259,7 @@ export async function salvarEditor(alvo) {
     turnos,
     pontos: [...ed.pontos],
     bloqueios: ed.bloqueios.filter((b) => (b.turno === '*' || turnos.includes(b.turno)) && (!b.ponto || ed.pontos.has(b.ponto))),
-    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixoJunto: ed.parFixoJunto },
+    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixoJunto: ed.parFixoJunto, equilibrarSemanas: ed.equilibrarSemanas },
   };
 
   const ok = await tentar(async () => {

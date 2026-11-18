@@ -6,8 +6,10 @@ App web para montar a escala dos carrinhos do testemunho público, com enquete d
 | Perfil | O que faz |
 |---|---|
 | Votante | Marca os horários em que pode, em cada ponto, e vê a escala publicada |
-| Servo ministerial / Ancião | Cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, gera e ajusta a escala, publica |
-| Administrador | Tudo isso, mais aprovar usuários e definir os perfis |
+| Servo Ministerial | Cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, gera e ajusta a escala, publica |
+| Administrador (inclui os anciãos) | Tudo isso, mais aprovar usuários, definir os perfis e gerenciar os links de acesso |
+
+Todos os perfis com o nome ligado a um publicador veem a seção **Minha escala**, com os próprios horários e o botão para levar ao calendário do celular.
 
 ## Regras da escala
 - Equipes normais são **duplas**. Quem "precisa de trio" (idade ou necessidade especial) sempre entra em equipe de **3**.

@@ -10,6 +10,9 @@ import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario }
 import { alternarVoto, copiarPonto, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
 import { abrirLembreteGrupo, lembrar, votarPor } from './votos.js';
 import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
+import { normalizarPapel } from './data.js';
+import { filtrarLinhas } from './busca.js';
+import { baixarICS } from './telaMinha.js';
 
 /* ============================================================ eventos */
 
@@ -45,7 +48,7 @@ const acoes = {
   },
   'atualizar-perfil': async () => {
     const perfil = await estado.backend.getUsuario(estado.perfil.uid);
-    estado.perfil = { ...perfil, uid: estado.perfil.uid };
+    estado.perfil = { ...perfil, papel: normalizarPapel(perfil.papel), uid: estado.perfil.uid };
     if (!SEM_ACESSO.includes(perfil.papel)) await carregarBase();
     renderApp();
   },
@@ -102,6 +105,7 @@ const acoes = {
   },
   'del-bloqueio': (el) => { estado.ed.bloqueios.splice(Number(el.dataset.id), 1); renderEditor(); },
 
+  'baixar-ics': baixarICS,
   'gerar-escala': gerarEscalaAcao,
   'publicar-escala': () => publicarEscala(true),
   'despublicar-escala': () => publicarEscala(false),
@@ -152,7 +156,8 @@ document.addEventListener('change', (e) => {
 });
 
 document.addEventListener('input', (e) => {
-  if (e.target.dataset.campo) campoMudou(e.target, true);
+  if (e.target.matches('[data-busca-campo]')) filtrarLinhas(e.target);
+  else if (e.target.dataset.campo) campoMudou(e.target, true);
 });
 
 document.addEventListener('submit', async (e) => {

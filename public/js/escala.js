@@ -55,7 +55,34 @@ export function pontosDoPublicador(pub, pontosDaEnquete) {
   return escolhidos.length ? escolhidos : pontosDaEnquete;
 }
 
-export const REGRAS_PADRAO = { maxIrmas: 3, maxIrmaos: null, parFixoJunto: true };
+export const REGRAS_PADRAO = { maxIrmas: 3, maxIrmaos: null, parFixoJunto: true, equilibrarSemanas: true };
+
+/** Quantas escalas anteriores contam para o equilíbrio entre semanas. */
+export const SEMANAS_EQUILIBRIO = 4;
+
+/**
+ * Peso das escalas anteriores. Cada participação média por escala vale meia participação
+ * desta semana: o equilíbrio da semana atual continua mandando, o histórico desempata e
+ * dá a vez a quem ficou de fora nas últimas semanas.
+ */
+export const PESO_HISTORICO = 0.5;
+
+/**
+ * Média de participações por escala de cada pessoa, nas escalas anteriores.
+ * Ex.: participou 2, 0, 1 e 1 vezes nas últimas 4 escalas -> média 1.
+ * @param {object[]} matrizes matrizes das escalas anteriores
+ * @returns {Map<string, number>}
+ */
+export function historicoDeParticipacoes(matrizes) {
+  const validas = (matrizes || []).filter(Boolean);
+  const media = new Map();
+  if (!validas.length) return media;
+  for (const matriz of validas) {
+    for (const [id, info] of contarParticipacoes(matriz)) media.set(id, (media.get(id) || 0) + info.total);
+  }
+  for (const [id, total] of media) media.set(id, total / validas.length);
+  return media;
+}
 
 const limiteDe = (pessoa, regras) => (pessoa.genero === 'F' ? regras.maxIrmas : regras.maxIrmaos);
 
@@ -69,10 +96,10 @@ function podeEscalar(pessoa, regras, carga) {
  * - Equipe normal: dupla. Se alguém "precisa de trio", a equipe tem 3 pessoas.
  * - Quem tem par fixo só participa junto com o par.
  * - Irmãs respeitam o limite de participações.
- * - Prefere quem participou menos (equilíbrio).
+ * - Prefere quem participou menos nesta escala e, se ligado, nas escalas anteriores (equilíbrio).
  */
 function escolherEquipe(slot, ctx) {
-  const { porId, carga, ocupado, regras } = ctx;
+  const { porId, carga, ocupado, regras, pontos } = ctx;
 
   const livres = slot.cand
     .map((id) => porId.get(id))
@@ -80,7 +107,7 @@ function escolherEquipe(slot, ctx) {
   const livresIds = new Set(livres.map((p) => p.id));
 
   const ordenados = [...livres].sort(
-    (a, b) => carga.get(a.id) - carga.get(b.id) || a.nome.localeCompare(b.nome, 'pt')
+    (a, b) => pontos(a.id) - pontos(b.id) || a.nome.localeCompare(b.nome, 'pt')
   );
 
   const usados = new Set();
@@ -111,7 +138,7 @@ function escolherEquipe(slot, ctx) {
     const alvo = requerTrio ? 3 : 2;
     if (membros.length !== alvo) return;
 
-    const media = membros.reduce((soma, m) => soma + carga.get(m.id), 0) / membros.length;
+    const media = membros.reduce((soma, m) => soma + pontos(m.id), 0) / membros.length;
     const custo = media - (requerTrio ? 0.4 : 0); // dá chance a quem precisa de trio
     if (!melhor || custo < melhor.custo) melhor = { membros, custo };
   };
@@ -131,7 +158,7 @@ function escolherEquipe(slot, ctx) {
  * Gera a escala a partir dos votos.
  * @returns {{matriz: object, avisos: Array}} matriz[ponto][data][turno] = {tipo, pessoas?, nota?}
  */
-export function gerarEscala({ enquete, publicadores, votos }) {
+export function gerarEscala({ enquete, publicadores, votos, historico = new Map() }) {
   const regras = { ...REGRAS_PADRAO, ...(enquete.regras || {}) };
   const pubs = publicadores.filter((p) => p.ativo !== false);
   const porId = new Map(pubs.map((p) => [p.id, p]));
@@ -174,7 +201,11 @@ export function gerarEscala({ enquete, publicadores, votos }) {
   // Horários com menos voluntários primeiro: garante que eles sejam cobertos.
   slots.sort((a, b) => a.cand.length - b.cand.length || a.ordem - b.ordem);
 
-  const ctx = { porId, carga, ocupado, regras };
+  // "Pontos" de cada pessoa: participações nesta escala + peso das escalas anteriores.
+  // Quem tem menos pontos é escolhido primeiro.
+  const pesoHist = regras.equilibrarSemanas === false ? 0 : PESO_HISTORICO;
+  const pontos = (id) => carga.get(id) + pesoHist * (historico.get(id) || 0);
+  const ctx = { porId, carga, ocupado, regras, pontos };
 
   for (const slot of slots) {
     if (slot.cand.length < 2) continue;
@@ -291,4 +322,50 @@ export function validarEscala({ enquete, publicadores, votos, matriz }) {
   }
 
   return avisos;
+}
+
+/* ------------------------------------------------------------------ dois organizadores ao mesmo tempo */
+
+/**
+ * Erro lançado quando outra pessoa mudou a escala no banco depois que você a abriu.
+ * Leva junto a versão mais nova (`atual`), para a tela mostrar o que mudou.
+ */
+export class ConflitoEscala extends Error {
+  constructor(atual, tipo) {
+    super('conflito-escala');
+    this.code = 'app/conflito-escala';
+    this.atual = atual;
+    this.tipo = tipo; // 'celula' (o mesmo horário) ou 'versao' (a escala inteira)
+  }
+}
+
+/** Resume a célula só no que importa (tipo e quem está nela), para comparar duas versões. */
+function resumoCelula(c) {
+  if (!c || c.tipo === 'vazio') return 'vazio';
+  if (c.tipo === 'equipe') return `equipe:${c.pessoas.map((p) => p.id).sort().join(',')}`;
+  return c.tipo;
+}
+
+export const mesmaCelula = (a, b) => resumoCelula(a) === resumoCelula(b);
+
+/**
+ * Troca UM horário em cima da versão que está no banco agora.
+ * Assim, se outro organizador mexeu em OUTRO horário, a mudança dele é mantida.
+ * Se ele mexeu NESTE mesmo horário depois que você abriu (`antes` ≠ banco), é conflito.
+ */
+export function trocarCelula(atual, { ponto, data, turno, antes, depois, matrizLocal }) {
+  const matriz = structuredClone(atual?.matriz || matrizLocal || {});
+  if (atual?.matriz && !mesmaCelula(matriz[ponto]?.[data]?.[turno], antes)) throw new ConflitoEscala(atual, 'celula');
+  matriz[ponto] = matriz[ponto] || {};
+  matriz[ponto][data] = matriz[ponto][data] || {};
+  matriz[ponto][data][turno] = depois;
+  return { ...(atual || {}), matriz };
+}
+
+/**
+ * Para ações que trocam a escala inteira (gerar de novo, publicar):
+ * só deixa gravar se a versão no banco ainda é a que está na sua tela.
+ */
+export function exigirVersao(atual, versaoNaTela) {
+  if ((atual?.versao || 0) !== (versaoNaTela || 0)) throw new ConflitoEscala(atual, 'versao');
 }

@@ -1,6 +1,7 @@
 import { $, abrirModal, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
 import { renderAba } from './shell.js';
 import { numeroWhats } from './votos.js';
+import { campoBusca, textoBusca } from './busca.js';
 
 /* ============================================================ publicadores */
 
@@ -15,11 +16,12 @@ export async function renderPublicadores() {
       <button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold" data-acao="novo-publicador">Novo publicador</button>
     </div>
     <p class="text-sm text-slate-600 mb-3">Guarde só o necessário. "Par fixo" faz o casal participar sempre junto; "Precisa de trio" faz a equipe ter 3 pessoas (por idade ou necessidade especial).</p>
+    ${campoBusca('Buscar por nome, ponto ou par fixo')}
     <div class="bg-white rounded-xl shadow-sm border overflow-x-auto">
       <table class="w-full text-sm">
         <thead class="bg-slate-100 text-left"><tr><th class="p-3">Nome</th><th class="p-3">Gênero</th><th class="p-3">Pontos</th><th class="p-3">Par fixo</th><th class="p-3">Trio</th><th class="p-3">Situação</th><th class="p-3"></th></tr></thead>
         <tbody>
-          ${lista.map((p) => `<tr class="border-t ${p.ativo === false ? 'text-slate-400' : ''}">
+          ${lista.map((p) => `<tr class="border-t ${p.ativo === false ? 'text-slate-400' : ''}" data-busca="${esc(textoBusca(p.nome, p.genero === 'F' ? 'irmã' : 'irmão', (p.pontosVoto || []).join(' '), pubPorId(p.conjuge)?.nome, p.ativo === false ? 'inativo' : 'ativo'))}">
             <td class="p-3 font-medium">${esc(p.nome)}</td>
             <td class="p-3">${p.genero === 'F' ? 'Irmã' : 'Irmão'}</td>
             <td class="p-3">${p.pontosVoto?.length ? esc(p.pontosVoto.join(', ')) : 'Todos'}</td>

@@ -29,7 +29,7 @@ beforeEach(async () => {
     const usuarios = {
       adm: { nome: 'Admin', papel: 'admin' },
       servo: { nome: 'Servo', papel: 'servo' },
-      anc: { nome: 'Ancião', papel: 'anciao' },
+      anc: { nome: 'Ancião (perfil antigo)', papel: 'anciao' },
       vot: { nome: 'Votante', papel: 'votante', publicadorId: 'p1' },
       pend: { nome: 'Pendente', papel: 'pendente', publicadorId: null },
       rem: { nome: 'Removido', papel: 'removido', publicadorId: 'p3' },
@@ -175,7 +175,7 @@ test('votante: não lê a lista de usuários nem muda o próprio perfil', async 
 
 /* ---------------------------------------------------------------- organizadores */
 
-for (const uid of ['servo', 'anc']) {
+for (const uid of ['servo']) {
   test(`${uid}: lê todos os publicadores e edita o cadastro`, async () => {
     const db = como(uid);
     await assertSucceeds(getDocs(collection(db, 'publicadores')));
@@ -223,6 +223,16 @@ test('administrador: apaga enquete com votos e escala (limpeza de dados antigos)
   await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'aberta', 'votos', 'p1')));
   await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'pub', 'escala', 'atual')));
   await assertSucceeds(deleteDoc(doc(db, 'enquetes', 'pub')));
+});
+
+// O perfil "Ancião" deixou de existir: cadastros antigos com papel "anciao" valem como administrador.
+test('ancião (perfil antigo): tem o mesmo acesso do administrador', async () => {
+  const db = como('anc');
+  await assertSucceeds(getDocs(collection(db, 'publicadores')));
+  await assertSucceeds(setDoc(doc(db, 'enquetes', 'fechada', 'escala', 'atual'), { publicada: false, celulas: {} }));
+  await assertSucceeds(getDocs(collection(db, 'usuarios')));
+  await assertSucceeds(updateDoc(doc(db, 'usuarios', 'anc'), { papel: 'admin' }));
+  await assertSucceeds(getDocs(collection(db, 'convites')));
 });
 
 /* ---------------------------------------------------------------- cadastro de usuário */

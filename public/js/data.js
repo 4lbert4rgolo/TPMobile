@@ -8,13 +8,19 @@ const FIREBASE_VERSAO = '10.14.1';
 export const PAPEIS = {
   pendente: 'Aguardando aprovação',
   votante: 'Votante',
-  servo: 'Servo ministerial',
-  anciao: 'Ancião',
+  servo: 'Servo Ministerial',
   admin: 'Administrador',
   removido: 'Acesso removido',
 };
 
-export const ORGANIZADORES = ['servo', 'anciao', 'admin'];
+export const ORGANIZADORES = ['servo', 'admin'];
+
+/**
+ * O perfil "Ancião" deixou de existir: anciãos têm o mesmo acesso do administrador.
+ * Cadastros antigos com papel "anciao" passam a valer como "admin" (e são gravados assim
+ * na primeira vez que um administrador abre a tela de Usuários).
+ */
+export const normalizarPapel = (papel) => (papel === 'anciao' ? 'admin' : papel);
 
 export const CONFIG_PADRAO = {
   pontos: ['Bairro Novo', 'Atacadão Novo Mix', 'Morada dos Canários e Sabiás'],
@@ -177,6 +183,25 @@ export async function criarBackendFirebase(cfg) {
     getEscala: (enqueteId) => um('enquetes', enqueteId, 'escala', 'atual'),
     salvarEscala: (enqueteId, dados) =>
       F.setDoc(ref('enquetes', enqueteId, 'escala', 'atual'), { ...semId(dados), atualizadoEm: F.serverTimestamp() }),
+
+    /**
+     * Grava a escala sem apagar a mudança de outro organizador.
+     * Usa uma "transação": o Firestore lê a versão que está no banco AGORA, passa para `alterar`
+     * e só grava se ninguém mexeu no meio do caminho (se mexeu, ele repete sozinho com a versão nova).
+     * `alterar(atual)` devolve os dados novos, ou lança um erro de conflito (ver escala.js).
+     * Cada gravação soma 1 em "versao".
+     */
+    async atualizarEscala(enqueteId, alterar) {
+      const r = ref('enquetes', enqueteId, 'escala', 'atual');
+      return F.runTransaction(db, async (tx) => {
+        const snap = await tx.get(r);
+        const atual = snap.exists() ? snap.data() : null;
+        const novo = semId(alterar(atual));
+        const dados = { ...novo, versao: (atual?.versao || 0) + 1, ajustadoEm: new Date().toISOString() };
+        tx.set(r, { ...dados, atualizadoEm: F.serverTimestamp() });
+        return dados;
+      });
+    },
   };
 }
 
@@ -206,7 +231,7 @@ function abrirArmazenamento() {
 
 const USUARIOS_DEMO = [
   { id: 'demo-admin', nome: 'Administrador (demo)', email: 'admin@demo.local', papel: 'admin', publicadorId: 'p3' },
-  { id: 'u3', nome: 'Paulo (exemplo)', email: 'paulo@exemplo.com', papel: 'anciao', publicadorId: 'p1' },
+  { id: 'u3', nome: 'Paulo (exemplo)', email: 'paulo@exemplo.com', papel: 'admin', publicadorId: 'p1' },
   { id: 'u2', nome: 'Carlos (exemplo)', email: 'carlos@exemplo.com', papel: 'votante', publicadorId: 'p9' },
   { id: 'u1', nome: 'Maria (exemplo)', email: 'maria@exemplo.com', papel: 'pendente', publicadorId: null },
 ];
@@ -309,8 +334,8 @@ export function criarBackendDemo() {
 
     /** Só existe na demonstração: entra direto com um perfil. */
     entrarDemo(papel) {
-      const nomes = { admin: 'Administrador (demo)', anciao: 'Ancião (demo)', servo: 'Servo (demo)', votante: 'Votante (demo)' };
-      const vinculo = { admin: 'p3', anciao: 'p1', servo: 'p5', votante: 'p4' };
+      const nomes = { admin: 'Administrador (demo)', servo: 'Servo (demo)', votante: 'Votante (demo)' };
+      const vinculo = { admin: 'p3', servo: 'p5', votante: 'p4' };
       const s = { uid: `demo-${papel}`, email: `${papel}@demo.local`, nome: nomes[papel], papel, publicadorId: vinculo[papel] };
       gravar('sessao', s);
       if (ouvinte) ouvinte({ uid: s.uid, email: s.email, nome: s.nome });
@@ -421,6 +446,14 @@ export function criarBackendDemo() {
       const escalas = ler('escalas', {});
       escalas[enqueteId] = dados;
       gravar('escalas', escalas);
+    },
+    async atualizarEscala(enqueteId, alterar) {
+      const escalas = ler('escalas', {});
+      const atual = escalas[enqueteId] || null;
+      const dados = { ...alterar(atual), versao: (atual?.versao || 0) + 1, ajustadoEm: new Date().toISOString() };
+      escalas[enqueteId] = dados;
+      gravar('escalas', escalas);
+      return dados;
     },
   };
 }
