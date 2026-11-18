@@ -1,0 +1,251 @@
+import { $, STATUS, enqueteAtual, esc, estado, fecharModal, lerPref, pubPorId, tentar, toast } from './nucleo.js';
+import { renderAba } from './shell.js';
+import { chave, nomeDia, dataCurta, celulaBloqueada, pontosDoPublicador } from './escala.js';
+
+export function seletorEnquete(lista, acaoId = 'escolher-enquete') {
+  if (!lista.length) return '';
+  return `<div class="mb-4"><label class="text-sm font-medium" for="sel-enquete">Enquete</label>
+    <select id="sel-enquete" class="border rounded-lg p-2 w-full sm:w-auto" data-acao="${acaoId}">
+      ${lista.map((e) => `<option value="${esc(e.id)}" ${e.id === estado.enqueteId ? 'selected' : ''}>${esc(e.titulo)} — ${STATUS[e.status]?.[0] || e.status}</option>`).join('')}
+    </select></div>`;
+}
+
+export function escolherEnquetePadrao(lista) {
+  if (!lista.find((e) => e.id === estado.enqueteId)) estado.enqueteId = lista[0]?.id || null;
+}
+
+/* ============================================================ votar */
+
+export const diaDaSemana = (data) => { const [a, m, d] = data.split('-').map(Number); return new Date(a, m - 1, d).getDay(); };
+
+/** Transforma o "costume" (dia da semana + horário) nos horários desta enquete, respeitando bloqueios. */
+export function horariosDoCostume(enquete, padrao) {
+  const disp = Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set()]));
+  if (!padrao) return disp;
+  for (const ponto of enquete.pontos) {
+    const usuais = new Set(padrao[ponto] || []);
+    for (const dia of enquete.dias) {
+      if (dia.ativo === false) continue;
+      for (const turno of enquete.turnos) {
+        if (usuais.has(`${diaDaSemana(dia.data)}|${turno}`) && !celulaBloqueada(enquete, dia.data, turno, ponto)) disp[ponto].add(chave(dia.data, turno));
+      }
+    }
+  }
+  return disp;
+}
+
+/** Guarda o voto como "costume": troca a data pelo dia da semana, para valer em qualquer semana. */
+export function costumeDoVoto(disponibilidade) {
+  return Object.fromEntries(Object.entries(disponibilidade).map(([ponto, lista]) => [
+    ponto,
+    [...new Set(lista.map((k) => { const [data, ...turno] = k.split('|'); return `${diaDaSemana(data)}|${turno.join('|')}`; }))],
+  ]));
+}
+
+export async function carregarVoto(enquete, pubId) {
+  const existente = await estado.backend.getVoto(enquete.id, pubId);
+  let padrao = null;
+  try { padrao = (await estado.backend.getPadrao(pubId))?.padrao || null; } catch { /* sem costume guardado */ }
+  const temCostume = Boolean(padrao && Object.values(padrao).some((l) => l.length));
+  const doCostume = !existente && temCostume;
+  estado.voto = {
+    enqueteId: enquete.id,
+    pubId,
+    jaVotou: Boolean(existente),
+    filtro: lerPref('filtro-ponto') || '',
+    padrao: temCostume ? padrao : null,
+    preenchidoDoCostume: doCostume,
+    guardarPadrao: !temCostume,
+    disp: doCostume
+      ? horariosDoCostume(enquete, padrao)
+      : Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.disponibilidade?.[ponto] || [])])),
+  };
+}
+
+export function usarCostume() {
+  const e = enqueteAtual();
+  estado.voto.disp = horariosDoCostume(e, estado.voto.padrao);
+  estado.voto.preenchidoDoCostume = true;
+  estado.voto.salvo = false;
+  renderAreaVoto();
+  toast('Horários de costume marcados. Confira e salve.');
+}
+
+/** Pontos em que esta pessoa vota (todos, se não houver restrição no cadastro). */
+export function pontosPermitidosDoVoto() {
+  return pontosDoPublicador(pubPorId(estado.voto.pubId), enqueteAtual().pontos);
+}
+
+/** Pontos mostrados agora: os permitidos, ou só o que a pessoa escolheu no filtro. */
+export function pontosVisiveis(enquete) {
+  const permitidos = pontosDoPublicador(pubPorId(estado.voto.pubId), enquete.pontos);
+  const filtro = estado.voto.filtro;
+  return permitidos.length > 1 && permitidos.includes(filtro) ? [filtro] : permitidos;
+}
+
+export function totalMarcado() {
+  const permitidos = pontosPermitidosDoVoto();
+  return Object.entries(estado.voto.disp)
+    .filter(([ponto]) => permitidos.includes(ponto))
+    .reduce((soma, [, conjunto]) => soma + conjunto.size, 0);
+}
+
+export function htmlVoto(enquete, leitura = false) {
+  const v = estado.voto;
+  const aberta = enquete.status === 'aberta' && !leitura;
+
+  const permitidos = pontosDoPublicador(pubPorId(v.pubId), enquete.pontos);
+  const visiveis = pontosVisiveis(enquete);
+
+  const nota = permitidos.length < enquete.pontos.length
+    ? `<p class="text-sm text-slate-700 mb-3">Você vota ${permitidos.length === 1 ? 'apenas em' : 'em'} <strong>${permitidos.map(esc).join(' e ')}</strong>.</p>`
+    : '';
+  const filtro = permitidos.length > 1
+    ? `<div class="flex flex-wrap items-center gap-2 mb-3"><span class="text-sm text-slate-600">Mostrar:</span>
+        <button type="button" class="chip-turno" aria-pressed="${visiveis.length === permitidos.length}" data-acao="filtro-ponto" data-ponto="">Todos os pontos</button>
+        ${permitidos.map((p) => `<button type="button" class="chip-turno" aria-pressed="${visiveis.length === 1 && visiveis[0] === p}" data-acao="filtro-ponto" data-ponto="${esc(p)}">${esc(p)}</button>`).join('')}
+      </div>`
+    : '';
+
+  const pontos = visiveis.map((ponto) => `
+    <section class="bg-white rounded-xl shadow-sm border p-4 mb-4">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 class="font-bold text-blue-800">${esc(ponto)}</h3>
+        ${aberta ? `<div class="flex flex-wrap gap-2 text-sm">
+          <button class="px-3 py-1 rounded-lg bg-slate-100" data-acao="marcar-tudo" data-ponto="${esc(ponto)}">Marcar tudo</button>
+          <button class="px-3 py-1 rounded-lg bg-slate-100" data-acao="limpar-ponto" data-ponto="${esc(ponto)}">Limpar</button>
+          ${permitidos.length > 1 ? `<button class="px-3 py-1 rounded-lg bg-blue-50 text-blue-800" data-acao="copiar-ponto" data-ponto="${esc(ponto)}">Copiar para todos os pontos</button>` : ''}
+        </div>` : ''}
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+        ${enquete.dias.map((dia) => {
+          if (dia.ativo === false) {
+            return `<div class="border rounded-lg p-3 bg-slate-50"><p class="font-semibold text-sm">${nomeDia(dia.data)} ${dataCurta(dia.data)}</p>
+              <p class="text-sm text-slate-500 italic mt-1">${esc(dia.motivo || 'Sem carrinho')}</p></div>`;
+          }
+          return `<div class="border rounded-lg p-3"><p class="font-semibold text-sm mb-2">${nomeDia(dia.data)} ${dataCurta(dia.data)}</p>
+            <div class="flex flex-wrap gap-2">
+              ${enquete.turnos.map((turno) => {
+                const motivo = celulaBloqueada(enquete, dia.data, turno, ponto);
+                const k = chave(dia.data, turno);
+                const marcado = v.disp[ponto].has(k);
+                return `<button type="button" class="chip-turno" ${motivo || !aberta ? 'disabled' : ''} title="${esc(motivo || '')}"
+                  aria-pressed="${marcado}" data-acao="alternar-voto" data-ponto="${esc(ponto)}" data-chave="${esc(k)}">${esc(turno)}</button>`;
+              }).join('')}
+            </div></div>`;
+        }).join('')}
+      </div>
+    </section>`).join('');
+
+  const rodape = aberta
+    ? `${v.salvo ? '<div id="aviso-salvo" class="bg-green-50 text-green-800 border border-green-200 rounded-xl p-4 mb-3 font-semibold">✔ Pronto! Seus votos foram salvos. Você pode mudar até a votação encerrar.</div>' : ''}
+      <div class="sticky bottom-0 bg-slate-50/95 py-3 flex flex-wrap items-center gap-3">
+        <button class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold" data-acao="salvar-voto">Salvar meus votos</button>
+        <span class="text-sm text-slate-600" id="contagem-voto">${totalMarcado()} horário(s) marcado(s)</span>
+        <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-acao="guardar-costume" ${v.guardarPadrao ? 'checked' : ''}> ${v.padrao ? 'Atualizar' : 'Guardar como'} meu costume (para já vir marcado nas próximas)</label>
+      </div>`
+    : `<p class="text-sm text-slate-500">${enquete.status === 'aberta' ? '' : 'A votação desta enquete está encerrada.'}</p>`;
+
+  const avisoCostume = aberta && v.preenchidoDoCostume && !v.salvo
+    ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 rounded-xl p-3 mb-3 text-sm"><strong>Marcamos os seus horários de costume.</strong> Confira, mude o que precisar e toque em <strong>Salvar meus votos</strong>.</div>'
+    : '';
+  const botaoCostume = aberta && v.padrao && !v.preenchidoDoCostume
+    ? '<button type="button" class="px-3 py-1 rounded-lg bg-blue-50 text-blue-800 text-sm mb-3" data-acao="usar-costume">↺ Marcar meus horários de costume</button>'
+    : '';
+
+  return nota + avisoCostume + botaoCostume + filtro + pontos + rodape;
+}
+
+export function renderAreaVoto() {
+  const e = enqueteAtual();
+  const area = $('#area-voto');
+  // Organizador lançando voto por outra pessoa pode ajustar mesmo com a votação fechada.
+  if (e && area) area.innerHTML = htmlVoto(estado.voto?.forcarAberta ? { ...e, status: 'aberta' } : e);
+}
+
+export async function renderVotar() {
+  const c = $('#conteudo');
+  const pubId = estado.perfil.publicadorId;
+
+  if (!pubId || !pubPorId(pubId)) {
+    c.innerHTML = `<div class="bg-white rounded-xl shadow p-6">
+      <h2 class="font-bold mb-1">Sua conta ainda não está ligada a um publicador</h2>
+      <p class="text-slate-600">Peça a um administrador para ligar o seu acesso ao seu nome na lista de publicadores. Depois você poderá votar.</p></div>`;
+    return;
+  }
+
+  const abertas = estado.enquetes.filter((e) => e.status === 'aberta');
+  if (!abertas.length) {
+    c.innerHTML = `<div class="bg-white rounded-xl shadow p-6"><h2 class="font-bold mb-1">Nenhuma enquete aberta</h2>
+      <p class="text-slate-600">Quando uma nova enquete for aberta, ela aparece aqui. Se já houver uma escala publicada, veja na aba Escala.</p></div>`;
+    return;
+  }
+
+  escolherEnquetePadrao(abertas);
+  const enquete = enqueteAtual();
+  await carregarVoto(enquete, pubId);
+
+  c.innerHTML = `
+    <div class="mb-3">
+      <p class="text-lg font-bold">Olá, ${esc((estado.perfil.nome || '').split(' ')[0])}!</p>
+      <h2 class="text-base font-semibold text-blue-800">${esc(enquete.titulo)}</h2>
+      <ol class="text-sm text-slate-700 list-decimal ml-5 mt-1">
+        <li>Toque nos horários em que você pode participar.</li>
+        <li>No final da página, toque em <strong>Salvar meus votos</strong>.</li>
+      </ol>
+      ${estado.voto.jaVotou ? '<p class="text-sm text-green-700 mt-1"><strong>Você já votou.</strong> Se quiser, pode mudar e salvar de novo.</p>' : ''}
+    </div>
+    ${seletorEnquete(abertas, 'escolher-enquete')}
+    <div id="area-voto">${htmlVoto(enquete)}</div>`;
+}
+
+export function alternarVoto(botao) {
+  const { ponto, chave: k } = botao.dataset;
+  const conjunto = estado.voto.disp[ponto];
+  if (conjunto.has(k)) conjunto.delete(k); else conjunto.add(k);
+  botao.setAttribute('aria-pressed', String(conjunto.has(k)));
+  estado.voto.salvo = false;
+  $('#aviso-salvo')?.remove();
+  const contagem = $('#contagem-voto');
+  if (contagem) contagem.textContent = `${totalMarcado()} horário(s) marcado(s)`;
+}
+
+export function marcarPonto(ponto, marcar) {
+  const e = enqueteAtual();
+  const conjunto = estado.voto.disp[ponto];
+  conjunto.clear();
+  if (marcar) {
+    for (const dia of e.dias) for (const turno of e.turnos) if (!celulaBloqueada(e, dia.data, turno, ponto)) conjunto.add(chave(dia.data, turno));
+  }
+  renderAreaVoto();
+}
+
+export function copiarPonto(ponto) {
+  const origem = estado.voto.disp[ponto];
+  for (const outro of pontosPermitidosDoVoto()) if (outro !== ponto) estado.voto.disp[outro] = new Set(origem);
+  estado.voto.salvo = false;
+  renderAreaVoto();
+  toast('Horários copiados para todos os pontos.');
+}
+
+export async function salvarVoto() {
+  const e = enqueteAtual();
+  const v = estado.voto;
+  const pub = pubPorId(v.pubId);
+  const permitidos = pontosPermitidosDoVoto();
+  const disponibilidade = Object.fromEntries(
+    Object.entries(v.disp).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
+  );
+  const ok = await tentar(() => estado.backend.salvarVoto(e.id, v.pubId, { disponibilidade, nome: pub?.nome || '' }), 'Votos salvos!');
+  if (ok && v.guardarPadrao) {
+    const padrao = costumeDoVoto(disponibilidade);
+    try { await estado.backend.salvarPadrao(v.pubId, padrao); v.padrao = padrao; v.guardarPadrao = false; } catch { toast('O voto foi salvo, mas não deu para guardar o costume.', 'erro'); }
+  }
+  if (ok && $('#modal').innerHTML) { fecharModal(); renderAba(); return; }
+  if (ok) {
+    estado.voto.salvo = true;
+    estado.voto.jaVotou = true;
+    renderAreaVoto();
+    $('#aviso-salvo')?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  }
+}

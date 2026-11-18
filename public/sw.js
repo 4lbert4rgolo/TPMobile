@@ -3,10 +3,12 @@
 // uma versão nova do app apareça logo; a cópia guardada só entra se a internet falhar.
 // Firebase, fontes e tudo que é de outro endereço passam direto (não são guardados).
 
-const VERSAO = 'tpmobile-v2.7c';
+const VERSAO = 'tpmobile-v2.8';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
-  'js/app.js', 'js/data.js', 'js/escala.js', 'js/firebase-config.js',
+  'js/app.js', 'js/nucleo.js', 'js/instalar.js', 'js/sessao.js', 'js/shell.js', 'js/votar.js', 'js/votos.js',
+  'js/publicadores.js', 'js/enquetes.js', 'js/telaEscala.js', 'js/usuarios.js', 'js/links.js',
+  'js/data.js', 'js/escala.js', 'js/firebase-config.js',
   'css/tailwind.css', 'css/app.css', 'icons/icon-192.png',
 ];
 
