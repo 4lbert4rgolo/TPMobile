@@ -10,3 +10,13 @@ Script do Google Apps Script que copia todo o Firestore do TPMobile para a pasta
 5. Escolha a função `ativarBackupDiario` e clique em **Executar** (só uma vez).
 
 Para desligar: execute `desativarBackup`. Se uma execução falhar, o Google manda um e-mail avisando.
+
+## O que vai no arquivo
+Um `.json` por dia (`tpmobile-backup-AAAA-MM-DD_HH-mm.json`), com todas as coleções do banco do jeito que estão no Firestore: `publicadores`, `enquetes` (com as subcoleções `votos` e `escala` dentro de cada enquete, em `_subcolecoes`), `disponibilidadePadrao`, `config` e `usuarios`. O arquivo tem nomes e telefones: a pasta do Drive deve ficar só com você.
+
+É diferente do botão **Baixar backup** do app (Menu > Privacidade e dados), que gera um resumo organizado para leitura. Os dois servem de cópia de segurança; para restaurar dados a partir de qualquer um deles, peça ajuda: hoje não há um botão de restaurar.
+
+## Como funciona (para quem quer entender o código)
+- O script usa a **sua** conta Google (`ScriptApp.getOAuthToken()`): por ser dona do projeto, ela lê o Firestore sem precisar de senha ou chave.
+- Lê o banco pela API REST do Firestore, página por página (até 300 documentos por vez), e descobre as subcoleções de cada documento com `listCollectionIds`.
+- As configurações (pasta, dias guardados, horário) ficam nas `const` do começo do `Codigo.gs`.

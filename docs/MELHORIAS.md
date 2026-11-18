@@ -1,6 +1,6 @@
 # TPMobile — melhorias recomendadas e prioridades
 
-Atualizado em 18/11/2026 (v2.9). Critério: o que protege os dados e a escala vem antes do que só deixa o app mais agradável.
+Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dados e a escala vem antes do que só deixa o app mais agradável.
 
 ## Já feito
 
@@ -19,11 +19,11 @@ Atualizado em 18/11/2026 (v2.9). Critério: o que protege os dados e a escala ve
 | Avisar quem não votou, horários de costume, separador "/" | v2.5 |
 | App instalável (PWA) e link pessoal para votantes | anteriores |
 
-## ⏳ Para publicar a v2.9
+## ✅ Depois de publicar a v2.9 (18/11/2026)
 
-1. Merge da branch `melhorias-em-breve` no `master` (o GitHub testa e publica o site sozinho).
-2. `npm run deploy:regras` (regras com o perfil antigo `anciao` valendo como administrador).
-3. Teste real com 2 ou 3 irmãos, incluindo a "Minha escala" no iPhone e no Android.
+1. Um administrador abre Menu > **Usuários** uma vez (regrava os antigos "Ancião" como Administrador).
+2. Instalar o **backup automático no Google Drive** ([scripts/apps-script/README.md](../scripts/apps-script/README.md)), se ainda não foi feito.
+3. Teste real com 2 ou 3 irmãos, incluindo a "Minha escala" no iPhone e no Android, e avisar o grupo sobre a nova seção.
 
 ## 🟢 Pode esperar
 
@@ -31,7 +31,7 @@ Atualizado em 18/11/2026 (v2.9). Critério: o que protege os dados e a escala ve
 
 | # | Melhoria | Observação | Esforço |
 |---|---|---|---|
-| 9 | **Histórico de quem mudou o quê** (escala e acessos) | Faz mais sentido depois do nº 5 e com mais organizadores. | Médio |
+| 9 | **Histórico de quem mudou o quê** (escala e acessos) | Hoje a escala mostra só a última alteração. Um histórico completo ajuda quando vários organizadores editam juntos. | Médio |
 | 10 | **Voto "só se precisar" (reserva) e botão "Preciso trocar"** | Geram lista de substitutos. Dá para continuar combinando no grupo por enquanto. | Médio/Grande |
 | 11 | **Importar publicadores em lote** | Útil só no cadastro inicial ou em grandes mudanças. | Pequeno |
 | 12 | **Arquivar enquetes antigas** | Só pesa quando a lista de enquetes ficar longa. | Pequeno |
@@ -39,8 +39,8 @@ Atualizado em 18/11/2026 (v2.9). Critério: o que protege os dados e a escala ve
 
 ## Ordem sugerida
 
-1. Publicar a v2.9 e fazer o teste real.
-2. Item 9 (histórico de alterações), agora que vários organizadores podem editar ao mesmo tempo.
+1. Fazer o teste real da v2.9 e ajustar o que a prática mostrar.
+2. Item 9 (histórico de alterações), se vários organizadores passarem a editar a mesma semana.
 3. O resto, quando houver necessidade concreta.
 
 ## Fora do TPMobile

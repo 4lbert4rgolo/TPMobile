@@ -1,4 +1,23 @@
-# Ajustes em relação ao seu zip (TPMobile_879ab0.zip)
+# Histórico de versões do TPMobile
+
+**Versão atual: v2.9, publicada em 18/11/2026.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+
+| Versão | Resumo |
+|---|---|
+| 2.0 | Login, três perfis, enquete configurável e escala automática |
+| 2.1 | Correções de tela, sugestão de publicador em Usuários, guia de entrada |
+| 2.2 | Gestão de usuários, links pessoais, letras maiores, tela de votar mais simples |
+| 2.3 | Ponto de votação por publicador e bloqueios por ponto |
+| 2.4 | App instalável (PWA) |
+| 2.5 | Lembretes de quem não votou, horários de costume, separador "/" |
+| 2.6 | Telefone opcional no cadastro |
+| 2.7 | Visual verde e novo ícone |
+| 2.8 | Menu hambúrguer, privacidade e retenção de 3 meses, backup, código em módulos, testes no GitHub |
+| 2.9 | Perfis Votante / Servo Ministerial / Administrador, escala sem sobrescrita, equilíbrio entre semanas, Minha escala, busca, backup automático no Drive |
+
+---
+
+## 2.0 e 2.1 — Ponto de partida (zip TPMobile_879ab0.zip)
 
 O seu zip tinha o código da **versão 2.0** (login, três perfis, enquete configurável e escala automática), com estas personalizações suas, que foram **mantidas**:
 - `public/js/firebase-config.js` com o seu `apiKey` e `appId` (o arquivo deste pacote é o seu, sem alteração);
@@ -6,21 +25,21 @@ O seu zip tinha o código da **versão 2.0** (login, três perfis, enquete confi
 
 O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os comandos `npm test`, `npm run css` e `npm run serve`.
 
-## 1. Correções e telas (versão 2.1)
+### Correções e telas (versão 2.1)
 - Abrir o `index.html` com dois cliques deixava a página em "Carregando…". Agora a página explica o motivo e o que fazer (`npm run serve`, Laragon ou o endereço publicado). Se o app não iniciar por outro motivo, aparece um aviso depois de 8 segundos.
 - No modo demonstração há o link "Ver a tela de login por e-mail e senha", para ver a tela real.
 - Em **Usuários**, se o nome da conta for igual ao de um publicador, o app já sugere a ligação.
 - Novos guias: `docs/COMO_ENTRAR.md` (como cada pessoa entra, com texto pronto para o grupo).
 - **Publicação pelo GitHub:** nos arquivos `.github/workflows/firebase-hosting-merge.yml` e `firebase-hosting-pull-request.yml` (os seus, gerados pelo Firebase CLI), removi só a linha `npm ci && npm run build`. O projeto não tem `package-lock.json` nem script `build` (o CSS já vai pronto), então essa linha fazia a publicação falhar.
 
-## 2. Usuários, links pessoais e acessibilidade (versão 2.2)
+## v2.2 — Usuários, links pessoais e acessibilidade
 - **Usuários:** alterar nome, perfil e publicador; **Remover acesso** (ou **Recusar**), **Reativar como votante** e **Excluir registro**. Não deixa remover a si mesmo nem tirar o perfil do único administrador.
 - **Links de acesso (aba nova):** um link pessoal por publicador, sem e-mail e sem senha. Botões Copiar, Enviar no WhatsApp, Gerar novo e Revogar.
-- **Letras maiores** (botão no topo e na tela de entrada), lembrado no aparelho.
+- **Letras maiores** (hoje fica no ☰ Menu e na tela de entrada), lembrado no aparelho.
 - **Tela de votar mais simples:** "Olá, nome!", 2 passos escritos, botão **Copiar para todos os pontos** e aviso verde "Pronto! Seus votos foram salvos".
 - **Regras do Firestore** (`firestore.rules`) atualizadas: coleção `convites`, entrada pelo link e perfil `removido`.
 
-## 3. Ponto de votação e bloqueios por ponto (esta versão)
+## v2.3 — Ponto de votação e bloqueios por ponto
 - **Publicador, campo "Onde vota":** "Todos os pontos" (padrão) ou "Somente em" um ou mais pontos. A tabela de publicadores ganhou a coluna **Pontos**.
 - **Tela de votar:** a pessoa vê só os pontos dela e a frase "Você vota apenas em …". Quem vota em mais de um ponto tem o filtro **Mostrar** (Todos os pontos ou um só), lembrado no aparelho. O botão "Copiar para todos os pontos" copia só para os pontos dela, e o voto salvo guarda só esses pontos.
 - **Escala:** o gerador nunca escala alguém fora do ponto dele. Se um organizador puser a pessoa em outro ponto à mão, aparece o aviso "… está configurado para votar só em …".
@@ -28,18 +47,18 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 - O texto do WhatsApp ganhou a seção "Atenção", com os bloqueios e o ponto de cada um.
 - Testes: 11 testes do gerador e 66 verificações da interface no navegador (modo demonstração).
 
-## O que fazer para atualizar
+### O que foi preciso para atualizar (v2.3)
 1. Extraia o zip por cima do projeto. Apague o `favicon.png` antigo da raiz, se ainda existir (o usado é `public/favicon.png`).
 2. No console do Firebase, em **Firestore Database > Regras**, cole o conteúdo de `firestore.rules` e publique. Sem isso, os links pessoais e a gestão de usuários não funcionam.
 3. Em **Authentication > Método de login**, ative **Anônimo** (necessário para o link pessoal).
 4. Publique o site (push para o GitHub ou `firebase deploy --only hosting`) e atualize a página com Ctrl+F5.
 
-## Compatibilidade com os dados que você já tem
+### Compatibilidade com os dados que já existiam
 - Publicadores sem o campo novo valem para todos os pontos.
 - Enquetes e bloqueios antigos continuam como estavam.
 - Votos antigos continuam valendo; só deixam de contar os votos em pontos que a pessoa não pode mais votar.
 
-## Arquivos alterados em relação ao seu zip
+### Arquivos alterados em relação ao zip
 - `.github/workflows/firebase-hosting-merge.yml`
 - `.github/workflows/firebase-hosting-pull-request.yml`
 - `README.md`
@@ -54,23 +73,23 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 - `public/js/escala.js`
 - `tests/escala.test.mjs`
 
-## Arquivos novos
+### Arquivos novos (v2.1 a v2.3)
 - `docs/AJUSTES.md`
 - `docs/COMO_ENTRAR.md`
 
 ---
 
-## 4. App instalável (versão 2.4)
-- **Instalar como app** (Android, computador e iPhone): ícone na tela, tela cheia, abertura mais rápida. Botão **📲 Instalar app** no topo e na tela de entrada; no iPhone mostra o passo a passo.
+## v2.4 — App instalável
+- **Instalar como app** (Android, computador e iPhone): ícone na tela, tela cheia, abertura mais rápida. Botão **📲 Instalar app** (hoje no ☰ Menu) e na tela de entrada; no iPhone mostra o passo a passo.
 - **Campo "Recebeu um link pessoal?"** na tela de entrada: cola a mensagem inteira com o link e entra (necessário no app instalado do iPhone, que tem armazenamento próprio).
 - O app pede ao navegador para **não apagar o login** guardado quando faltar espaço.
 - Arquivos novos: `public/manifest.webmanifest`, `public/sw.js`, `public/icons/*` (ícones feitos a partir do seu ícone azul), `docs/APP_INSTALAVEL.md`.
 - `firebase.json`: o manifesto também não fica em cache. `scripts/verificar-publicacao.mjs`: confere os arquivos novos antes de publicar.
 - Não precisa mexer em regras do Firestore nem em Authentication.
 
-## v2.5 — Lembretes, horários de costume e separador na escala
+## v2.5 e v2.6 — Lembretes, horários de costume, separador na escala e telefone
 
-**Separador na escala.** Quem está na mesma dupla/trio aparece assim: `Ana / Bruno / Carlos` (tela, impressão e Excel). Para usar "e", troque a constante `SEPARADOR_ESCALA` em `public/js/app.js` por `' e '`.
+**Separador na escala.** Quem está na mesma dupla/trio aparece assim: `Ana / Bruno / Carlos` (tela, impressão e Excel). Para usar "e", troque a constante `SEPARADOR_ESCALA` em `public/js/telaEscala.js` por `' e '`.
 
 **Avisar quem não votou.**
 - Aba *Enquetes*: cada enquete aberta mostra "12 de 40 já votaram" e o atalho "ver quem falta e lembrar".
@@ -81,7 +100,7 @@ O seu `package.json` tinha sido recriado por `npm init`; o deste pacote tem os c
 
 **Para publicar:** rode `npm run deploy` (site) **e** `npm run deploy:regras` (regras do Firestore, nova coleção `disponibilidadePadrao`). Sem as regras novas, salvar o costume dá erro de permissão (o voto em si continua sendo salvo). Alternativa: copiar o conteúdo de `firestore.rules` em Firebase Console > Firestore > Regras > Publicar.
 
-**Telefone no cadastro.** O cadastro do publicador tem o campo opcional "Telefone com WhatsApp" (DDD + número; o 55 do Brasil é acrescentado sozinho). Com telefone, os botões **Lembrar** e **Enviar link** abrem a conversa direto com a pessoa; sem telefone, o WhatsApp deixa você escolher o contato. O "Lembrar o grupo" continua igual. Os telefones ficam no Firestore, visíveis só para os organizadores (e para a própria pessoa), e nunca no código do GitHub.
+**Telefone no cadastro (v2.6).** O cadastro do publicador tem o campo opcional "Telefone com WhatsApp" (DDD + número; o 55 do Brasil é acrescentado sozinho). Com telefone, os botões **Lembrar** e **Enviar link** abrem a conversa direto com a pessoa; sem telefone, o WhatsApp deixa você escolher o contato. O "Lembrar o grupo" continua igual. Os telefones ficam no Firestore, visíveis só para os organizadores (e para a própria pessoa), e nunca no código do GitHub.
 
 ## v2.7 — Novo visual (verde, como o AlpDesk) e novo ícone
 
@@ -119,4 +138,6 @@ Cores trocadas do azul para o verde do AlpDesk (`#0f7a68` nos botões e cabeçal
 
 **Arquivos novos:** `public/js/busca.js`, `public/js/agenda.js` (regras da Minha escala e do calendário), `public/js/telaMinha.js`, `tests/melhorias.test.mjs`. Também: `scripts/apps-script/` (backup automático no Google Drive, ver o README da pasta).
 
-**Para publicar:** faça o merge da branch `melhorias-em-breve` no `master` e rode `npm run deploy:regras` (regras do Firestore com o perfil antigo `anciao` valendo como administrador). Sem as regras novas, o app funciona, mas um ancião que ainda não foi regravado como administrador não consegue abrir Usuários e Links até um administrador abrir a tela Usuários.
+**Publicação (feita em 18/11/2026):** merge da branch `melhorias-em-breve` no `master` e `npm run deploy:regras` (regras do Firestore com o perfil antigo `anciao` valendo como administrador).
+
+**Depois de publicar:** um administrador abre Menu > Usuários uma vez, para o app regravar os cadastros antigos de "Ancião" como Administrador. Quem já tinha instalado o app no celular recebe a versão nova na próxima abertura com internet.

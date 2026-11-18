@@ -1,10 +1,10 @@
 # Instalar o TPMobile como app
 
-O site agora é um **app instalável** (PWA): ganha ícone na tela do celular, abre em tela cheia, sem a barra do navegador, e abre mais rápido. Não precisa de loja de aplicativos.
+O site é um **app instalável** (PWA): ganha ícone na tela do celular, abre em tela cheia, sem a barra do navegador, e abre mais rápido. Não precisa de loja de aplicativos.
 
 ## Como instalar
-- **Android (Chrome):** toque em **📲 Instalar app** (no topo do app ou na tela de entrada). Se o botão não aparecer, use o menu do Chrome (três pontinhos) > **Instalar app** ou **Adicionar à tela inicial**.
-- **Computador (Chrome ou Edge):** toque em **📲 Instalar app** ou no ícone de instalar na barra de endereço.
+- **Android (Chrome):** toque em **📲 Instalar app** (no ☰ Menu ou na tela de entrada). Se o botão não aparecer, use o menu do Chrome (três pontinhos) > **Instalar app** ou **Adicionar à tela inicial**.
+- **Computador (Chrome ou Edge):** toque em **📲 Instalar app** (no ☰ Menu) ou no ícone de instalar na barra de endereço.
 - **iPhone/iPad (Safari):** o Safari não oferece a janela de instalação sozinho. Toque em **Compartilhar** (quadrado com seta para cima) > **Adicionar à Tela de Início** > **Adicionar**. O botão **📲 Instalar app** do app mostra esse passo a passo.
 
 ## O login continua depois de instalar?
@@ -19,7 +19,7 @@ O site agora é um **app instalável** (PWA): ganha ícone na tela do celular, a
 Não.
 - No **mesmo navegador (ou no mesmo app instalado)** em que a pessoa já entrou, o link geral abre direto na tela dela, sem pedir nada.
 - Em **outro navegador ou aparelho** (por exemplo, abrir pelo WhatsApp num navegador e depois pelo Chrome), aparece a tela de entrada. A pessoa toca no link pessoal de novo ou cola no campo "Recebeu um link pessoal?".
-- O link pessoal pode ser usado quantas vezes quiser e em vários aparelhos. Cada aparelho aparece em "aparelho(s)" na aba **Links de acesso**.
+- O link pessoal pode ser usado quantas vezes quiser e em vários aparelhos. Cada aparelho aparece em "aparelho(s)" em Menu > **Links de acesso**.
 
 ## Quando a pessoa pode ficar sem login
 - Tocou em **Sair** (o app pergunta antes, para quem entrou pelo link).
@@ -30,7 +30,12 @@ Não.
 Em todos esses casos, tocar no link pessoal de novo resolve.
 
 ## Atualizações
-Não precisa reinstalar. Quando você publica uma versão nova, o app instalado pega a novidade na próxima abertura com internet (ele sempre tenta a internet primeiro).
+Não precisa reinstalar. Quando uma versão nova é publicada, o app instalado pega a novidade na próxima abertura com internet (ele sempre tenta a internet primeiro). Se o ícone da tela inicial mudar numa versão, quem já tinha instalado pode precisar remover e instalar de novo para ver o ícone novo.
+
+## Levar a escala para o calendário
+Em ☰ Menu > **Minha escala**:
+- **Android:** toque em **Google Agenda** em cada horário. Abre o Google Agenda com o evento pronto; é só salvar.
+- **iPhone e computador:** toque em **Levar tudo para o calendário**. Baixa um arquivo `.ics` com todos os próximos horários (com lembrete 1 hora antes); ao abrir, o Calendário pergunta se quer adicionar. Se a escala mudar depois, apague os eventos antigos e importe de novo. No app instalado do iPhone, se o arquivo não abrir, abra o site pelo Safari e toque no botão de lá.
 
 ## Sem internet
 O app abre (a tela é guardada no aparelho), mas **votar e ver a escala precisam de internet**, porque os dados ficam no Firebase.
