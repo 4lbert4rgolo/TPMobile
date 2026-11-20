@@ -13,7 +13,7 @@ import { carregarBase, entrarComLink, iniciar, renderLogin } from './sessao.js';
 import { abrirMenu, fecharMenu, renderAba, renderApp } from './shell.js';
 import { atualizarResumoCelula, desenharEscala, editarCelula, exportarExcel, gerarEscalaAcao, gravarCelula, imprimir, publicarEscala } from './telaEscala.js';
 import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario } from './usuarios.js';
-import { alternarVoto, copiarPonto, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
+import { alternarPontoVoto, alternarVoto, copiarPonto, votoPorPonto, votoSimples, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
 import { abrirLembreteGrupo, lembrar, votarPor } from './votos.js';
 import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
 import { normalizarPapel } from './data.js';
@@ -76,6 +76,9 @@ const acoes = {
   'lembrar': (el) => lembrar(el.dataset.id),
   'lembrar-grupo': () => abrirLembreteGrupo(),
   'abrir-whats-texto': () => window.open(`https://wa.me/?text=${encodeURIComponent($('#texto-whats').value)}`, '_blank', 'noopener'),
+  'alternar-ponto-voto': (el) => alternarPontoVoto(el.dataset.ponto),
+  'voto-por-ponto': votoPorPonto,
+  'voto-simples': votoSimples,
   'copiar-ponto': (el) => copiarPonto(el.dataset.ponto),
   'filtro-ponto': (el) => { estado.voto.filtro = el.dataset.ponto; gravarPref('filtro-ponto', estado.voto.filtro); renderAreaVoto(); },
   'votar-por': (el) => votarPor(el.dataset.id),

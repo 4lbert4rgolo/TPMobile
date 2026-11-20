@@ -2,6 +2,7 @@ import { $, STATUS, enqueteAtual, esc, estado, fecharModal, lerPref, pubPorId, t
 import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { chave, nomeDia, dataCurta, celulaBloqueada, pontosDoPublicador } from './escala.js';
+import { aplicarMestre, bloqueadoEmTodos, iniciarUnico } from './votoUnico.js';
 
 export function seletorEnquete(lista, acaoId = 'escolher-enquete') {
   if (!lista.length) return '';
@@ -63,11 +64,35 @@ export async function carregarVoto(enquete, pubId) {
     // "Só se precisar": horários de reserva. Não entram na escala automática; viram substitutos.
     reserva: Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.reserva?.[ponto] || [])])),
   };
+  iniciarTelaUnica();
+}
+
+/**
+ * Tela em dois passos (vale quando a pessoa vota em mais de um ponto):
+ * 1) uma grade única de horários  2) caixinhas "onde quero participar".
+ * A grade única é a "mestre"; ela é copiada para cada ponto escolhido (veja aplicarMestre).
+ */
+function iniciarTelaUnica() {
+  const v = estado.voto;
+  const permitidos = pontosPermitidosDoVoto();
+  const u = iniciarUnico(v.disp, v.reserva, permitidos, true);
+  v.mestre = u.mestre;
+  v.escolhidos = u.escolhidos;
+  v.unificado = permitidos.length > 1 && u.unificado;
+}
+
+function sincronizarMestre() {
+  const v = estado.voto;
+  const { disp, reserva } = aplicarMestre(enqueteAtual(), v.mestre, v.escolhidos, pontosPermitidosDoVoto());
+  v.disp = disp; v.reserva = reserva;
+  v.salvo = false;
 }
 
 export function usarCostume() {
   const e = enqueteAtual();
   estado.voto.disp = horariosDoCostume(e, estado.voto.padrao);
+  iniciarTelaUnica();
+  if (estado.voto.unificado) sincronizarMestre();
   estado.voto.preenchidoDoCostume = true;
   estado.voto.salvo = false;
   renderAreaVoto();
@@ -95,6 +120,11 @@ export function totalMarcado(campo = 'disp') {
 
 /** "5 horário(s) · 2 de reserva" */
 export function textoContagem() {
+  const v = estado.voto;
+  if (v.unificado) {
+    const reservas = v.mestre.reserva.size;
+    return `${v.mestre.disp.size} horário(s) marcado(s)${reservas ? ` · ${reservas} de reserva` : ''} · ${v.escolhidos.size} ponto(s)`;
+  }
   const reservas = totalMarcado('reserva');
   return `${totalMarcado()} horário(s) marcado(s)${reservas ? ` · ${reservas} de reserva` : ''}`;
 }
@@ -148,6 +178,11 @@ export function htmlVoto(enquete, leitura = false) {
       </div>
     </section>`).join('');
 
+  const unico = v.unificado ? htmlUnico(enquete, aberta) : '';
+  const voltar = !v.unificado && permitidos.length > 1 && aberta
+    ? '<button type="button" class="px-3 py-1 rounded-lg bg-blue-50 text-blue-800 text-sm mb-3" data-acao="voto-simples">← Voltar à tela simples (mesmos horários em todos os pontos)</button>'
+    : '';
+
   const rodape = aberta
     ? `${v.salvo ? '<div id="aviso-salvo" class="bg-green-50 text-green-800 border border-green-200 rounded-xl p-4 mb-3 font-semibold">✔ Pronto! Seus votos foram salvos. Você pode mudar até a votação encerrar.</div>' : ''}
       <div class="sticky bottom-0 bg-slate-50/95 py-3 flex flex-wrap items-center gap-3">
@@ -171,7 +206,72 @@ export function htmlVoto(enquete, leitura = false) {
         <span class="legenda-item"><span class="chip-turno chip-legenda">3 toques</span> desmarca</span>
       </div>`
     : '';
-  return nota + avisoCostume + botaoCostume + filtro + legenda + pontos + rodape;
+  return v.unificado
+    ? nota + avisoCostume + botaoCostume + legenda + unico + rodape
+    : nota + avisoCostume + botaoCostume + voltar + filtro + legenda + pontos + rodape;
+}
+
+/** Passo 1 (grade única de horários) e passo 2 (em quais pontos participar). */
+function htmlUnico(enquete, aberta) {
+  const v = estado.voto;
+  const permitidos = pontosPermitidosDoVoto();
+  const grade = enquete.dias.map((dia) => {
+    if (dia.ativo === false) {
+      return `<div class="border rounded-lg p-3 bg-slate-50"><p class="font-semibold text-sm">${nomeDia(dia.data)} ${dataCurta(dia.data)}</p>
+        <p class="text-sm text-slate-500 italic mt-1">${esc(dia.motivo || 'Sem carrinho')}</p></div>`;
+    }
+    return `<div class="border rounded-lg p-3"><p class="font-semibold text-sm mb-2">${nomeDia(dia.data)} ${dataCurta(dia.data)}</p>
+      <div class="flex flex-wrap gap-2">
+        ${enquete.turnos.map((turno) => {
+          const bloqueado = bloqueadoEmTodos(enquete, dia.data, turno, v.escolhidos);
+          const k = chave(dia.data, turno);
+          const marcado = v.mestre.disp.has(k);
+          const reserva = !marcado && v.mestre.reserva.has(k);
+          return `<button type="button" class="chip-turno" ${bloqueado || !aberta ? 'disabled' : ''}
+            aria-pressed="${marcado}" data-reserva="${reserva}" aria-label="${esc(turno)}${marcado ? ': posso' : reserva ? ': só se precisar' : ''}"
+            data-acao="alternar-voto" data-ponto="*" data-chave="${esc(k)}">${esc(turno)}${reserva ? '<span class="chip-reserva"> · reserva</span>' : ''}</button>`;
+        }).join('')}
+      </div></div>`;
+  }).join('');
+  return `
+    <section class="bg-white rounded-xl shadow-sm border p-4 mb-4" id="passo-horarios">
+      <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+        <h3 class="font-bold text-blue-800">1. Em quais horários posso?</h3>
+        ${aberta ? `<div class="flex flex-wrap gap-2 text-sm">
+          <button class="px-3 py-1 rounded-lg bg-slate-100" data-acao="marcar-tudo" data-ponto="*">Marcar tudo</button>
+          <button class="px-3 py-1 rounded-lg bg-slate-100" data-acao="limpar-ponto" data-ponto="*">Limpar</button></div>` : ''}
+      </div>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">${grade}</div>
+    </section>
+    <section class="bg-white rounded-xl shadow-sm border p-4 mb-4" id="passo-pontos">
+      <h3 class="font-bold text-blue-800 mb-1">2. Onde quero participar?</h3>
+      <p class="text-sm text-slate-600 mb-3">Marque só os pontos em que você realmente quer participar. Os horários acima valem para todos os pontos marcados.</p>
+      <div class="flex flex-wrap gap-3">
+        ${permitidos.map((p) => `<label class="flex items-center gap-2 border rounded-lg px-3 py-2 ${v.escolhidos.has(p) ? 'bg-blue-50 border-blue-300' : ''}">
+          <input type="checkbox" data-acao="alternar-ponto-voto" data-ponto="${esc(p)}" ${v.escolhidos.has(p) ? 'checked' : ''} ${aberta ? '' : 'disabled'}> <span class="font-medium">${esc(p)}</span></label>`).join('')}
+      </div>
+      ${v.escolhidos.size === 0 ? '<p class="text-sm text-amber-800 mt-2">Marque pelo menos um ponto para o seu voto valer.</p>' : ''}
+      ${aberta ? '<button type="button" class="mt-3 text-sm text-blue-800 underline" data-acao="voto-por-ponto">Preciso de horários diferentes em um ponto específico</button>' : ''}
+    </section>`;
+}
+
+export function alternarPontoVoto(ponto) {
+  const v = estado.voto;
+  if (v.escolhidos.has(ponto)) v.escolhidos.delete(ponto); else v.escolhidos.add(ponto);
+  sincronizarMestre();
+  renderAreaVoto();
+}
+
+export function votoPorPonto() { estado.voto.unificado = false; renderAreaVoto(); }
+
+export function votoSimples() {
+  // Volta para a grade única usando o primeiro ponto que tem horários marcados.
+  const v = estado.voto;
+  const u = iniciarUnico(v.disp, v.reserva, pontosPermitidosDoVoto(), true);
+  v.mestre = u.mestre; v.escolhidos = u.escolhidos; v.unificado = true;
+  sincronizarMestre();
+  renderAreaVoto();
+  toast('Os horários do primeiro ponto marcado foram aplicados a todos os pontos. Confira.');
 }
 
 export function renderAreaVoto() {
@@ -227,8 +327,9 @@ export function proximoEstado(atual) {
 
 export function alternarVoto(botao) {
   const { ponto, chave: k } = botao.dataset;
-  const disp = estado.voto.disp[ponto];
-  const reserva = estado.voto.reserva[ponto] || (estado.voto.reserva[ponto] = new Set());
+  const unico = ponto === '*';
+  const disp = unico ? estado.voto.mestre.disp : estado.voto.disp[ponto];
+  const reserva = unico ? estado.voto.mestre.reserva : (estado.voto.reserva[ponto] || (estado.voto.reserva[ponto] = new Set()));
   const atual = disp.has(k) ? 'posso' : reserva.has(k) ? 'reserva' : 'vazio';
   const novo = proximoEstado(atual);
   disp.delete(k); reserva.delete(k);
@@ -239,6 +340,7 @@ export function alternarVoto(botao) {
   botao.dataset.reserva = String(novo === 'reserva');
   botao.setAttribute('aria-label', `${turno}${novo === 'posso' ? ': posso' : novo === 'reserva' ? ': só se precisar' : ''}`);
   botao.innerHTML = `${esc(turno)}${novo === 'reserva' ? '<span class="chip-reserva"> · reserva</span>' : ''}`;
+  if (unico) sincronizarMestre();
   estado.voto.salvo = false;
   $('#aviso-salvo')?.remove();
   const contagem = $('#contagem-voto');
@@ -247,6 +349,14 @@ export function alternarVoto(botao) {
 
 export function marcarPonto(ponto, marcar) {
   const e = enqueteAtual();
+  if (ponto === '*') {
+    const m = estado.voto.mestre;
+    m.disp.clear(); m.reserva.clear();
+    if (marcar) for (const dia of e.dias) if (dia.ativo !== false) for (const turno of e.turnos) if (!bloqueadoEmTodos(e, dia.data, turno, estado.voto.escolhidos)) m.disp.add(chave(dia.data, turno));
+    sincronizarMestre();
+    renderAreaVoto();
+    return;
+  }
   const conjunto = estado.voto.disp[ponto];
   conjunto.clear();
   estado.voto.reserva[ponto]?.clear();
@@ -274,6 +384,7 @@ export async function salvarVoto() {
   const v = estado.voto;
   const pub = pubPorId(v.pubId);
   const permitidos = pontosPermitidosDoVoto();
+  if (v.unificado && v.escolhidos.size === 0) return toast('Marque pelo menos um ponto onde você quer participar.', 'erro');
   const disponibilidade = Object.fromEntries(
     Object.entries(v.disp).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
   );
