@@ -1,7 +1,10 @@
 import { $, abrirModal, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { numeroWhats } from './votos.js';
 import { campoBusca, textoBusca } from './busca.js';
+import { lerTexto, interpretarLinhas, linhasDoModelo, COLUNAS } from './importar.js';
+import { ESTILOS } from './relatorios.js';
 
 /* ============================================================ publicadores */
 
@@ -13,7 +16,10 @@ export async function renderPublicadores() {
   c.innerHTML = `
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <h2 class="text-lg font-bold">Publicadores <span class="text-sm font-normal text-slate-500">(${ativos} ativos)</span></h2>
-      <button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold" data-acao="novo-publicador">Novo publicador</button>
+      <div class="flex gap-2">
+        <button class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 font-semibold" data-acao="importar-publicadores">Importar</button>
+        <button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold" data-acao="novo-publicador">Novo publicador</button>
+      </div>
     </div>
     <p class="text-sm text-slate-600 mb-3">Guarde só o necessário. "Par fixo" faz o casal participar sempre junto; "Precisa de trio" faz a equipe ter 3 pessoas (por idade ou necessidade especial).</p>
     ${campoBusca('Buscar por nome, ponto ou par fixo')}
@@ -39,6 +45,8 @@ export async function renderPublicadores() {
 
 /** Pontos da configuração (Menu > Pontos), na ordem de lá. */
 export const pontosConhecidos = () => [...(estado.config?.pontos || [])];
+
+const CAMPOS_PUB = { nome: 'nome', telefone: 'telefone', pontosVoto: 'onde vota', genero: 'gênero', conjuge: 'par fixo', requerTrio: 'trio', ativo: 'ativo' };
 
 export function formularioPublicador(id) {
   const p = id ? pubPorId(id) : null;
@@ -115,6 +123,8 @@ export async function salvarPublicadorForm(form) {
   }, 'Publicador salvo.');
 
   if (ok) {
+    const mudou = antigo ? Object.entries(dados).filter(([k, v]) => JSON.stringify(antigo[k] ?? (k === 'pontosVoto' ? [] : '')) !== JSON.stringify(v)).map(([k]) => CAMPOS_PUB[k] || k) : [];
+    registrar({ area: 'publicadores', acao: antigo ? 'Editou o publicador' : 'Cadastrou o publicador', alvo: nome, detalhe: antigo ? (mudou.length ? `mudou: ${mudou.join(', ')}` : 'sem mudança') : '' });
     fecharModal();
     estado.pubs = await estado.backend.listarPublicadores();
     renderAba();
@@ -132,7 +142,90 @@ export async function excluirPublicador(id) {
     await estado.backend.excluirPublicador(id);
   }, 'Publicador excluído.');
   if (ok) {
+    registrar({ area: 'publicadores', acao: 'Excluiu o publicador', alvo: p.nome });
     estado.pubs = await estado.backend.listarPublicadores();
     renderAba();
   }
+}
+
+/* ============================================================ importar em lote */
+
+export function abrirImportacao() {
+  estado.importacao = null;
+  abrirModal(`
+    <div class="flex items-start justify-between gap-3 mb-2">
+      <h2 class="text-lg font-bold">Importar publicadores</h2>
+      <button class="px-2 text-slate-500" data-acao="fechar-modal" aria-label="Fechar">✕</button>
+    </div>
+    <p class="text-sm text-slate-600 mb-2">Use as colunas <strong>${COLUNAS.join(' · ')}</strong>. Nome e gênero são obrigatórios. Em "Onde vota", escreva os pontos separados por vírgula ou "Todos". Quem já estiver cadastrado com o mesmo nome é ignorado. O par fixo você liga depois, editando cada pessoa.</p>
+    <button class="text-sm underline text-blue-700 mb-3" data-acao="baixar-modelo-importacao">Baixar o modelo em Excel</button>
+    <div class="space-y-3">
+      <div><label class="text-sm font-medium" for="imp-arquivo">Enviar arquivo (.xlsx ou .csv)</label>
+        <input id="imp-arquivo" type="file" accept=".xlsx,.xls,.csv,.txt" class="block w-full text-sm mt-1" data-importar-arquivo></div>
+      <div><label class="text-sm font-medium" for="imp-texto">Ou cole aqui as linhas copiadas da planilha</label>
+        <textarea id="imp-texto" rows="6" class="w-full border rounded-lg p-2 text-sm font-mono" placeholder="Nome&#9;Gênero&#9;Telefone&#9;Onde vota&#9;Precisa de trio"></textarea></div>
+      <button class="bg-slate-200 rounded-lg px-4 py-2 font-semibold" data-acao="previa-importacao">Ver prévia</button>
+    </div>
+    <div id="imp-previa" class="mt-4"></div>`, 'max-w-3xl');
+}
+
+/** Lê o arquivo enviado e coloca as linhas na caixa de texto, para a pessoa conferir. */
+export async function arquivoDeImportacao(input) {
+  const arquivo = input.files?.[0];
+  if (!arquivo) return;
+  try {
+    let linhas;
+    if (/\.(xlsx|xls)$/i.test(arquivo.name)) {
+      if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet ou cole as linhas.', 'erro');
+      const wb = XLSX.read(await arquivo.arrayBuffer(), { type: 'array' });
+      linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false })
+        .map((l) => l.map((c) => String(c ?? '').trim()));
+    } else {
+      linhas = lerTexto(await arquivo.text());
+    }
+    $('#imp-texto').value = linhas.filter((l) => l.some(Boolean)).map((l) => l.join('\t')).join('\n');
+    previaImportacao();
+  } catch (e) {
+    console.error(e);
+    toast('Não foi possível ler o arquivo. Confira o formato ou cole as linhas.', 'erro');
+  }
+}
+
+export function previaImportacao() {
+  const res = interpretarLinhas(lerTexto($('#imp-texto').value), { existentes: estado.pubs, pontos: estado.config.pontos || [] });
+  estado.importacao = res;
+  const lista = (titulo, itens, cor) => (itens.length ? `<div class="mb-3"><h3 class="font-semibold text-sm ${cor}">${titulo} (${itens.length})</h3>
+    <ul class="text-sm list-disc pl-5">${itens.map((x) => `<li>${x.linha ? `Linha ${x.linha}: ` : ''}${esc(x.nome || '(sem nome)')}${x.msg ? ` — ${esc(x.msg)}` : ''}</li>`).join('')}</ul></div>` : '');
+  $('#imp-previa').innerHTML = `
+    ${res.novos.length ? `<div class="mb-3"><h3 class="font-semibold text-sm text-green-800">Serão cadastrados (${res.novos.length})</h3>
+      <div class="overflow-x-auto border rounded-lg"><table class="w-full text-sm"><thead class="bg-slate-50 text-left"><tr><th class="p-2">Nome</th><th class="p-2">Gênero</th><th class="p-2">Telefone</th><th class="p-2">Onde vota</th><th class="p-2">Trio</th></tr></thead>
+      <tbody>${res.novos.map((p) => `<tr class="border-t"><td class="p-2">${esc(p.nome)}</td><td class="p-2">${p.genero === 'F' ? 'Irmã' : 'Irmão'}</td><td class="p-2">${esc(p.telefone || '—')}</td><td class="p-2">${esc(p.pontosVoto.join(', ') || 'Todos')}</td><td class="p-2">${p.requerTrio ? 'Sim' : '—'}</td></tr>`).join('')}</tbody></table></div></div>` : ''}
+    ${lista('Com erro (corrija e veja a prévia de novo)', res.erros, 'text-red-700')}
+    ${lista('Ignorados', res.ignorados, 'text-slate-600')}
+    ${!res.novos.length && !res.erros.length && !res.ignorados.length ? '<p class="text-sm text-slate-500">Nenhuma linha encontrada.</p>' : ''}
+    ${res.novos.length ? `<button class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold" data-acao="confirmar-importacao">Cadastrar ${res.novos.length} publicador(es)</button>` : ''}`;
+}
+
+export async function confirmarImportacao() {
+  const novos = estado.importacao?.novos || [];
+  if (!novos.length) return;
+  let feitos = 0;
+  const ok = await tentar(async () => {
+    for (const p of novos) { await estado.backend.salvarPublicador(p); feitos += 1; }
+  }, `${novos.length} publicador(es) cadastrado(s).`);
+  if (feitos) {
+    registrar({ area: 'publicadores', acao: 'Importou publicadores', detalhe: `${feitos} cadastrado(s): ${novos.slice(0, feitos).map((p) => p.nome).join(', ')}` });
+    estado.pubs = await estado.backend.listarPublicadores();
+  }
+  if (ok) { fecharModal(); renderAba(); }
+}
+
+export function baixarModeloImportacao() {
+  if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');
+  const ws = XLSX.utils.aoa_to_sheet(linhasDoModelo(estado.config.pontos || []));
+  COLUNAS.forEach((_, c) => { const k = XLSX.utils.encode_cell({ r: 0, c }); if (ws[k]) ws[k].s = ESTILOS.cabecalho; });
+  ws['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 18 }, { wch: 32 }, { wch: 16 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Publicadores');
+  XLSX.writeFile(wb, 'Modelo - importar publicadores.xlsx');
 }

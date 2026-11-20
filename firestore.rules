@@ -64,7 +64,13 @@ service cloud.firestore {
             && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.publicadorId == request.resource.data.publicadorId
             && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.nome == request.resource.data.nome)
         );
-      allow update, delete: if administrador();
+      // A própria pessoa só pode gravar o aceite do aviso de privacidade (data e versão).
+      allow update: if administrador()
+        || (logado() && request.auth.uid == uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['privacidadeAceitaEm', 'privacidadeVersao'])
+            && request.resource.data.privacidadeAceitaEm is string
+            && request.resource.data.privacidadeVersao is int);
+      allow delete: if administrador();
     }
 
     // Link pessoal: o código secreto é o próprio id do documento.
@@ -95,6 +101,23 @@ service cloud.firestore {
       allow write: if organizador();
     }
 
+    // Auditoria: quem fez o quê. Cada um registra só em nome próprio (uid e nome conferidos)
+    // e com a hora do servidor. Ninguém edita; só o administrador apaga (limpeza dos 3 meses).
+    // Votantes só registram aceite de privacidade e pedidos de troca.
+    match /auditoria/{id} {
+      allow read: if organizador();
+      allow create: if aprovado()
+        && request.resource.data.keys().hasOnly(['area', 'acao', 'alvo', 'detalhe', 'enqueteId', 'uid', 'nome', 'papel', 'quando', 'quandoISO'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.nome == cadastro().nome
+        && request.resource.data.quando == request.time
+        && request.resource.data.acao is string && request.resource.data.acao.size() <= 120
+        && request.resource.data.detalhe is string && request.resource.data.detalhe.size() <= 600
+        && (organizador() || request.resource.data.area in ['privacidade', 'trocas']);
+      allow update: if false;
+      allow delete: if administrador();
+    }
+
     match /enquetes/{enqueteId} {
       // Rascunhos só os organizadores veem.
       allow read: if organizador()
@@ -109,6 +132,28 @@ service cloud.firestore {
               && pubId == meuPublicadorId()
               && request.resource.data.publicadorId == pubId
               && get(/databases/$(database)/documents/enquetes/$(enqueteId)).data.status == 'aberta');
+        allow delete: if organizador();
+      }
+
+      // Pedidos de troca ("Preciso trocar"). A pessoa pede e cancela os próprios;
+      // os organizadores veem todos e resolvem ou dispensam.
+      match /trocas/{trocaId} {
+        allow read: if organizador()
+          || (aprovado() && resource.data.publicadorId == meuPublicadorId());
+        allow create: if organizador()
+          || (aprovado()
+              && request.resource.data.publicadorId == meuPublicadorId()
+              && request.resource.data.status == 'aberta'
+              && trocaId.matches(meuPublicadorId() + '_.*'));
+        allow update: if organizador()
+          || (aprovado()
+              && resource.data.publicadorId == meuPublicadorId()
+              && request.resource.data.publicadorId == meuPublicadorId()
+              && (
+                (request.resource.data.status == 'cancelada'
+                  && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
+                || (resource.data.status != 'aberta' && request.resource.data.status == 'aberta')
+              ));
         allow delete: if organizador();
       }
 

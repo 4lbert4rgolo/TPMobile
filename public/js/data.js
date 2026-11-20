@@ -45,7 +45,16 @@ export async function criarBackendFirebase(cfg) {
 
   const app = initializeApp(cfg);
   const auth = A.getAuth(app);
-  const db = F.getFirestore(app);
+  // Cache no aparelho: o que já foi aberto continua aparecendo com internet fraca ou sem internet,
+  // e o que for gravado sem internet é enviado quando a conexão voltar. Se o navegador não deixar
+  // (ex.: janela anônima), segue sem cache.
+  let db;
+  try {
+    db = F.initializeFirestore(app, { localCache: F.persistentLocalCache({ tabManager: F.persistentMultipleTabManager() }) });
+  } catch (e) {
+    console.warn('Sem cache no aparelho:', e);
+    db = F.getFirestore(app);
+  }
 
   const col = (...caminho) => F.collection(db, ...caminho);
   const ref = (...caminho) => F.doc(db, ...caminho);
@@ -167,6 +176,7 @@ export async function criarBackendFirebase(cfg) {
     },
     async excluirEnquete(id) {
       for (const v of await lista('enquetes', id, 'votos')) await F.deleteDoc(ref('enquetes', id, 'votos', v.id));
+      for (const t of await lista('enquetes', id, 'trocas')) await F.deleteDoc(ref('enquetes', id, 'trocas', t.id));
       await F.deleteDoc(ref('enquetes', id, 'escala', 'atual'));
       await F.deleteDoc(ref('enquetes', id));
     },
@@ -183,6 +193,41 @@ export async function criarBackendFirebase(cfg) {
     getEscala: (enqueteId) => um('enquetes', enqueteId, 'escala', 'atual'),
     salvarEscala: (enqueteId, dados) =>
       F.setDoc(ref('enquetes', enqueteId, 'escala', 'atual'), { ...semId(dados), atualizadoEm: F.serverTimestamp() }),
+
+    /* ---------- privacidade: cada pessoa grava só a data do próprio aceite (ver firestore.rules) */
+    aceitarPrivacidade: (uid, versao) =>
+      F.updateDoc(ref('usuarios', uid), { privacidadeAceitaEm: new Date().toISOString(), privacidadeVersao: versao }),
+
+    /* ---------- auditoria: quem fez o quê (só cria; ninguém edita) */
+    registrarAuditoria: (evento) => {
+      const u = auth.currentUser;
+      return F.addDoc(col('auditoria'), { ...evento, uid: u?.uid || null, quando: F.serverTimestamp(), quandoISO: new Date().toISOString() });
+    },
+    async listarAuditoria({ limite = 300, enqueteId = null } = {}) {
+      // Por enquete: filtra e ordena aqui mesmo (assim o Firestore não precisa de índice composto).
+      const q = enqueteId
+        ? F.query(col('auditoria'), F.where('enqueteId', '==', enqueteId))
+        : F.query(col('auditoria'), F.orderBy('quando', 'desc'), F.limit(limite));
+      const itens = (await F.getDocs(q)).docs.map((d) => {
+        const x = comId(d);
+        return { ...x, quando: x.quando?.toDate ? x.quando.toDate().toISOString() : x.quandoISO };
+      });
+      return itens.sort((a, b) => (b.quando || '').localeCompare(a.quando || '')).slice(0, limite);
+    },
+    async apagarAuditoriaAntes(limiteISO) {
+      const q = F.query(col('auditoria'), F.where('quandoISO', '<', limiteISO));
+      let n = 0;
+      for (const d of (await F.getDocs(q)).docs) { await F.deleteDoc(d.ref); n += 1; }
+      return n;
+    },
+
+    /* ---------- pedidos de troca ("Preciso trocar") */
+    async listarTrocas(enqueteId, { publicadorId = null } = {}) {
+      const c = col('enquetes', enqueteId, 'trocas');
+      const q = publicadorId ? F.query(c, F.where('publicadorId', '==', publicadorId)) : c;
+      return (await F.getDocs(q)).docs.map(comId);
+    },
+    salvarTroca: (enqueteId, troca) => F.setDoc(ref('enquetes', enqueteId, 'trocas', troca.id), semId(troca)),
 
     /**
      * Grava a escala sem apagar a mudança de outro organizador.
@@ -349,7 +394,7 @@ export function criarBackendDemo() {
       const s = sessao();
       if (!s) return null;
       const guardado = ler('usuarios', USUARIOS_DEMO).find((u) => u.id === s.uid);
-      return { id: s.uid, nome: s.nome, email: s.email, papel: guardado?.papel || s.papel, publicadorId: guardado?.publicadorId ?? s.publicadorId, conviteId: s.conviteId };
+      return { id: s.uid, nome: s.nome, email: s.email, papel: guardado?.papel || s.papel, publicadorId: guardado?.publicadorId ?? s.publicadorId, conviteId: s.conviteId, privacidadeAceitaEm: guardado?.privacidadeAceitaEm || null };
     },
     async criarUsuarioPendente() {},
     async listarUsuarios() { return ler('usuarios', USUARIOS_DEMO); },
@@ -441,6 +486,36 @@ export function criarBackendDemo() {
     async getPadrao(pubId) { const p = ler('padroes', {})[pubId]; return p ? { id: pubId, padrao: p } : null; },
     async salvarPadrao(pubId, padrao) { const todos = ler('padroes', {}); todos[pubId] = padrao; gravar('padroes', todos); },
 
+    async aceitarPrivacidade(uid, versao) {
+      const lista = ler('usuarios', USUARIOS_DEMO);
+      const dados = { privacidadeAceitaEm: new Date().toISOString(), privacidadeVersao: versao };
+      const s = sessao();
+      gravar('usuarios', lista.some((u) => u.id === uid)
+        ? lista.map((u) => (u.id === uid ? { ...u, ...dados } : u))
+        : [...lista, { id: uid, nome: s?.nome, email: s?.email, papel: s?.papel, publicadorId: s?.publicadorId, conviteId: s?.conviteId, ...dados }]);
+    },
+    async registrarAuditoria(evento) {
+      const s = sessao();
+      const agora = new Date().toISOString();
+      gravar('auditoria', [{ ...evento, id: `a${Date.now()}${Math.random().toString(36).slice(2, 6)}`, uid: s?.uid, quando: agora, quandoISO: agora }, ...ler('auditoria', [])]);
+    },
+    async listarAuditoria({ limite = 300, enqueteId = null } = {}) {
+      return ler('auditoria', []).filter((x) => !enqueteId || x.enqueteId === enqueteId).slice(0, limite);
+    },
+    async apagarAuditoriaAntes(limiteISO) {
+      const todos = ler('auditoria', []);
+      const ficam = todos.filter((x) => x.quandoISO >= limiteISO);
+      gravar('auditoria', ficam);
+      return todos.length - ficam.length;
+    },
+    async listarTrocas(enqueteId, { publicadorId = null } = {}) {
+      return Object.values(ler('trocas', {})[enqueteId] || {}).filter((t) => !publicadorId || t.publicadorId === publicadorId);
+    },
+    async salvarTroca(enqueteId, troca) {
+      const todas = ler('trocas', {});
+      todas[enqueteId] = { ...(todas[enqueteId] || {}), [troca.id]: troca };
+      gravar('trocas', todas);
+    },
     async getEscala(enqueteId) { return ler('escalas', {})[enqueteId] || null; },
     async salvarEscala(enqueteId, dados) {
       const escalas = ler('escalas', {});

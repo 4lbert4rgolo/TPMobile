@@ -68,6 +68,7 @@ export function erroAmigavel(e) {
   if (c.includes('invalid-email')) return 'E-mail inválido.';
   if (c.includes('too-many-requests')) return 'Muitas tentativas. Aguarde um pouco e tente de novo.';
   if (c.includes('network')) return 'Sem conexão. Verifique a internet.';
+  if (c.includes('unavailable') || (typeof navigator !== 'undefined' && navigator.onLine === false)) return 'Sem internet agora. Esta ação precisa de conexão: tente de novo quando a internet voltar.';
   if (c.includes('permission-denied')) return 'Você não tem permissão para esta ação.';
   return 'Não foi possível concluir. Tente novamente.';
 }

@@ -1,6 +1,7 @@
 import { $, esc, estado, pubPorId, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
-import { recarregarUsuarios } from './usuarios.js';
+import { recarregarUsuarios, dataHora } from './usuarios.js';
 import { urlWhats } from './votos.js';
 import { campoBusca, textoBusca } from './busca.js';
 
@@ -15,6 +16,8 @@ export async function renderLinks() {
   estado.convites = convites.filter((cv) => cv.ativo !== false);
   const porPub = new Map(estado.convites.map((cv) => [cv.publicadorId, cv]));
   const aparelhos = (token) => estado.usuarios.filter((u) => u.conviteId === token && u.papel !== 'removido').length;
+  // Data do primeiro aceite do aviso de privacidade feito por este link (em qualquer aparelho).
+  const aceite = (token) => estado.usuarios.filter((u) => u.conviteId === token && u.privacidadeAceitaEm).map((u) => u.privacidadeAceitaEm).sort()[0];
   const lista = estado.pubs.filter((p) => p.ativo !== false).sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
   const semLink = lista.filter((p) => !porPub.has(p.id)).length;
   const demo = estado.backend.modo === 'demo';
@@ -35,7 +38,8 @@ export async function renderLinks() {
           const cv = porPub.get(p.id);
           return `<tr class="border-t" data-busca="${esc(textoBusca(p.nome, cv ? 'ativo' : 'sem link'))}">
             <td class="p-3 font-medium">${esc(p.nome)}</td>
-            <td class="p-3">${cv ? `<span class="text-green-700">Ativo</span> <span class="text-xs text-slate-500">· ${aparelhos(cv.id)} aparelho(s)</span>` : '<span class="text-slate-400">Sem link</span>'}</td>
+            <td class="p-3">${cv ? `<span class="text-green-700">Ativo</span> <span class="text-xs text-slate-500">· ${aparelhos(cv.id)} aparelho(s)</span>
+              <br><span class="text-xs ${aceite(cv.id) ? 'text-green-700' : 'text-slate-500'}">${aceite(cv.id) ? `Privacidade aceita em ${dataHora(aceite(cv.id))}` : 'Privacidade: ainda não aceitou'}</span>` : '<span class="text-slate-400">Sem link</span>'}</td>
             <td class="p-3 text-right whitespace-nowrap">${cv ? `
               <button class="text-blue-700 underline mr-3" data-acao="copiar-link" data-id="${esc(cv.id)}">Copiar</button>
               <button class="bg-green-600 text-white rounded-lg px-3 py-1 mr-3" data-acao="whats-link" data-id="${esc(cv.id)}">Enviar no WhatsApp</button>
@@ -53,10 +57,12 @@ export async function criarLinkPara(pubId, { pergunta = true } = {}) {
   if (!pub) return false;
   const atual = estado.convites.find((cv) => cv.publicadorId === pubId);
   if (atual && pergunta && !confirm(`Gerar um link novo para ${pub.nome}? O link antigo para de funcionar e os aparelhos que o usavam saem.`)) return false;
-  return tentar(async () => {
+  const ok = await tentar(async () => {
     if (atual) await estado.backend.revogarConvite(atual.id);
     await estado.backend.criarConvite(novoToken(), { publicadorId: pubId, nome: pub.nome });
   });
+  if (ok) registrar({ area: 'links', acao: atual ? 'Gerou um link novo (o antigo parou)' : 'Gerou o link pessoal', alvo: pub.nome });
+  return ok;
 }
 
 export async function gerarTodosLinks() {
@@ -83,5 +89,8 @@ export function enviarLinkWhats(token) {
 export async function revogarLink(token) {
   const cv = estado.convites.find((x) => x.id === token);
   if (!cv || !confirm(`Revogar o link de ${cv.nome}? Ele para de funcionar e os aparelhos que o usavam saem.`)) return;
-  if (await tentar(() => estado.backend.revogarConvite(token), 'Link revogado.')) renderAba();
+  if (await tentar(() => estado.backend.revogarConvite(token), 'Link revogado.')) {
+    registrar({ area: 'links', acao: 'Revogou o link pessoal', alvo: cv.nome });
+    renderAba();
+  }
 }

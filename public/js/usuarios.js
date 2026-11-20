@@ -1,4 +1,5 @@
 import { $, SEM_ACESSO, esc, estado, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { carregarBase } from './sessao.js';
 import { renderAba, renderApp } from './shell.js';
 import { PAPEIS, normalizarPapel } from './data.js';
@@ -9,6 +10,14 @@ import { campoBusca } from './busca.js';
 export const semAcento = (t) => String(t || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/\s+/g, ' ').trim();
 
 /** Se o nome da conta for igual ao de um único publicador, sugere a ligação. */
+/** "20/11/2026 às 14:32" */
+export function dataHora(iso) {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  const dois = (n) => String(n).padStart(2, '0');
+  return `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${d.getFullYear()} às ${dois(d.getHours())}:${dois(d.getMinutes())}`;
+}
+
 export function publicadorSugerido(usuario) {
   if (usuario.publicadorId) return null;
   const alvo = semAcento(usuario.nome);
@@ -53,7 +62,8 @@ export async function renderUsuarios() {
     return `<tr class="border-t ${pendente ? 'bg-amber-50' : ''}" data-uid="${esc(u.id)}" data-busca="${esc(semAcento([u.nome, u.email, pub?.nome, PAPEIS[u.papel]].filter(Boolean).join(' ')))}">
       <td class="p-3">
         <input class="border rounded-lg p-1 w-full min-w-[9rem]" value="${esc(u.nome || '')}" data-campo-usuario="nome" aria-label="Nome">
-        <p class="text-xs text-slate-500 mt-1">${u.conviteId ? 'Entrou pelo link pessoal' : esc(u.email || '')}</p></td>
+        <p class="text-xs text-slate-500 mt-1">${u.conviteId ? 'Entrou pelo link pessoal' : esc(u.email || '')}</p>
+        <p class="text-xs mt-1 ${u.privacidadeAceitaEm ? 'text-green-700' : 'text-amber-700'}">${u.privacidadeAceitaEm ? `Privacidade aceita em ${dataHora(u.privacidadeAceitaEm)}` : 'Ainda não aceitou o aviso de privacidade'}</p></td>
       <td class="p-3"><select class="border rounded-lg p-1" data-campo-usuario="papel" aria-label="Perfil">
         ${Object.entries(PAPEIS).filter(([v]) => v !== 'removido').map(([v, r]) => `<option value="${v}" ${u.papel === v ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
       <td class="p-3"><select class="border rounded-lg p-1" data-campo-usuario="publicadorId" aria-label="Publicador">
@@ -105,8 +115,14 @@ export async function salvarUsuario(uid) {
   if (ehUltimoAdmin(uid) && papel !== 'admin') return toast('Este é o único administrador. Nomeie outro antes de mudar este perfil.', 'erro');
   if (uid === estado.perfil.uid && papel !== 'admin' && !confirm('Você está tirando o seu próprio perfil de administrador. Continuar?')) return;
 
+  const antes = estado.usuarios.find((x) => x.id === uid);
   const ok = await tentar(() => estado.backend.atualizarUsuario(uid, { nome, papel, publicadorId }), 'Usuário atualizado.');
   if (!ok) return;
+  const mudancas = [];
+  if (antes?.papel !== papel) mudancas.push(`perfil: ${PAPEIS[antes?.papel] || antes?.papel || '—'} → ${PAPEIS[papel] || papel}`);
+  if ((antes?.publicadorId || null) !== publicadorId) mudancas.push(`ligado a: ${estado.pubs.find((p) => p.id === publicadorId)?.nome || 'ninguém'}`);
+  if (antes?.nome !== nome) mudancas.push(`nome: ${antes?.nome || '—'} → ${nome}`);
+  registrar({ area: 'usuarios', acao: antes?.papel === 'pendente' && papel !== 'pendente' ? 'Aprovou o acesso' : 'Alterou o usuário', alvo: nome, detalhe: mudancas.join(' · ') || 'sem mudança' });
   if (uid === estado.perfil.uid) {
     estado.perfil = { ...estado.perfil, nome, papel, publicadorId };
     await carregarBase();
@@ -122,15 +138,25 @@ export async function removerAcesso(uid) {
   if (uid === estado.perfil.uid) return toast('Você não pode remover o seu próprio acesso.', 'erro');
   if (ehUltimoAdmin(uid)) return toast('Este é o único administrador. Nomeie outro antes de remover.', 'erro');
   if (!confirm(`${u.papel === 'pendente' ? 'Recusar' : 'Remover o acesso de'} ${u.nome || 'esta pessoa'}? A pessoa perde o acesso na hora. Você pode reativar depois.`)) return;
-  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'removido' }), 'Acesso removido.')) renderAba();
+  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'removido' }), 'Acesso removido.')) {
+    registrar({ area: 'usuarios', acao: u.papel === 'pendente' ? 'Recusou o acesso' : 'Removeu o acesso', alvo: u.nome || u.email || uid });
+    renderAba();
+  }
 }
 
 export async function reativarUsuario(uid) {
-  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'votante' }), 'Acesso reativado como votante.')) renderAba();
+  const u = estado.usuarios.find((x) => x.id === uid);
+  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'votante' }), 'Acesso reativado como votante.')) {
+    registrar({ area: 'usuarios', acao: 'Reativou o acesso (votante)', alvo: u?.nome || u?.email || uid });
+    renderAba();
+  }
 }
 
 export async function excluirRegistroUsuario(uid) {
   const u = estado.usuarios.find((x) => x.id === uid);
   if (!u || !confirm(`Excluir o registro de ${u.nome || 'esta pessoa'}? Se ela entrar de novo com a mesma conta de e-mail, aparecerá como aguardando aprovação.`)) return;
-  if (await tentar(() => estado.backend.excluirUsuario(uid), 'Registro excluído.')) renderAba();
+  if (await tentar(() => estado.backend.excluirUsuario(uid), 'Registro excluído.')) {
+    registrar({ area: 'usuarios', acao: 'Excluiu o registro do usuário', alvo: u.nome || u.email || uid });
+    renderAba();
+  }
 }

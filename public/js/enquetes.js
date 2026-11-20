@@ -1,4 +1,5 @@
 import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { lembrar } from './votos.js';
 import { gerarDias, nomeDia, dataCurta, parseISO, toISO, SEMANAS_EQUILIBRIO } from './escala.js';
@@ -71,6 +72,9 @@ export function editorDe(e, copia = false) {
   return ed;
 }
 
+/** Só enquetes que já passaram da votação (encerradas ou publicadas) podem ser arquivadas. */
+export const podeArquivar = (e) => e.arquivada || ['fechada', 'publicada'].includes(e.status);
+
 export async function renderEnquetes() {
   const c = $('#conteudo');
   if (estado.ed) return renderEditor();
@@ -81,6 +85,10 @@ export async function renderEnquetes() {
     try { progresso.set(e.id, (await estado.backend.listarVotos(e.id)).filter((v) => ativosIds.has(v.publicadorId)).length); } catch { /* sem contador */ }
   }));
 
+  // Arquivadas ficam fora da lista, a não ser que a pessoa peça para ver.
+  const arquivadas = estado.enquetes.filter((e) => e.arquivada);
+  const visiveis = estado.verArquivadas ? estado.enquetes : estado.enquetes.filter((e) => !e.arquivada);
+
   c.innerHTML = `
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <h2 class="text-lg font-bold">Enquetes</h2>
@@ -90,7 +98,7 @@ export async function renderEnquetes() {
       </div>
     </div>
     <div class="space-y-3">
-      ${estado.enquetes.map((e) => {
+      ${visiveis.map((e) => {
         const [rotuloStatus, cor] = STATUS[e.status] || [e.status, 'bg-slate-200'];
         const botoes = [
           ['editar-enquete', 'Editar'],
@@ -99,20 +107,22 @@ export async function renderEnquetes() {
           ['ver-votos', 'Ver votos'],
           ['montar-escala', 'Montar escala'],
           ['texto-whats', 'Texto do WhatsApp'],
+          ...(podeArquivar(e) ? [[e.arquivada ? 'desarquivar-enquete' : 'arquivar-enquete', e.arquivada ? 'Desarquivar' : 'Arquivar']] : []),
           ['excluir-enquete', 'Excluir'],
         ];
         return `<article class="bg-white rounded-xl shadow-sm border p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div><h3 class="font-bold">${esc(e.titulo)}</h3>
               <p class="text-sm text-slate-500">${dataCurta(e.inicio)} a ${dataCurta(e.fim)} · ${e.pontos.length} ponto(s) · ${e.tipo === 'evento' ? 'Evento' : 'Semana'}</p></div>
-            <span class="text-xs font-semibold px-3 py-1 rounded-full ${cor}">${rotuloStatus}</span>
+            <span class="text-xs font-semibold px-3 py-1 rounded-full ${cor}">${rotuloStatus}${e.arquivada ? ' · arquivada' : ''}</span>
           </div>
           ${progresso.has(e.id) ? `<p class="text-sm mt-2"><strong>${progresso.get(e.id)} de ${ativosIds.size}</strong> já votaram · <button class="text-green-700 underline font-semibold" data-acao="ver-votos" data-id="${esc(e.id)}">ver quem falta e lembrar</button></p>` : ''}
           <div class="flex flex-wrap gap-x-4 gap-y-1 mt-3 text-sm">
             ${botoes.map(([a, r]) => `<button class="${a === 'excluir-enquete' ? 'text-red-600' : 'text-blue-700'} underline" data-acao="${a}" data-id="${esc(e.id)}">${r}</button>`).join('')}
           </div></article>`;
-      }).join('') || '<div class="bg-white rounded-xl border p-6 text-slate-600">Nenhuma enquete ainda. Crie a primeira com os botões acima.</div>'}
-    </div>`;
+      }).join('') || `<div class="bg-white rounded-xl border p-6 text-slate-600">${arquivadas.length ? 'Todas as enquetes estão arquivadas.' : 'Nenhuma enquete ainda. Crie a primeira com os botões acima.'}</div>`}
+    </div>
+    ${arquivadas.length ? `<button class="mt-4 text-sm underline text-slate-600" data-acao="mostrar-arquivadas">${estado.verArquivadas ? 'Esconder' : 'Mostrar'} as enquetes arquivadas (${arquivadas.length})</button>` : ''}`;
 }
 
 export function renderEditor() {
@@ -261,7 +271,9 @@ export async function salvarEditor(alvo) {
   };
 
   const ok = await tentar(async () => {
-    await estado.backend.salvarEnquete(enquete);
+    const id = await estado.backend.salvarEnquete(enquete);
+    const acao = !ed.id ? 'Criou a enquete' : alvo === 'aberta' && ed.status !== 'aberta' ? 'Editou e abriu a votação' : 'Editou a enquete';
+    registrar({ area: 'enquetes', acao, alvo: enquete.titulo, enqueteId: id || ed.id, detalhe: `${dataCurta(enquete.inicio)} a ${dataCurta(enquete.fim)} · ${enquete.pontos.length} ponto(s)` });
   }, alvo === 'aberta' ? 'Enquete salva e votação aberta.' : 'Enquete salva.');
 
   if (ok) {
@@ -275,14 +287,29 @@ export async function mudarStatus(id, status, mensagem) {
   const e = estado.enquetes.find((x) => x.id === id);
   if (!e) return;
   const ok = await tentar(() => estado.backend.salvarEnquete({ ...e, status }), mensagem);
-  if (ok) { await recarregarEnquetes(); renderAba(); }
+  if (ok) {
+    const acoes = { aberta: 'Abriu a votação', fechada: 'Encerrou a votação', publicada: 'Publicou a escala', rascunho: 'Voltou para rascunho' };
+    registrar({ area: 'enquetes', acao: acoes[status] || `Mudou a situação para ${status}`, alvo: e.titulo, enqueteId: id });
+    await recarregarEnquetes(); renderAba();
+  }
+}
+
+/** Arquivar tira a enquete da lista (sem apagar nada). Desarquivar traz de volta. */
+export async function arquivarEnquete(id, arquivar) {
+  const e = estado.enquetes.find((x) => x.id === id);
+  if (!e) return;
+  const ok = await tentar(() => estado.backend.salvarEnquete({ ...e, arquivada: arquivar }), arquivar ? 'Enquete arquivada.' : 'Enquete de volta à lista.');
+  if (ok) {
+    registrar({ area: 'enquetes', acao: arquivar ? 'Arquivou a enquete' : 'Desarquivou a enquete', alvo: e.titulo, enqueteId: id });
+    await recarregarEnquetes(); renderAba();
+  }
 }
 
 export async function excluirEnquete(id) {
   const e = estado.enquetes.find((x) => x.id === id);
   if (!e || !confirm(`Excluir "${e.titulo}"? Os votos e a escala dessa enquete serão apagados.`)) return;
   const ok = await tentar(() => estado.backend.excluirEnquete(id), 'Enquete excluída.');
-  if (ok) { await recarregarEnquetes(); renderAba(); }
+  if (ok) { registrar({ area: 'enquetes', acao: 'Excluiu a enquete', alvo: e.titulo, enqueteId: id }); await recarregarEnquetes(); renderAba(); }
 }
 
 export function textoWhatsApp(e) {

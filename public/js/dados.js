@@ -5,9 +5,74 @@
 
 import { toISO } from './escala.js';
 import { MESES_DE_RETENCAO, enquetesAntigas } from './retencao.js';
-import { abrirModal, ehAdmin, esc, estado, fecharModal, tentar, toast } from './nucleo.js';
+import { $, SEM_ACESSO, abrirModal, ehAdmin, esc, estado, fecharModal, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
+import { renderApp } from './shell.js';
 
 /* ------------------------------------------------------------ privacidade */
+
+/** Versão do aviso de privacidade (gravada junto com o aceite de cada pessoa). */
+export const VERSAO_PRIVACIDADE = 1;
+
+/** Texto do aviso: usado na tela de aceite do primeiro acesso e em Menu > Privacidade e dados. */
+export function htmlTextoPrivacidade() {
+  return `<div class="space-y-3 text-sm text-slate-700">
+      <p>Este aplicativo ajuda a organizar a escala dos carrinhos da congregação. Ele guarda só o necessário para isso.</p>
+      <div>
+        <h3 class="font-semibold text-slate-900">O que fica guardado</h3>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>Nome, gênero e regras de participação de cada publicador.</li>
+          <li>Telefone (opcional), usado só para abrir uma conversa no WhatsApp.</li>
+          <li>Os horários em que cada pessoa votou (inclusive os de reserva), os pedidos de troca e a escala montada.</li>
+          <li>Nome e e-mail de quem criou uma conta, o perfil de acesso e a data em que aceitou este aviso.</li>
+          <li>Um registro de quem alterou escalas, enquetes, cadastros e acessos, e quando (auditoria).</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-semibold text-slate-900">Quem vê o quê</h3>
+        <ul class="list-disc pl-5 space-y-1">
+          <li>Quem só vota enxerga o próprio voto, os próprios pedidos de troca e a escala depois de publicada.</li>
+          <li>Servos ministeriais e administradores veem o cadastro, os votos e a auditoria para montar e acompanhar a escala.</li>
+          <li>Só o administrador gerencia acessos, links pessoais e backups.</li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="font-semibold text-slate-900">Por quanto tempo</h3>
+        <p>Votos, escalas, pedidos de troca e registros de auditoria ficam guardados por <strong>${MESES_DE_RETENCAO} meses</strong>. Depois disso, o administrador apaga os dados antigos. Uma cópia de segurança diária fica no Google Drive do administrador por 90 dias.</p>
+      </div>
+      <div>
+        <h3 class="font-semibold text-slate-900">Seus direitos</h3>
+        <p>Qualquer pessoa pode pedir ao administrador para corrigir ou remover os próprios dados, inclusive o telefone.</p>
+      </div>
+      <p class="text-xs text-slate-500">Os dados ficam no Firebase (Google), com regras de acesso aplicadas no servidor. Os dados não são vendidos nem usados para outra finalidade.</p>
+    </div>`;
+}
+
+/** Tela do primeiro acesso: a pessoa só usa o app depois de confirmar que leu o aviso. */
+export function telaAceitePrivacidade() {
+  return `<div class="bg-white rounded-2xl shadow p-6 max-w-2xl mx-auto">
+    <h2 class="text-lg font-bold mb-1">Antes de começar: privacidade</h2>
+    <p class="text-sm text-slate-600 mb-4">Leia como os seus dados são usados. Você só precisa confirmar uma vez.</p>
+    ${htmlTextoPrivacidade()}
+    <label class="flex items-start gap-3 mt-5 bg-slate-50 rounded-lg p-3 text-sm font-medium">
+      <input type="checkbox" id="aceite-privacidade" class="mt-1">
+      <span>Li e concordo com o uso dos meus dados para organizar a escala dos carrinhos, como descrito acima.</span>
+    </label>
+    <div class="flex flex-wrap gap-2 mt-4">
+      <button class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold" data-acao="aceitar-privacidade">Confirmar e continuar</button>
+      <button class="bg-slate-200 rounded-lg px-5 py-2 font-semibold" data-acao="sair">Sair</button>
+    </div>
+  </div>`;
+}
+
+export async function aceitarPrivacidade() {
+  if (!$('#aceite-privacidade')?.checked) return toast('Marque a caixa "Li e concordo" para continuar.', 'erro');
+  const ok = await tentar(() => estado.backend.aceitarPrivacidade(estado.perfil.uid, VERSAO_PRIVACIDADE));
+  if (!ok) return;
+  estado.perfil = { ...estado.perfil, privacidadeAceitaEm: new Date().toISOString(), privacidadeVersao: VERSAO_PRIVACIDADE };
+  if (!SEM_ACESSO.includes(estado.perfil.papel)) registrar({ area: 'privacidade', acao: 'Aceitou o aviso de privacidade', detalhe: `versão ${VERSAO_PRIVACIDADE}` });
+  renderApp();
+}
 
 export function abrirPrivacidade() {
   const admin = ehAdmin();
@@ -16,35 +81,7 @@ export function abrirPrivacidade() {
       <h2 class="text-lg font-bold">Privacidade e dados</h2>
       <button class="px-2 text-slate-500" data-acao="fechar-modal" aria-label="Fechar">✕</button>
     </div>
-    <div class="space-y-3 text-sm text-slate-700">
-      <p>Este aplicativo ajuda a organizar a escala dos carrinhos da congregação. Ele guarda só o necessário para isso.</p>
-      <div>
-        <h3 class="font-semibold text-slate-900">O que fica guardado</h3>
-        <ul class="list-disc pl-5 space-y-1">
-          <li>Nome, gênero e regras de participação de cada publicador.</li>
-          <li>Telefone (opcional), usado só para abrir uma conversa no WhatsApp.</li>
-          <li>Os horários em que cada pessoa votou e a escala montada.</li>
-          <li>Nome e e-mail de quem criou uma conta, e o perfil de acesso.</li>
-        </ul>
-      </div>
-      <div>
-        <h3 class="font-semibold text-slate-900">Quem vê o quê</h3>
-        <ul class="list-disc pl-5 space-y-1">
-          <li>Quem só vota enxerga o próprio voto e a escala depois de publicada.</li>
-          <li>Servos ministeriais e administradores veem o cadastro e os votos para montar a escala.</li>
-          <li>Só o administrador gerencia acessos, links pessoais e backups.</li>
-        </ul>
-      </div>
-      <div>
-        <h3 class="font-semibold text-slate-900">Por quanto tempo</h3>
-        <p>Votos e escalas ficam guardados por <strong>${MESES_DE_RETENCAO} meses</strong> depois do fim da semana ou do evento. Depois disso, o administrador apaga os dados antigos por esta tela. Nada é apagado automaticamente.</p>
-      </div>
-      <div>
-        <h3 class="font-semibold text-slate-900">Seus direitos</h3>
-        <p>Qualquer pessoa pode pedir ao administrador para corrigir ou remover os próprios dados, inclusive o telefone.</p>
-      </div>
-      <p class="text-xs text-slate-500">Os dados ficam no Firebase (Google), com regras de acesso aplicadas no servidor. Os dados não são vendidos nem usados para outra finalidade.</p>
-    </div>
+    ${htmlTextoPrivacidade()}
     ${admin ? htmlDadosAdmin() : ''}
     <div class="mt-4 text-right"><button class="px-4 py-2 rounded-lg bg-slate-200 text-sm font-semibold" data-acao="fechar-modal">Fechar</button></div>
   `, 'max-w-xl');
@@ -131,6 +168,7 @@ export async function baixarBackup() {
   if (!dados) return false;
   const hoje = toISO(new Date());
   baixarArquivo(`tpmobile-backup-${hoje}.json`, JSON.stringify(dados, null, 2));
+  registrar({ area: 'dados', acao: 'Baixou o backup' });
   toast('Backup baixado.');
   return true;
 }
@@ -144,6 +182,16 @@ export async function limparDadosAntigos() {
   const nomes = antigas.map((e) => `• ${e.titulo}`).join('\n');
   if (!confirm(`Apagar ${antigas.length} enquete(s) com mais de ${MESES_DE_RETENCAO} meses, com os votos e a escala de cada uma?\n\n${nomes}\n\nUm backup será baixado antes. Isso não tem volta.`)) return;
   if (!(await baixarBackup())) return; // sem backup, não apaga
-  const ok = await tentar(async () => { for (const e of antigas) await estado.backend.excluirEnquete(e.id); }, `${antigas.length} enquete(s) apagada(s).`);
-  if (ok) { fecharModal(); abrirPrivacidade(); }
+  let apagadosAuditoria = 0;
+  const ok = await tentar(async () => {
+    for (const e of antigas) await estado.backend.excluirEnquete(e.id);
+    // A auditoria segue a mesma regra: registros com mais de 3 meses saem.
+    const limite = new Date();
+    limite.setMonth(limite.getMonth() - MESES_DE_RETENCAO);
+    apagadosAuditoria = await estado.backend.apagarAuditoriaAntes(limite.toISOString());
+  }, `${antigas.length} enquete(s) apagada(s).`);
+  if (ok) {
+    registrar({ area: 'dados', acao: 'Apagou os dados antigos', detalhe: `${antigas.map((e) => e.titulo).join(', ')} · ${apagadosAuditoria} registro(s) de auditoria` });
+    fecharModal(); abrirPrivacidade();
+  }
 }

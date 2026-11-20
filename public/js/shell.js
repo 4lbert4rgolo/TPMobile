@@ -7,6 +7,8 @@ import { faixaDemo, telaPendente } from './sessao.js';
 import { renderEscala } from './telaEscala.js';
 import { renderMinha } from './telaMinha.js';
 import { renderPontos } from './telaPontos.js';
+import { renderAuditoria } from './telaAuditoria.js';
+import { telaAceitePrivacidade } from './dados.js';
 import { renderUsuarios } from './usuarios.js';
 import { renderVotar } from './votar.js';
 import { renderVotos } from './votos.js';
@@ -16,11 +18,11 @@ import { PAPEIS, ORGANIZADORES } from './data.js';
 
 export function abasDoPerfil() {
   const papel = estado.perfil.papel;
-  if (SEM_ACESSO.includes(papel)) return [];
+  if (SEM_ACESSO.includes(papel) || !estado.perfil.privacidadeAceitaEm) return [];
   const abas = [['votar', 'Votar'], ['escala', 'Escala']];
   if (estado.perfil.publicadorId) abas.push(['minha', 'Minha escala']);
   if (ORGANIZADORES.includes(papel)) abas.push(['enquetes', 'Enquetes'], ['votos', 'Votos'], ['publicadores', 'Publicadores'], ['pontos', 'Pontos']);
-  if (papel === 'admin') abas.push(['usuarios', 'Usuários'], ['links', 'Links de acesso']);
+  if (papel === 'admin') abas.push(['usuarios', 'Usuários'], ['links', 'Links de acesso'], ['auditoria', 'Auditoria']);
   return abas;
 }
 
@@ -74,13 +76,17 @@ export function renderApp() {
         </button>
       </div>
     </header>
+    <div id="faixa-offline" class="faixa-offline" ${navigator.onLine ? 'hidden' : ''} role="status">
+      <strong>Sem internet.</strong> Você está vendo a última versão salva neste aparelho. Votos ficam guardados e são enviados quando a conexão voltar; mudanças na escala precisam de internet.
+    </div>
     <div id="menu"></div>
     <main class="max-w-6xl mx-auto p-4 sm:p-6">
-      ${SEM_ACESSO.includes(p.papel) ? telaPendente() : '<div id="conteudo"></div>'}
+      ${!p.privacidadeAceitaEm ? telaAceitePrivacidade() : SEM_ACESSO.includes(p.papel) ? telaPendente() : '<div id="conteudo"></div>'}
     </main>
     <footer class="text-center text-xs text-slate-400 py-6">© 2026 TPMobile</footer>`;
 
-  if (!SEM_ACESSO.includes(p.papel)) renderAba();
+  // Primeiro acesso: só segue depois do aceite do aviso de privacidade.
+  if (p.privacidadeAceitaEm && !SEM_ACESSO.includes(p.papel)) renderAba();
 }
 
 export function abrirMenu() {
@@ -105,7 +111,7 @@ export async function renderAba() {
   if (!c) return;
   c.innerHTML = '<p class="text-slate-500">Carregando…</p>';
   try {
-    const telas = { votar: renderVotar, escala: renderEscala, minha: renderMinha, pontos: renderPontos, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
+    const telas = { votar: renderVotar, escala: renderEscala, minha: renderMinha, pontos: renderPontos, auditoria: renderAuditoria, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
     await telas[estado.aba]();
   } catch (e) {
     console.error(e);

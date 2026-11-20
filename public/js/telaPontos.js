@@ -1,4 +1,5 @@
 import { $, esc, estado, erroAmigavel, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import {
   itensDaConfig, validarPontos, planoDeMudancas, pontosVotoAtualizados,
   costumeAtualizado, rascunhoAtualizado, afetadosPelaRemocao,
@@ -132,6 +133,12 @@ export async function salvarPontos() {
       await recarregarEnquetes();
     }
 
+    const resumo = [
+      ...plano.renomeados.map(([a, b]) => `"${a}" → "${b}"`),
+      ...plano.removidos.map((p) => `removeu "${p}"`),
+      `em uso: ${plano.config.pontos.filter((p) => !plano.config.pontosPausados.includes(p)).join(', ')}`,
+    ];
+    registrar({ area: 'pontos', acao: 'Alterou os pontos', detalhe: resumo.join(' · ') });
     estado.pontosEd = null;
     renderPontos();
     toast(atualizados ? `Pontos salvos. ${atualizados} cadastro(s) de publicador atualizado(s).` : 'Pontos salvos.');

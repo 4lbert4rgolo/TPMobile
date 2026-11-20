@@ -1,4 +1,5 @@
 import { $, STATUS, enqueteAtual, esc, estado, fecharModal, lerPref, pubPorId, tentar, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { chave, nomeDia, dataCurta, celulaBloqueada, pontosDoPublicador } from './escala.js';
 
@@ -59,6 +60,8 @@ export async function carregarVoto(enquete, pubId) {
     disp: doCostume
       ? horariosDoCostume(enquete, padrao)
       : Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.disponibilidade?.[ponto] || [])])),
+    // "Só se precisar": horários de reserva. Não entram na escala automática; viram substitutos.
+    reserva: Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.reserva?.[ponto] || [])])),
   };
 }
 
@@ -83,11 +86,17 @@ export function pontosVisiveis(enquete) {
   return permitidos.length > 1 && permitidos.includes(filtro) ? [filtro] : permitidos;
 }
 
-export function totalMarcado() {
+export function totalMarcado(campo = 'disp') {
   const permitidos = pontosPermitidosDoVoto();
-  return Object.entries(estado.voto.disp)
+  return Object.entries(estado.voto[campo] || {})
     .filter(([ponto]) => permitidos.includes(ponto))
     .reduce((soma, [, conjunto]) => soma + conjunto.size, 0);
+}
+
+/** "5 horário(s) · 2 de reserva" */
+export function textoContagem() {
+  const reservas = totalMarcado('reserva');
+  return `${totalMarcado()} horário(s) marcado(s)${reservas ? ` · ${reservas} de reserva` : ''}`;
 }
 
 export function htmlVoto(enquete, leitura = false) {
@@ -129,8 +138,10 @@ export function htmlVoto(enquete, leitura = false) {
                 const motivo = celulaBloqueada(enquete, dia.data, turno, ponto);
                 const k = chave(dia.data, turno);
                 const marcado = v.disp[ponto].has(k);
+                const reserva = !marcado && v.reserva[ponto]?.has(k);
                 return `<button type="button" class="chip-turno" ${motivo || !aberta ? 'disabled' : ''} title="${esc(motivo || '')}"
-                  aria-pressed="${marcado}" data-acao="alternar-voto" data-ponto="${esc(ponto)}" data-chave="${esc(k)}">${esc(turno)}</button>`;
+                  aria-pressed="${marcado}" data-reserva="${reserva}" aria-label="${esc(turno)}${marcado ? ': posso' : reserva ? ': só se precisar' : ''}"
+                  data-acao="alternar-voto" data-ponto="${esc(ponto)}" data-chave="${esc(k)}">${esc(turno)}${reserva ? '<span class="chip-reserva"> · reserva</span>' : ''}</button>`;
               }).join('')}
             </div></div>`;
         }).join('')}
@@ -141,7 +152,7 @@ export function htmlVoto(enquete, leitura = false) {
     ? `${v.salvo ? '<div id="aviso-salvo" class="bg-green-50 text-green-800 border border-green-200 rounded-xl p-4 mb-3 font-semibold">✔ Pronto! Seus votos foram salvos. Você pode mudar até a votação encerrar.</div>' : ''}
       <div class="sticky bottom-0 bg-slate-50/95 py-3 flex flex-wrap items-center gap-3">
         <button class="bg-blue-600 text-white rounded-lg px-5 py-2 font-semibold" data-acao="salvar-voto">Salvar meus votos</button>
-        <span class="text-sm text-slate-600" id="contagem-voto">${totalMarcado()} horário(s) marcado(s)</span>
+        <span class="text-sm text-slate-600" id="contagem-voto">${textoContagem()}</span>
         <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-acao="guardar-costume" ${v.guardarPadrao ? 'checked' : ''}> ${v.padrao ? 'Atualizar' : 'Guardar como'} meu costume (para já vir marcado nas próximas)</label>
       </div>`
     : `<p class="text-sm text-slate-500">${enquete.status === 'aberta' ? '' : 'A votação desta enquete está encerrada.'}</p>`;
@@ -153,7 +164,14 @@ export function htmlVoto(enquete, leitura = false) {
     ? '<button type="button" class="px-3 py-1 rounded-lg bg-blue-50 text-blue-800 text-sm mb-3" data-acao="usar-costume">↺ Marcar meus horários de costume</button>'
     : '';
 
-  return nota + avisoCostume + botaoCostume + filtro + pontos + rodape;
+  const legenda = aberta
+    ? `<div class="flex flex-wrap items-center gap-3 text-sm text-slate-700 mb-3" aria-hidden="true">
+        <span class="chip-turno chip-legenda" aria-pressed="true">1 toque</span> posso
+        <span class="chip-turno chip-legenda" data-reserva="true">2 toques</span> só se precisar (reserva)
+        <span class="chip-turno chip-legenda">3 toques</span> desmarca
+      </div>`
+    : '';
+  return nota + avisoCostume + botaoCostume + filtro + legenda + pontos + rodape;
 }
 
 export function renderAreaVoto() {
@@ -199,21 +217,39 @@ export async function renderVotar() {
     <div id="area-voto">${htmlVoto(enquete)}</div>`;
 }
 
+/**
+ * Cada toque passa para o próximo estado: desmarcado → posso → só se precisar (reserva) → desmarcado.
+ * "Posso" fica em estado.voto.disp e "reserva" em estado.voto.reserva (nunca nos dois).
+ */
+export function proximoEstado(atual) {
+  return { vazio: 'posso', posso: 'reserva', reserva: 'vazio' }[atual] || 'posso';
+}
+
 export function alternarVoto(botao) {
   const { ponto, chave: k } = botao.dataset;
-  const conjunto = estado.voto.disp[ponto];
-  if (conjunto.has(k)) conjunto.delete(k); else conjunto.add(k);
-  botao.setAttribute('aria-pressed', String(conjunto.has(k)));
+  const disp = estado.voto.disp[ponto];
+  const reserva = estado.voto.reserva[ponto] || (estado.voto.reserva[ponto] = new Set());
+  const atual = disp.has(k) ? 'posso' : reserva.has(k) ? 'reserva' : 'vazio';
+  const novo = proximoEstado(atual);
+  disp.delete(k); reserva.delete(k);
+  if (novo === 'posso') disp.add(k);
+  if (novo === 'reserva') reserva.add(k);
+  const turno = k.split('|').slice(1).join('|');
+  botao.setAttribute('aria-pressed', String(novo === 'posso'));
+  botao.dataset.reserva = String(novo === 'reserva');
+  botao.setAttribute('aria-label', `${turno}${novo === 'posso' ? ': posso' : novo === 'reserva' ? ': só se precisar' : ''}`);
+  botao.innerHTML = `${esc(turno)}${novo === 'reserva' ? '<span class="chip-reserva"> · reserva</span>' : ''}`;
   estado.voto.salvo = false;
   $('#aviso-salvo')?.remove();
   const contagem = $('#contagem-voto');
-  if (contagem) contagem.textContent = `${totalMarcado()} horário(s) marcado(s)`;
+  if (contagem) contagem.textContent = textoContagem();
 }
 
 export function marcarPonto(ponto, marcar) {
   const e = enqueteAtual();
   const conjunto = estado.voto.disp[ponto];
   conjunto.clear();
+  estado.voto.reserva[ponto]?.clear();
   if (marcar) {
     for (const dia of e.dias) for (const turno of e.turnos) if (!celulaBloqueada(e, dia.data, turno, ponto)) conjunto.add(chave(dia.data, turno));
   }
@@ -222,7 +258,12 @@ export function marcarPonto(ponto, marcar) {
 
 export function copiarPonto(ponto) {
   const origem = estado.voto.disp[ponto];
-  for (const outro of pontosPermitidosDoVoto()) if (outro !== ponto) estado.voto.disp[outro] = new Set(origem);
+  const origemReserva = estado.voto.reserva[ponto] || new Set();
+  for (const outro of pontosPermitidosDoVoto()) {
+    if (outro === ponto) continue;
+    estado.voto.disp[outro] = new Set(origem);
+    estado.voto.reserva[outro] = new Set(origemReserva);
+  }
   estado.voto.salvo = false;
   renderAreaVoto();
   toast('Horários copiados para todos os pontos.');
@@ -236,7 +277,23 @@ export async function salvarVoto() {
   const disponibilidade = Object.fromEntries(
     Object.entries(v.disp).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
   );
-  const ok = await tentar(() => estado.backend.salvarVoto(e.id, v.pubId, { disponibilidade, nome: pub?.nome || '' }), 'Votos salvos!');
+  const reserva = Object.fromEntries(
+    Object.entries(v.reserva || {}).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
+  );
+  const dados = { disponibilidade, reserva, nome: pub?.nome || '' };
+  const porOutro = v.pubId !== estado.perfil.publicadorId;
+
+  // Sem internet: o voto fica guardado no aparelho e o Firebase envia sozinho quando a conexão voltar.
+  if (!navigator.onLine && estado.backend.modo === 'firebase') {
+    estado.backend.salvarVoto(e.id, v.pubId, dados).catch((err) => console.error(err));
+    toast('Sem internet: seu voto ficou guardado no aparelho e será enviado quando a internet voltar.');
+    v.salvo = true; v.jaVotou = true;
+    if ($('#modal').innerHTML) { fecharModal(); renderAba(); } else renderAreaVoto();
+    return;
+  }
+
+  const ok = await tentar(() => estado.backend.salvarVoto(e.id, v.pubId, dados), 'Votos salvos!');
+  if (ok && porOutro) registrar({ area: 'votos', acao: 'Lançou os votos de outra pessoa', alvo: pub?.nome || v.pubId, enqueteId: e.id, detalhe: `${Object.values(disponibilidade).flat().length} horário(s), ${Object.values(reserva).flat().length} de reserva` });
   if (ok && v.guardarPadrao) {
     const padrao = costumeDoVoto(disponibilidade);
     try { await estado.backend.salvarPadrao(v.pubId, padrao); v.padrao = padrao; v.guardarPadrao = false; } catch { toast('O voto foi salvo, mas não deu para guardar o costume.', 'erro'); }

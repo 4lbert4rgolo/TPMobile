@@ -8,7 +8,7 @@
 import test, { before, after, beforeEach } from 'node:test';
 import { readFileSync } from 'node:fs';
 import { initializeTestEnvironment, assertSucceeds, assertFails } from '@firebase/rules-unit-testing';
-import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection } from 'firebase/firestore';
+import { doc, getDoc, getDocs, setDoc, updateDoc, deleteDoc, collection, addDoc, serverTimestamp, query, where } from 'firebase/firestore';
 
 const CONVITE = 'a'.repeat(32);
 let env;
@@ -287,4 +287,60 @@ test('convites: quem está logado abre um convite pelo código, mas ninguém lis
   await assertSucceeds(getDoc(doc(db, 'convites', CONVITE)));
   await assertFails(getDocs(collection(db, 'convites')));
   await assertFails(updateDoc(doc(db, 'convites', CONVITE), { ativo: false }));
+});
+
+/* ---------------------------------------------------------------- v3.1: privacidade, auditoria e trocas */
+
+
+test('privacidade: a pessoa grava o próprio aceite, e só isso', async () => {
+  const db = como('vot');
+  await assertSucceeds(updateDoc(doc(db, 'usuarios', 'vot'), { privacidadeAceitaEm: '2026-11-20T12:00:00.000Z', privacidadeVersao: 1 }));
+  await assertFails(updateDoc(doc(db, 'usuarios', 'vot'), { privacidadeAceitaEm: '2026-11-20T12:00:00.000Z', papel: 'admin' }));
+  await assertFails(updateDoc(doc(db, 'usuarios', 'servo'), { privacidadeAceitaEm: '2026-11-20T12:00:00.000Z', privacidadeVersao: 1 }));
+  await assertSucceeds(updateDoc(doc(como('pend'), 'usuarios', 'pend'), { privacidadeAceitaEm: '2026-11-20T12:00:00.000Z', privacidadeVersao: 1 }));
+});
+
+const evento = (uid, nome, area, extra = {}) => ({
+  area, acao: 'Ação', alvo: '', detalhe: '', enqueteId: null, uid, nome, papel: 'x', quando: serverTimestamp(), quandoISO: '2026-11-20T12:00:00.000Z', ...extra,
+});
+
+test('auditoria: cada um registra em nome próprio; votante só privacidade e trocas', async () => {
+  await assertSucceeds(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala')));
+  await assertSucceeds(addDoc(collection(como('vot'), 'auditoria'), evento('vot', 'Votante', 'trocas')));
+  await assertFails(addDoc(collection(como('vot'), 'auditoria'), evento('vot', 'Votante', 'escala')));
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('adm', 'Admin', 'escala'))); // uid de outro
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Admin', 'escala'))); // nome de outro
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { quando: '2020-01-01' }))); // hora inventada
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { extra: 1 })));
+  await assertFails(addDoc(collection(como('pend'), 'auditoria'), evento('pend', 'Pendente', 'privacidade')));
+});
+
+test('auditoria: organizadores leem; ninguém edita; só o administrador apaga', async () => {
+  await env.withSecurityRulesDisabled(async (ctx) => setDoc(doc(ctx.firestore(), 'auditoria', 'a1'), { area: 'escala', acao: 'x', nome: 'Servo', uid: 'servo', quandoISO: '2026-01-01' }));
+  await assertSucceeds(getDoc(doc(como('servo'), 'auditoria', 'a1')));
+  await assertFails(getDoc(doc(como('vot'), 'auditoria', 'a1')));
+  await assertFails(updateDoc(doc(como('adm'), 'auditoria', 'a1'), { acao: 'mudei' }));
+  await assertFails(deleteDoc(doc(como('servo'), 'auditoria', 'a1')));
+  await assertSucceeds(deleteDoc(doc(como('adm'), 'auditoria', 'a1')));
+});
+
+const troca = (pub, extra = {}) => ({ publicadorId: pub, nome: 'Pub', ponto: 'A', data: '2026-11-23', turno: 'T', motivo: '', status: 'aberta', criadoEm: '2026-11-20', ...extra });
+
+test('trocas: votante pede e cancela só os próprios; organizador resolve', async () => {
+  const dbv = como('vot');
+  await assertSucceeds(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_2026-11-23_0_0'), troca('p1')));
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p2_2026-11-23_0_0'), troca('p2'))); // de outra pessoa
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p2_x'), troca('p1'))); // id de outra pessoa
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_y'), troca('p1', { status: 'resolvida' })));
+  await assertSucceeds(getDocs(query(collection(dbv, 'enquetes', 'pub', 'trocas'), where('publicadorId', '==', 'p1'))));
+  await assertFails(getDocs(collection(dbv, 'enquetes', 'pub', 'trocas'))); // não lista as dos outros
+  await assertFails(updateDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_2026-11-23_0_0'), { status: 'resolvida' }));
+  await assertSucceeds(updateDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_2026-11-23_0_0'), { status: 'cancelada' }));
+  await assertSucceeds(updateDoc(doc(como('servo'), 'enquetes', 'pub', 'trocas', 'p1_2026-11-23_0_0'), { status: 'resolvida', substitutoId: 'p2' }));
+  await assertSucceeds(getDocs(collection(como('servo'), 'enquetes', 'pub', 'trocas')));
+});
+
+test('enquete arquivada: organizador arquiva; votante não', async () => {
+  await assertSucceeds(updateDoc(doc(como('servo'), 'enquetes', 'pub'), { arquivada: true }));
+  await assertFails(updateDoc(doc(como('vot'), 'enquetes', 'pub'), { arquivada: false }));
 });

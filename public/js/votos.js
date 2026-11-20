@@ -12,7 +12,8 @@ export async function renderVotos() {
     return;
   }
 
-  escolherEnquetePadrao(estado.enquetes);
+  const naoArquivadas = estado.enquetes.filter((e) => !e.arquivada || e.id === estado.enqueteId);
+  escolherEnquetePadrao(naoArquivadas.length ? naoArquivadas : estado.enquetes);
   const enquete = enqueteAtual();
   estado.votos = await estado.backend.listarVotos(enquete.id);
 
@@ -27,7 +28,7 @@ export async function renderVotos() {
   }
 
   c.innerHTML = `
-    ${seletorEnquete(estado.enquetes, 'escolher-enquete')}
+    ${seletorEnquete(estado.enquetes.filter((e) => !e.arquivada || e.id === estado.enqueteId), 'escolher-enquete')}
     <div class="mb-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="text-slate-700"><strong>${votaram} de ${ativos.length}</strong> publicadores já votaram${faltam ? ` · faltam ${faltam}` : ' · todos votaram 🎉'}.</p>
@@ -43,9 +44,10 @@ export async function renderVotos() {
             const v = porPub.get(p.id);
             const perm = pontosDoPublicador(p, enquete.pontos);
             const n = v ? Object.entries(v.disponibilidade || {}).filter(([pt]) => perm.includes(pt)).reduce((s, [, l]) => s + l.length, 0) : 0;
+            const r = v ? Object.entries(v.reserva || {}).filter(([pt]) => perm.includes(pt)).reduce((s, [, l]) => s + l.length, 0) : 0;
             return `<tr class="border-t">
               <td class="p-3 font-medium">${esc(p.nome)}</td>
-              <td class="p-3">${v ? `<span class="text-green-700">Votou · ${n} horário(s)</span>` : '<span class="text-slate-400">Ainda não votou</span>'}</td>
+              <td class="p-3">${v ? `<span class="text-green-700">Votou · ${n} horário(s)${r ? ` · ${r} de reserva` : ''}</span>` : '<span class="text-slate-400">Ainda não votou</span>'}</td>
               <td class="p-3 text-right whitespace-nowrap">${!v && aberta ? `<button class="text-green-700 underline mr-3 font-semibold" data-acao="lembrar" data-id="${esc(p.id)}">Lembrar</button>` : ''}<button class="text-blue-700 underline" data-acao="votar-por" data-id="${esc(p.id)}">${v ? 'Editar votos' : 'Lançar votos'}</button></td>
             </tr>`;
           }).join('')}

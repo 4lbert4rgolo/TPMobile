@@ -1,4 +1,10 @@
 import { abrirTextoWhats, campoMudou, editorDe, excluirEnquete, mudarStatus, novoEditor, renderEditor, salvarEditor } from './enquetes.js';
+import { arquivarEnquete } from './enquetes.js';
+import { aceitarPrivacidade } from './dados.js';
+import { resolverTroca, dispensarTroca } from './telaEscala.js';
+import { pedirTroca, cancelarTroca } from './telaMinha.js';
+import { abrirImportacao, previaImportacao, confirmarImportacao, baixarModeloImportacao, arquivoDeImportacao } from './publicadores.js';
+import { filtrarAuditoria, abrirHistoricoEscala } from './telaAuditoria.js';
 import { instalarApp } from './instalar.js';
 import { copiarLink, criarLinkPara, enviarLinkWhats, gerarTodosLinks, revogarLink } from './links.js';
 import { $, SEM_ACESSO, erroAmigavel, estado, fecharModal, fonteGrande, gravarPref, pubPorId, rotuloFonte, tentar, toast } from './nucleo.js';
@@ -79,6 +85,21 @@ const acoes = {
   'excluir-publicador': (el) => excluirPublicador(el.dataset.id),
 
   'nova-enquete': () => { estado.ed = novoEditor(); renderAba(); },
+  'arquivar-enquete': (el) => arquivarEnquete(el.dataset.id, true),
+  'desarquivar-enquete': (el) => arquivarEnquete(el.dataset.id, false),
+  'mostrar-arquivadas': () => { estado.verArquivadas = !estado.verArquivadas; renderAba(); },
+
+  'aceitar-privacidade': aceitarPrivacidade,
+
+  'resolver-troca': (el) => resolverTroca(el.dataset.id, el.dataset.sub),
+  'dispensar-troca': (el) => dispensarTroca(el.dataset.id),
+  'pedir-troca': (el) => pedirTroca(el),
+  'cancelar-troca': (el) => cancelarTroca(el),
+
+  'importar-publicadores': abrirImportacao,
+  'previa-importacao': previaImportacao,
+  'confirmar-importacao': confirmarImportacao,
+  'baixar-modelo-importacao': baixarModeloImportacao,
 
   'ponto-adicionar': adicionarPonto,
   'ponto-subir': (el) => moverPonto(Number(el.dataset.id), -1),
@@ -143,6 +164,22 @@ document.addEventListener('click', (e) => {
   acoes[el.dataset.acao]?.(el, e);
 });
 
+/* Histórico da escala: carrega só quando a pessoa abre a seção ("toggle" não sobe, por isso o "true"). */
+document.addEventListener('toggle', (e) => {
+  const el = e.target;
+  if (el.matches?.('details[data-historico]') && el.open) abrirHistoricoEscala(el.dataset.historico, el.querySelector('#historico-escala'));
+}, true);
+
+/* Internet fraca: mostra ou esconde o aviso de "Sem internet" quando a conexão cai ou volta. */
+function atualizarFaixaOffline() {
+  const faixa = document.getElementById('faixa-offline');
+  if (faixa) faixa.hidden = navigator.onLine;
+  if (navigator.onLine && faixa && estado.estavaOffline) toast('A internet voltou.');
+  estado.estavaOffline = !navigator.onLine;
+}
+window.addEventListener('online', atualizarFaixaOffline);
+window.addEventListener('offline', atualizarFaixaOffline);
+
 document.addEventListener('keydown', (e) => {
   if (e.key === 'Enter' && e.target.id === 'ponto-novo') { e.preventDefault(); adicionarPonto(); return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('td.celula-editavel')) {
@@ -156,6 +193,8 @@ document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.matches('select[data-acao]')) acoes[el.dataset.acao]?.(el, e);
   else if (el.matches('[data-ponto-ativo]')) pontoAtivoMudou(el);
+  else if (el.matches('[data-importar-arquivo]')) arquivoDeImportacao(el);
+  else if (el.matches('select[data-aud-filtro]')) filtrarAuditoria();
   else if (el.matches('[data-ponto-nome]')) renderPontos(); // ao sair do campo, mostra "Antes: ..." e libera o Salvar
   else if (el.name === 'celula') atualizarResumoCelula();
   else if (el.name === 'pb-onde') document.querySelectorAll('input[name=pb-ponto]').forEach((i) => { i.disabled = el.value !== 'alguns'; });
@@ -165,6 +204,7 @@ document.addEventListener('change', (e) => {
 document.addEventListener('input', (e) => {
   if (e.target.matches('[data-busca-campo]')) filtrarLinhas(e.target);
   else if (e.target.matches('[data-ponto-nome]')) nomeDoPontoMudou(e.target);
+  else if (e.target.matches('[data-aud-filtro]')) filtrarAuditoria();
   else if (e.target.dataset.campo) campoMudou(e.target, true);
 });
 
