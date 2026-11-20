@@ -6,6 +6,7 @@ import { renderPublicadores } from './publicadores.js';
 import { faixaDemo, telaPendente } from './sessao.js';
 import { renderEscala } from './telaEscala.js';
 import { renderMinha } from './telaMinha.js';
+import { renderPontos } from './telaPontos.js';
 import { renderUsuarios } from './usuarios.js';
 import { renderVotar } from './votar.js';
 import { renderVotos } from './votos.js';
@@ -18,7 +19,7 @@ export function abasDoPerfil() {
   if (SEM_ACESSO.includes(papel)) return [];
   const abas = [['votar', 'Votar'], ['escala', 'Escala']];
   if (estado.perfil.publicadorId) abas.push(['minha', 'Minha escala']);
-  if (ORGANIZADORES.includes(papel)) abas.push(['enquetes', 'Enquetes'], ['votos', 'Votos'], ['publicadores', 'Publicadores']);
+  if (ORGANIZADORES.includes(papel)) abas.push(['enquetes', 'Enquetes'], ['votos', 'Votos'], ['publicadores', 'Publicadores'], ['pontos', 'Pontos']);
   if (papel === 'admin') abas.push(['usuarios', 'Usuários'], ['links', 'Links de acesso']);
   return abas;
 }
@@ -104,7 +105,7 @@ export async function renderAba() {
   if (!c) return;
   c.innerHTML = '<p class="text-slate-500">Carregando…</p>';
   try {
-    const telas = { votar: renderVotar, escala: renderEscala, minha: renderMinha, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
+    const telas = { votar: renderVotar, escala: renderEscala, minha: renderMinha, pontos: renderPontos, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
     await telas[estado.aba]();
   } catch (e) {
     console.error(e);

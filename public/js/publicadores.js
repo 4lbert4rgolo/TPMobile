@@ -37,7 +37,8 @@ export async function renderPublicadores() {
     </div>`;
 }
 
-export const pontosConhecidos = () => [...new Set([...(estado.config?.pontos || []), ...estado.enquetes.flatMap((e) => e.pontos || [])])];
+/** Pontos da configuração (Menu > Pontos), na ordem de lá. */
+export const pontosConhecidos = () => [...(estado.config?.pontos || [])];
 
 export function formularioPublicador(id) {
   const p = id ? pubPorId(id) : null;

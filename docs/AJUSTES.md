@@ -14,6 +14,7 @@
 | 2.7 | Visual verde e novo ícone |
 | 2.8 | Menu hambúrguer, privacidade e retenção de 3 meses, backup, código em módulos, testes no GitHub |
 | 2.9 | Perfis Votante / Servo Ministerial / Administrador, escala sem sobrescrita, equilíbrio entre semanas, Minha escala, busca, backup automático no Drive |
+| 3.0 | Configuração de pontos; fim do tipo "enquete de evento" |
 
 ---
 
@@ -141,3 +142,17 @@ Cores trocadas do azul para o verde do AlpDesk (`#0f7a68` nos botões e cabeçal
 **Publicação (feita em 18/11/2026):** merge da branch `melhorias-em-breve` no `master` e `npm run deploy:regras` (regras do Firestore com o perfil antigo `anciao` valendo como administrador).
 
 **Depois de publicar:** um administrador abre Menu > Usuários uma vez, para o app regravar os cadastros antigos de "Ancião" como Administrador. Quem já tinha instalado o app no celular recebe a versão nova na próxima abertura com internet.
+
+
+## v3.0 — Configuração de pontos
+
+**Menu > Pontos** (Servo Ministerial e Administrador; também pelo botão **Configurar pontos** em Enquetes). Lista dos pontos com:
+- **Adicionar**, **renomear**, mudar a **ordem** (↑ ↓) e **Remover**;
+- **Em uso**: só os pontos em uso vêm marcados numa enquete nova (guardado em `config/geral`, campo `pontosPausados`);
+- **Salvar alterações** com confirmação quando há nome trocado ou ponto removido, avisando quem votava só nos pontos removidos (essas pessoas passam a ver todos os pontos).
+
+Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários de costume e as enquetes **em rascunho**. Enquetes abertas, encerradas ou publicadas continuam com o nome antigo, porque os votos e a escala delas usam o nome do ponto como chave.
+
+**Fim da "enquete de evento".** O botão *Nova enquete de evento* e o campo *Tipo* saíram: semanas com congresso ou assembleia usam a enquete normal, com dias desmarcados e bloqueios. Enquetes antigas do tipo evento continuam aparecendo como "Evento". O editor da enquete não cria mais pontos novos (antes ele os acrescentava sozinho à configuração): isso agora é feito só em Menu > Pontos. O cadastro do publicador oferece só os pontos da configuração.
+
+**Arquivos novos:** `public/js/pontos.js` (regras, testadas em `tests/pontos.test.mjs`) e `public/js/telaPontos.js`. Sem mudança nas regras do Firestore (a configuração já era gravada pelos organizadores).

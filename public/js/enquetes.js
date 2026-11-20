@@ -2,6 +2,7 @@ import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from
 import { renderAba } from './shell.js';
 import { lembrar } from './votos.js';
 import { gerarDias, nomeDia, dataCurta, parseISO, toISO, SEMANAS_EQUILIBRIO } from './escala.js';
+import { pontosAtivos } from './pontos.js';
 
 /* ============================================================ enquetes (organizadores) */
 
@@ -32,7 +33,8 @@ export function regenerarDias(ed) {
   ed.bloqueios = ed.bloqueios.filter((b) => ed.dias.some((d) => d.data === b.data));
 }
 
-export function novoEditor(tipo = 'semana') {
+export function novoEditor() {
+  const tipo = 'semana';
   const cfg = estado.config;
   const inicio = proximaSegundaISO();
   const fim = somarDias(inicio, 5);
@@ -40,7 +42,7 @@ export function novoEditor(tipo = 'semana') {
     id: null, titulo: '', tipo, status: 'rascunho', inicio, fim,
     dias: gerarDias(inicio, fim),
     turnosTexto: cfg.turnos.join('\n'),
-    pontos: new Set(cfg.pontos),
+    pontos: new Set(pontosAtivos(cfg)),
     bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixoJunto: true, equilibrarSemanas: true,
   };
   aplicarBloqueiosPadrao(ed);
@@ -83,8 +85,8 @@ export async function renderEnquetes() {
     <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
       <h2 class="text-lg font-bold">Enquetes</h2>
       <div class="flex gap-2">
-        <button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold" data-acao="nova-enquete" data-id="semana">Nova enquete da semana</button>
-        <button class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 font-semibold" data-acao="nova-enquete" data-id="evento">Nova enquete de evento</button>
+        <button class="bg-blue-600 text-white rounded-lg px-4 py-2 font-semibold" data-acao="nova-enquete">Nova enquete</button>
+        <button class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 font-semibold" data-acao="aba" data-id="pontos">Configurar pontos</button>
       </div>
     </div>
     <div class="space-y-3">
@@ -116,6 +118,7 @@ export async function renderEnquetes() {
 export function renderEditor() {
   const ed = estado.ed;
   const turnos = turnosDoEditor(ed);
+  // Pontos da configuração, na ordem de lá, mais algum ponto antigo que esta enquete ainda tenha.
   const todosPontos = [...new Set([...estado.config.pontos, ...ed.pontos])];
   const diasAtivos = ed.dias.filter((d) => d.ativo !== false);
 
@@ -128,11 +131,7 @@ export function renderEditor() {
       <section class="bg-white rounded-xl border p-4 grid sm:grid-cols-2 gap-3">
         <div class="sm:col-span-2"><label class="text-sm font-medium" for="ed-titulo">Título</label>
           <input id="ed-titulo" class="w-full border rounded-lg p-2" value="${esc(ed.titulo)}" data-campo="titulo"></div>
-        <div><label class="text-sm font-medium" for="ed-tipo">Tipo</label>
-          <select id="ed-tipo" class="w-full border rounded-lg p-2" data-campo="tipo">
-            <option value="semana" ${ed.tipo === 'semana' ? 'selected' : ''}>Semana comum</option>
-            <option value="evento" ${ed.tipo === 'evento' ? 'selected' : ''}>Evento especial</option></select></div>
-        <div class="grid grid-cols-2 gap-3">
+        <div class="grid grid-cols-2 gap-3 sm:col-span-2">
           <div><label class="text-sm font-medium" for="ed-inicio">Início</label>
             <input id="ed-inicio" type="date" class="w-full border rounded-lg p-2" value="${esc(ed.inicio)}" data-campo="inicio"></div>
           <div><label class="text-sm font-medium" for="ed-fim">Fim</label>
@@ -159,10 +158,9 @@ export function renderEditor() {
 
       <section class="bg-white rounded-xl border p-4">
         <h3 class="font-bold mb-2">Pontos</h3>
-        <div class="space-y-1 mb-3">${todosPontos.map((p) => `
+        <div class="space-y-1 mb-2">${todosPontos.map((p) => `
           <label class="flex items-center gap-2 text-sm"><input type="checkbox" value="${esc(p)}" ${ed.pontos.has(p) ? 'checked' : ''} data-campo="ponto"> ${esc(p)}</label>`).join('')}</div>
-        <div class="flex gap-2"><input id="novo-ponto" class="border rounded-lg p-2 text-sm flex-1" placeholder="Adicionar outro ponto" aria-label="Novo ponto">
-          <button type="button" class="bg-slate-100 rounded-lg px-3 text-sm" data-acao="add-ponto">Adicionar</button></div>
+        <p class="text-xs text-slate-500">Para criar, renomear ou tirar um ponto de uso, vá em Menu > <strong>Pontos</strong> (o que estiver editando aqui não é salvo).</p>
       </section>
 
       <section class="bg-white rounded-xl border p-4">
@@ -264,11 +262,6 @@ export async function salvarEditor(alvo) {
 
   const ok = await tentar(async () => {
     await estado.backend.salvarEnquete(enquete);
-    const novos = enquete.pontos.filter((p) => !estado.config.pontos.includes(p));
-    if (novos.length) {
-      estado.config = { ...estado.config, pontos: [...estado.config.pontos, ...novos] };
-      await estado.backend.salvarConfig(estado.config);
-    }
   }, alvo === 'aberta' ? 'Enquete salva e votação aberta.' : 'Enquete salva.');
 
   if (ok) {

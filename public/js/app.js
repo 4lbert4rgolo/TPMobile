@@ -13,11 +13,14 @@ import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
 import { normalizarPapel } from './data.js';
 import { filtrarLinhas } from './busca.js';
 import { baixarICS } from './telaMinha.js';
+import {
+  renderPontos, nomeDoPontoMudou, pontoAtivoMudou, adicionarPonto, moverPonto, removerPonto, desfazerPontos, salvarPontos,
+} from './telaPontos.js';
 
 /* ============================================================ eventos */
 
 const acoes = {
-  aba: (el) => { estado.aba = el.dataset.id; estado.ed = null; renderApp(); },
+  aba: (el) => { estado.aba = el.dataset.id; estado.ed = null; estado.pontosEd = null; renderApp(); },
   menu: () => (estado.menuAberto ? fecharMenu() : abrirMenu()),
   'fechar-menu': fecharMenu,
   privacidade: () => { fecharMenu(); abrirPrivacidade(); },
@@ -75,7 +78,14 @@ const acoes = {
   'editar-publicador': (el) => formularioPublicador(el.dataset.id),
   'excluir-publicador': (el) => excluirPublicador(el.dataset.id),
 
-  'nova-enquete': (el) => { estado.ed = novoEditor(el.dataset.id); renderAba(); },
+  'nova-enquete': () => { estado.ed = novoEditor(); renderAba(); },
+
+  'ponto-adicionar': adicionarPonto,
+  'ponto-subir': (el) => moverPonto(Number(el.dataset.id), -1),
+  'ponto-descer': (el) => moverPonto(Number(el.dataset.id), 1),
+  'ponto-remover': (el) => removerPonto(Number(el.dataset.id)),
+  'pontos-desfazer': desfazerPontos,
+  'pontos-salvar': salvarPontos,
   'editar-enquete': (el) => { estado.ed = editorDe(estado.enquetes.find((e) => e.id === el.dataset.id)); renderAba(); },
   'duplicar-enquete': (el) => { estado.ed = editorDe(estado.enquetes.find((e) => e.id === el.dataset.id), true); renderAba(); },
   'cancelar-editor': () => { estado.ed = null; renderAba(); },
@@ -89,12 +99,6 @@ const acoes = {
   'copiar-whats': async () => {
     const texto = $('#texto-whats');
     try { await navigator.clipboard.writeText(texto.value); toast('Texto copiado.'); } catch { texto.select(); toast('Selecione e copie o texto.'); }
-  },
-  'add-ponto': () => {
-    const nome = $('#novo-ponto').value.trim();
-    if (!nome) return;
-    estado.ed.pontos.add(nome);
-    renderEditor();
   },
   'add-bloqueio': () => {
     const data = $('#bl-dia').value;
@@ -140,6 +144,7 @@ document.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
+  if (e.key === 'Enter' && e.target.id === 'ponto-novo') { e.preventDefault(); adicionarPonto(); return; }
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches?.('td.celula-editavel')) {
     e.preventDefault();
     e.target.click();
@@ -150,6 +155,8 @@ document.addEventListener('keydown', (e) => {
 document.addEventListener('change', (e) => {
   const el = e.target;
   if (el.matches('select[data-acao]')) acoes[el.dataset.acao]?.(el, e);
+  else if (el.matches('[data-ponto-ativo]')) pontoAtivoMudou(el);
+  else if (el.matches('[data-ponto-nome]')) renderPontos(); // ao sair do campo, mostra "Antes: ..." e libera o Salvar
   else if (el.name === 'celula') atualizarResumoCelula();
   else if (el.name === 'pb-onde') document.querySelectorAll('input[name=pb-ponto]').forEach((i) => { i.disabled = el.value !== 'alguns'; });
   else if (el.dataset.campo) campoMudou(el);
@@ -157,6 +164,7 @@ document.addEventListener('change', (e) => {
 
 document.addEventListener('input', (e) => {
   if (e.target.matches('[data-busca-campo]')) filtrarLinhas(e.target);
+  else if (e.target.matches('[data-ponto-nome]')) nomeDoPontoMudou(e.target);
   else if (e.target.dataset.campo) campoMudou(e.target, true);
 });
 

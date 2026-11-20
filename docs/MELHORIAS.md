@@ -6,6 +6,7 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Configuração de pontos (Menu > Pontos) e fim da "enquete de evento" | v3.0 |
 | Perfis: só Votante, Servo Ministerial e Administrador (anciãos = Administrador) | v2.9 |
 | Evitar que dois organizadores se sobrescrevam (versão da escala, troca horário a horário) | v2.9 |
 | Equilíbrio entre semanas (últimas 4 escalas, pode desligar por enquete) | v2.9 |

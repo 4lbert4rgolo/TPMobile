@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v2.9, publicada em 18/11/2026 (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.0 (configuração de pontos; a v2.9 foi publicada em 18/11/2026) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
@@ -11,7 +11,7 @@ App web da congregação Parque das Palmeiras para montar a escala dos carrinhos
 | Perfil | O que faz |
 |---|---|
 | **Votante** | Marca os horários em que pode, em cada ponto, e vê a escala publicada e a "Minha escala" |
-| **Servo Ministerial** | Tudo do votante, mais: cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, lembra quem não votou, gera, ajusta e publica a escala |
+| **Servo Ministerial** | Tudo do votante, mais: configura os pontos, cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, lembra quem não votou, gera, ajusta e publica a escala |
 | **Administrador** (inclui os anciãos) | Tudo do servo ministerial, mais: aprova usuários, define perfis, gera e revoga os links pessoais, baixa o backup e apaga dados antigos |
 
 Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**. Cadastros antigos com o valor `anciao` valem como administrador e são regravados como `admin` automaticamente.
@@ -26,7 +26,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - **Letras maiores** e **app instalável** no celular.
 
 **Para os organizadores**
-- **Enquetes** configuráveis: dias, horários, pontos, bloqueios (de um horário ou do dia todo, em todos os pontos ou em um só) e regras da escala.
+- **Pontos** (Menu > Pontos): criar, renomear, reordenar, remover e marcar quais estão **em uso**. Renomear atualiza o "Onde vota" dos publicadores, os horários de costume e os rascunhos.
+- **Enquetes** configuráveis: dias, horários, pontos, bloqueios (de um horário ou do dia todo, em todos os pontos ou em um só) e regras da escala. Semanas com evento (congresso, assembleia) usam os dias desmarcados e os bloqueios: não há um tipo separado de enquete.
 - **Votos:** quantos já votaram, quem falta, botão **Lembrar** pelo WhatsApp (direto no número, se houver telefone) e **Lembrar o grupo**.
 - **Escala automática** com avisos quando uma troca manual quebra uma regra.
 - **Dois organizadores ao mesmo tempo:** cada troca grava só aquele horário em cima da versão mais nova do banco. Se outra pessoa mudou o mesmo horário, nada é apagado: o app avisa e mostra a versão nova. A tela mostra quem fez a última alteração.
@@ -81,6 +82,8 @@ public/                    site (pasta publicada no Firebase Hosting)
     votar.js               tela de votar e horários de costume
     votos.js               acompanhamento dos votos e lembretes pelo WhatsApp
     enquetes.js            lista e editor de enquetes
+    pontos.js              regras da configuração de pontos (sem tela, testável)
+    telaPontos.js          tela "Pontos"
     escala.js              regras e gerador da escala, equilíbrio e controle de versão (sem tela, testável)
     telaEscala.js          tela da escala: gerar, ajustar, publicar, imprimir, Excel
     agenda.js              Minha escala: horários da pessoa, .ics e Google Agenda (sem tela, testável)
@@ -112,7 +115,7 @@ Com o `firebase-config.js` preenchido, o app local usa os **dados reais**. Para 
 ## Comandos
 | Comando | O que faz |
 |---|---|
-| `npm test` | Roda os testes do código (gerador, equilíbrio, controle de versão, Minha escala, busca, retenção). Precisa só do Node 18+ |
+| `npm test` | Roda os testes do código (gerador, equilíbrio, controle de versão, Minha escala, busca, pontos, retenção). Precisa só do Node 18+ |
 | `npm run test:regras` | Testa as regras do Firestore no emulador (precisa de Java e `npm install`) |
 | `npm run serve` | Abre o site em http://localhost:8080 |
 | `npm install` e `npm run css` | Refazem o `tailwind.css` depois de usar classes novas do Tailwind |

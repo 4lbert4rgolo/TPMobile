@@ -2,13 +2,21 @@
 
 O caminho de cada semana, do começo ao fim. As seções ficam no **☰ Menu**, no canto direito do cabeçalho.
 
+## 0. Pontos (de vez em quando)
+Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
+- **Adicionar** um ponto novo, **trocar o nome**, mudar a **ordem** (↑ ↓) ou **Remover**.
+- **Em uso:** os pontos marcados já vêm marcados em cada enquete nova. Desmarque um ponto parado por um tempo, sem apagá-lo.
+- Toque em **Salvar alterações**. Se trocar um nome ou remover um ponto, o app mostra o que vai mudar antes de salvar.
+- Trocar o nome atualiza o "Onde vota" dos publicadores, os horários de costume e as enquetes em rascunho. Enquetes abertas ou passadas continuam com o nome antigo.
+- Quem votava só num ponto removido passa a ver todos os pontos (o app avisa quem é).
+
 ## 1. Criar a enquete
-1. Menu > **Enquetes** > **Nova enquete da semana** (ou **Nova enquete de evento**, para um período diferente).
+1. Menu > **Enquetes** > **Nova enquete**. Semana com congresso ou assembleia? Use a mesma enquete: desmarque os dias e bloqueie os horários.
    Para repetir a semana anterior, use **Duplicar** na enquete antiga: as datas avançam sozinhas.
 2. Confira:
    - **Dias:** desmarque os dias sem carrinho e escreva o motivo (aparece na escala).
    - **Horários:** um por linha, no formato `06:00 às 08:00`. Esse formato também é o que leva o horário certo para o calendário do celular na "Minha escala".
-   - **Pontos:** marque os pontos da semana ou adicione um novo.
+   - **Pontos:** já vêm marcados os pontos **em uso**; desmarque o que não terá carrinho nesta semana. Para criar ou renomear um ponto, use Menu > Pontos.
    - **Bloqueios:** um horário ou o dia todo, em todos os pontos ou em um ponto só (ex.: reunião de meio de semana).
    - **Regras da escala:** máximo por irmã, máximo por irmão, par fixo junto e **"Dar prioridade a quem participou menos nas últimas 4 escalas"** (equilíbrio entre semanas, ligado por padrão).
 3. Toque em **Salvar e abrir votação** (ou **Salvar**, para deixar como rascunho; rascunho só os organizadores veem).
