@@ -101,3 +101,5 @@ button[data-acao][disabled]:not(.chip-turno) { opacity: .45; cursor: not-allowed
 /* Aviso de sem internet, logo abaixo do cabeçalho */
 .faixa-offline { background: #fdf3e2; color: #8a5a12; border-bottom: 1px solid #e6c48a; padding: 0.6rem 1rem; font-size: 0.875rem; text-align: center; }
 .faixa-offline[hidden] { display: none; }
+.legenda-item { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
+.legenda-toques { row-gap: 0.5rem; }

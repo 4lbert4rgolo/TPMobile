@@ -5,7 +5,7 @@
 
 import { toISO } from './escala.js';
 import { MESES_DE_RETENCAO, enquetesAntigas } from './retencao.js';
-import { $, SEM_ACESSO, abrirModal, ehAdmin, esc, estado, fecharModal, tentar, toast } from './nucleo.js';
+import { $, SEM_ACESSO, abrirModal, ehAdmin, erroAmigavel, esc, estado, fecharModal, tentar, toast } from './nucleo.js';
 import { registrar } from './telaAuditoria.js';
 import { renderApp } from './shell.js';
 
@@ -67,8 +67,15 @@ export function telaAceitePrivacidade() {
 
 export async function aceitarPrivacidade() {
   if (!$('#aceite-privacidade')?.checked) return toast('Marque a caixa "Li e concordo" para continuar.', 'erro');
-  const ok = await tentar(() => estado.backend.aceitarPrivacidade(estado.perfil.uid, VERSAO_PRIVACIDADE));
-  if (!ok) return;
+  try {
+    await estado.backend.aceitarPrivacidade(estado.perfil.uid, VERSAO_PRIVACIDADE);
+  } catch (e) {
+    console.error(e);
+    // Proteção: se as regras novas do Firestore ainda não foram publicadas, o servidor recusa
+    // a gravação. Nesse caso a pessoa segue usando o app e o aviso aparece de novo no próximo acesso.
+    if (!String(e?.code || '').includes('permission-denied')) return toast(erroAmigavel(e), 'erro');
+    toast('Obrigado! (O aceite será gravado no próximo acesso.)');
+  }
   estado.perfil = { ...estado.perfil, privacidadeAceitaEm: new Date().toISOString(), privacidadeVersao: VERSAO_PRIVACIDADE };
   if (!SEM_ACESSO.includes(estado.perfil.papel)) registrar({ area: 'privacidade', acao: 'Aceitou o aviso de privacidade', detalhe: `versão ${VERSAO_PRIVACIDADE}` });
   renderApp();

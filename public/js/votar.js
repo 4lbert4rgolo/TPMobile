@@ -165,10 +165,10 @@ export function htmlVoto(enquete, leitura = false) {
     : '';
 
   const legenda = aberta
-    ? `<div class="flex flex-wrap items-center gap-3 text-sm text-slate-700 mb-3" aria-hidden="true">
-        <span class="chip-turno chip-legenda" aria-pressed="true">1 toque</span> posso
-        <span class="chip-turno chip-legenda" data-reserva="true">2 toques</span> só se precisar (reserva)
-        <span class="chip-turno chip-legenda">3 toques</span> desmarca
+    ? `<div class="flex flex-wrap items-center gap-x-4 text-sm text-slate-700 mb-3 legenda-toques" aria-hidden="true">
+        <span class="legenda-item"><span class="chip-turno chip-legenda" aria-pressed="true">1 toque</span> posso</span>
+        <span class="legenda-item"><span class="chip-turno chip-legenda" data-reserva="true">2 toques</span> só se precisar (reserva)</span>
+        <span class="legenda-item"><span class="chip-turno chip-legenda">3 toques</span> desmarca</span>
       </div>`
     : '';
   return nota + avisoCostume + botaoCostume + filtro + legenda + pontos + rodape;

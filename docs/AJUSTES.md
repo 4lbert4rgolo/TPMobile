@@ -15,6 +15,7 @@
 | 2.8 | Menu hambúrguer, privacidade e retenção de 3 meses, backup, código em módulos, testes no GitHub |
 | 2.9 | Perfis Votante / Servo Ministerial / Administrador, escala sem sobrescrita, equilíbrio entre semanas, Minha escala, busca, backup automático no Drive |
 | 3.0 | Configuração de pontos; fim do tipo "enquete de evento" |
+| 3.1 | Auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca, novo visual da impressão, do Excel e da escala |
 
 ---
 
@@ -156,3 +157,26 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 **Fim da "enquete de evento".** O botão *Nova enquete de evento* e o campo *Tipo* saíram: semanas com congresso ou assembleia usam a enquete normal, com dias desmarcados e bloqueios. Enquetes antigas do tipo evento continuam aparecendo como "Evento". O editor da enquete não cria mais pontos novos (antes ele os acrescentava sozinho à configuração): isso agora é feito só em Menu > Pontos. O cadastro do publicador oferece só os pontos da configuração.
 
 **Arquivos novos:** `public/js/pontos.js` (regras, testadas em `tests/pontos.test.mjs`) e `public/js/telaPontos.js`. Sem mudança nas regras do Firestore (a configuração já era gravada pelos organizadores).
+
+
+## v3.1 — Auditoria, privacidade, trocas e novo visual
+
+**Impressão, Excel e escala na tela.** Mesmas cores do app. Impressão: uma folha A4 deitada por ponto, com faixa verde (ponto e período), cabeçalho verde-escuro, horários em verde-claro, textos centralizados, reuniões em bege, "Pregação" em cinza e rodapé com a legenda e a data. Excel: uma aba por ponto no mesmo desenho, com título mesclado e linhas zebradas. As cores do Excel vêm da biblioteca **xlsx-js-style** (carregada pelo jsDelivr depois da SheetJS comum); se ela não carregar, a planilha sai igual, sem cores. A escala na tela ficou centralizada, com cabeçalho verde-escuro.
+
+**Auditoria.** Coleção `auditoria`: cada ação de organizador (gerar, trocar pessoas, publicar, enquetes, votos lançados por outra pessoa, publicadores, importação, pontos, usuários, links, backup, limpeza) e cada aceite de privacidade ou pedido de troca vira um registro com nome, perfil e hora do servidor. Menu > **Auditoria** (administrador) com busca e filtro por área; cada escala tem **Histórico desta escala** (organizadores). Ninguém edita um registro; os com mais de 3 meses saem em "Apagar dados antigos". Regras: cada um registra só em nome próprio (uid e nome conferidos, hora do servidor); votante só registra privacidade e trocas.
+
+**Aceite de privacidade.** No primeiro acesso (conta ou link pessoal), a pessoa lê o aviso e marca "Li e concordo" antes de usar o app. Grava `privacidadeAceitaEm` e `privacidadeVersao` no próprio usuário (a regra só deixa a pessoa mudar esses dois campos). O administrador vê a data em Usuários e em Links de acesso. O aviso agora cita reservas, pedidos de troca, auditoria e o backup no Drive.
+
+**Reserva ("só se precisar").** Na tela de votar, cada horário tem três estados: posso (verde), só se precisar (bege tracejado) e desmarcado. A reserva fica em `reserva` no voto, não entra no gerador e não gera aviso se a pessoa for escalada. Aparece no editor do horário ("reserva neste horário") e na lista de votos.
+
+**Preciso trocar.** Na Minha escala, cada horário futuro tem **Preciso trocar** (motivo opcional). O pedido fica em `enquetes/{id}/trocas`. Na Escala, os organizadores veem **Pedidos de troca** com os substitutos: reservas primeiro, depois quem marcou o horário, ordenados por participações, com aviso de quem está no limite. Um toque troca a pessoa (com o controle de versão da escala), encerra o pedido, registra na auditoria e oferece avisar o substituto pelo WhatsApp. Também dá para dispensar o pedido. A pessoa pode cancelar o próprio pedido.
+
+**Importar publicadores.** Em Publicadores > **Importar**: envia .xlsx/.csv ou cola as linhas da planilha (colunas Nome, Gênero, Telefone, Onde vota, Precisa de trio). A prévia separa quem será cadastrado, quem tem erro (com o motivo e a linha) e quem já existe. Modelo em Excel para baixar.
+
+**Arquivar enquetes.** Enquetes encerradas ou publicadas podem ser arquivadas: saem da lista, da Escala e dos Votos, sem apagar nada. "Mostrar as enquetes arquivadas" traz de volta.
+
+**Internet fraca.** Firestore com cache persistente no aparelho (`persistentLocalCache`); o service worker guarda as bibliotecas (Firebase, Excel, fontes), então o app abre sem internet; voto feito offline fica guardado e é enviado quando a conexão volta; faixa "Sem internet" no topo. Mudanças na escala continuam precisando de internet (usam transação).
+
+**Arquivos novos:** `public/js/relatorios.js`, `auditoria.js`, `telaAuditoria.js`, `trocas.js`, `importar.js`, `tests/v31.test.mjs`; testes novos em `tests-regras/regras.spec.mjs`.
+
+**Para publicar:** merge no `master` e `npm run deploy:regras` (as regras mudaram: auditoria, trocas e aceite de privacidade). Sem as regras novas, o aceite de privacidade falha e ninguém consegue passar da tela de aceite.

@@ -10,7 +10,7 @@ Dentro do app, as seções ficam no **☰ Menu** (canto direito do cabeçalho).
 2. Toque em **Gerar links para quem ainda não tem**.
 3. Em cada nome, toque em **Enviar no WhatsApp** e escolha a conversa da pessoa. A mensagem já vai pronta, com o link.
 
-**Para o publicador:** é só tocar no link que recebeu. O app abre, já sabe quem é, e mostra a enquete para votar. Nas próximas vezes, basta abrir o app de novo no mesmo aparelho. Se o app pedir de novo, toque no link outra vez. Para instalar o app no celular, veja [APP_INSTALAVEL.md](APP_INSTALAVEL.md).
+**Para o publicador:** é só tocar no link que recebeu. Na primeira vez, o app mostra o aviso de privacidade: é só ler, marcar "Li e concordo" e continuar. Depois o app já sabe quem é e mostra a enquete para votar. Nas próximas vezes, basta abrir o app de novo no mesmo aparelho. Se o app pedir de novo, toque no link outra vez. Para instalar o app no celular, veja [APP_INSTALAVEL.md](APP_INSTALAVEL.md).
 
 **Cuidados:**
 - Quem tiver o link entra como aquela pessoa (só para votar e ver a escala). Envie cada link só para a pessoa certa.
@@ -23,10 +23,10 @@ Dentro do app, as seções ficam no **☰ Menu** (canto direito do cabeçalho).
 1. Abre o endereço do app no celular (o link vem no grupo).
 2. Toca em **Criar conta** e preenche o **nome** (como aparece na lista de publicadores), um **e-mail** e uma **senha** com pelo menos 6 caracteres.
 3. Aparece "Conta aguardando aprovação". É normal: um administrador precisa liberar o acesso.
-4. Quando for liberado, entra de novo (ou toca em "Já fui aprovado: atualizar") e vê a enquete aberta.
-5. Marca os horários em cada ponto e toca em **Salvar meus votos**. Pode voltar e mudar até a votação encerrar.
+4. Quando for liberado, entra de novo (ou toca em "Já fui aprovado: atualizar"). Na primeira vez, confirma o aviso de privacidade ("Li e concordo") e vê a enquete aberta.
+5. Marca os horários em cada ponto (1 toque = posso; 2 toques = só se precisar, como reserva; 3 toques = desmarca) e toca em **Salvar meus votos**. Pode voltar e mudar até a votação encerrar.
 6. Depois que a escala for publicada, ela aparece em Menu > **Escala**, com os horários dele em destaque.
-7. Em Menu > **Minha escala** ele vê só os próprios horários, com quem vai estar, e pode levá-los para o calendário do celular (**Google Agenda** em cada horário, ou **Levar tudo para o calendário** no iPhone).
+7. Em Menu > **Minha escala** ele vê só os próprios horários, com quem vai estar, e pode levá-los para o calendário do celular (**Google Agenda** em cada horário, ou **Levar tudo para o calendário** no iPhone). Se não puder ir, toca em **Preciso trocar** naquele horário.
 
 Esqueceu a senha? Na tela de entrada, **Esqueci a minha senha** manda um e-mail para criar outra.
 

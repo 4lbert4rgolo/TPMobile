@@ -3,14 +3,14 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.0 (configuração de pontos; a v2.9 foi publicada em 18/11/2026) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.1 (auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca e novo visual da impressão e do Excel) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
 
 | Perfil | O que faz |
 |---|---|
-| **Votante** | Marca os horários em que pode, em cada ponto, e vê a escala publicada e a "Minha escala" |
+| **Votante** | Marca os horários em que pode (ou "só se precisar", como reserva), em cada ponto, vê a escala publicada e a "Minha escala" e pede troca de um horário |
 | **Servo Ministerial** | Tudo do votante, mais: configura os pontos, cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, lembra quem não votou, gera, ajusta e publica a escala |
 | **Administrador** (inclui os anciãos) | Tudo do servo ministerial, mais: aprova usuários, define perfis, gera e revoga os links pessoais, baixa o backup e apaga dados antigos |
 
@@ -21,8 +21,11 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 **Para quem vota**
 - Entra pelo **link pessoal** (sem e-mail e sem senha) ou com conta de e-mail e senha.
 - Vê só os pontos em que pode votar e encontra os **horários de costume** já marcados.
+- Cada horário tem três estados: 1 toque = **posso**, 2 toques = **só se precisar** (reserva), 3 toques = desmarca. A reserva não entra na escala automática: serve para substituições.
+- No **primeiro acesso**, confirma que leu o aviso de privacidade (uma vez só).
 - Vê a escala publicada, com os próprios horários destacados.
 - **Minha escala:** lista os próximos horários da pessoa, com os companheiros de equipe, o link do **Google Agenda** em cada horário e o botão **Levar tudo para o calendário** (arquivo `.ics`, com lembrete 1 hora antes).
+- **Preciso trocar:** na Minha escala, pede a troca de um horário (com motivo opcional) e acompanha o pedido.
 - **Letras maiores** e **app instalável** no celular.
 
 **Para os organizadores**
@@ -33,6 +36,11 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - **Dois organizadores ao mesmo tempo:** cada troca grava só aquele horário em cima da versão mais nova do banco. Se outra pessoa mudou o mesmo horário, nada é apagado: o app avisa e mostra a versão nova. A tela mostra quem fez a última alteração.
 - **Equilíbrio entre semanas:** quem participou menos nas últimas 4 escalas tem prioridade (pode desligar em cada enquete).
 - **Busca** nas listas de Publicadores, Usuários e Links de acesso.
+- **Pedidos de troca:** aparecem em destaque na Escala, com os substitutos sugeridos (reservas primeiro, depois quem marcou o horário e participou menos). Um toque coloca o substituto no lugar e oferece avisá-lo pelo WhatsApp.
+- **Auditoria** (Menu > Auditoria, administrador): quem fez o quê e quando, com busca e filtro por área. Cada escala também tem o seu **Histórico** (organizadores).
+- **Importar publicadores** de uma planilha (.xlsx/.csv ou colando as linhas), com prévia e modelo para baixar.
+- **Arquivar** enquetes passadas: saem da lista sem apagar nada.
+- **Impressão e Excel** com as cores do app: faixa verde com o ponto e o período, cabeçalho escuro, textos centralizados, reuniões em bege e "Pregação" em cinza. A escala na tela segue o mesmo visual.
 - Imprimir, exportar para Excel e texto pronto para o WhatsApp.
 
 **Dados e segurança**
@@ -40,6 +48,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - Tela **Privacidade e dados** no menu. Votos e escalas ficam guardados por 3 meses.
 - **Baixar backup** (administrador) e **Apagar dados antigos** (sempre baixa o backup antes).
 - **Backup automático diário no Google Drive**, por um script do Google Apps Script: veja [scripts/apps-script/README.md](scripts/apps-script/README.md).
+- **Aceite de privacidade** guardado com data em cada usuário; o administrador vê quem aceitou em Usuários e em Links de acesso.
+- **Internet fraca:** o que já foi aberto continua aparecendo sem internet (cache do Firebase no aparelho), o app abre mesmo offline e o voto feito sem internet é enviado quando a conexão volta. Uma faixa avisa quando a internet cai.
 
 ## Regras da escala
 - Equipes normais são **duplas**. Quem "precisa de trio" (idade ou necessidade especial) sempre entra em equipe de **3**.
@@ -83,6 +93,11 @@ public/                    site (pasta publicada no Firebase Hosting)
     votos.js               acompanhamento dos votos e lembretes pelo WhatsApp
     enquetes.js            lista e editor de enquetes
     pontos.js              regras da configuração de pontos (sem tela, testável)
+    relatorios.js          texto das células e desenho do Excel com cores (testável)
+    auditoria.js           eventos de auditoria: montar, descrever, filtrar (testável)
+    telaAuditoria.js       registrar eventos, tela Auditoria e histórico da escala
+    trocas.js              pedidos de troca e substitutos (testável)
+    importar.js            leitura e validação da importação de publicadores (testável)
     telaPontos.js          tela "Pontos"
     escala.js              regras e gerador da escala, equilíbrio e controle de versão (sem tela, testável)
     telaEscala.js          tela da escala: gerar, ajustar, publicar, imprimir, Excel
@@ -115,7 +130,7 @@ Com o `firebase-config.js` preenchido, o app local usa os **dados reais**. Para 
 ## Comandos
 | Comando | O que faz |
 |---|---|
-| `npm test` | Roda os testes do código (gerador, equilíbrio, controle de versão, Minha escala, busca, pontos, retenção). Precisa só do Node 18+ |
+| `npm test` | Roda os testes do código (gerador, equilíbrio, controle de versão, Minha escala, busca, pontos, relatórios, auditoria, trocas, importação, retenção). Precisa só do Node 18+ |
 | `npm run test:regras` | Testa as regras do Firestore no emulador (precisa de Java e `npm install`) |
 | `npm run serve` | Abre o site em http://localhost:8080 |
 | `npm install` e `npm run css` | Refazem o `tailwind.css` depois de usar classes novas do Tailwind |

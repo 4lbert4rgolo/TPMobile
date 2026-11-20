@@ -6,6 +6,7 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca, novo visual da impressão e do Excel | v3.1 |
 | Configuração de pontos (Menu > Pontos) e fim da "enquete de evento" | v3.0 |
 | Perfis: só Votante, Servo Ministerial e Administrador (anciãos = Administrador) | v2.9 |
 | Evitar que dois organizadores se sobrescrevam (versão da escala, troca horário a horário) | v2.9 |
@@ -26,23 +27,20 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 2. Instalar o **backup automático no Google Drive** ([scripts/apps-script/README.md](../scripts/apps-script/README.md)), se ainda não foi feito.
 3. Teste real com 2 ou 3 irmãos, incluindo a "Minha escala" no iPhone e no Android, e avisar o grupo sobre a nova seção.
 
-## 🟢 Pode esperar
+## 🟢 Ideias para depois
 
-Úteis, mas não resolvem um problema de hoje.
+Todas as sugestões anteriores foram feitas. Ficam só ideias, para avaliar com o uso:
 
-| # | Melhoria | Observação | Esforço |
-|---|---|---|---|
-| 9 | **Histórico de quem mudou o quê** (escala e acessos) | Hoje a escala mostra só a última alteração. Um histórico completo ajuda quando vários organizadores editam juntos. | Médio |
-| 10 | **Voto "só se precisar" (reserva) e botão "Preciso trocar"** | Geram lista de substitutos. Dá para continuar combinando no grupo por enquanto. | Médio/Grande |
-| 11 | **Importar publicadores em lote** | Útil só no cadastro inicial ou em grandes mudanças. | Pequeno |
-| 12 | **Arquivar enquetes antigas** | Só pesa quando a lista de enquetes ficar longa. | Pequeno |
-| 13 | **Funcionar melhor com internet fraca** (cópia no aparelho) | Só vale se o sinal for um problema real nos pontos de votação. | Médio |
+| Ideia | Observação |
+|---|---|
+| Restaurar dados a partir de um backup | Hoje o backup só é baixado; restaurar ainda é manual. |
+| Avisar o substituto automaticamente | Hoje o app abre o WhatsApp com a mensagem pronta; quem envia é o organizador. |
+| Relatório de participação do mês | Quantas vezes cada um participou, para conversar sobre equilíbrio. |
 
 ## Ordem sugerida
 
-1. Fazer o teste real da v2.9 e ajustar o que a prática mostrar.
-2. Item 9 (histórico de alterações), se vários organizadores passarem a editar a mesma semana.
-3. O resto, quando houver necessidade concreta.
+1. Publicar a v3.1 (com `npm run deploy:regras`) e fazer o teste real: aceite de privacidade, reserva e um pedido de troca.
+2. Avaliar as ideias acima conforme o uso.
 
 ## Fora do TPMobile
 
