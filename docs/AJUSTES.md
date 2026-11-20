@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v2.9, publicada em 18/11/2026.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.2 (em revisão), anterior publicada: v3.1.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -180,3 +180,13 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 **Arquivos novos:** `public/js/relatorios.js`, `auditoria.js`, `telaAuditoria.js`, `trocas.js`, `importar.js`, `tests/v31.test.mjs`; testes novos em `tests-regras/regras.spec.mjs`.
 
 **Para publicar:** merge no `master` e `npm run deploy:regras` (as regras mudaram: auditoria, trocas e aceite de privacidade). Sem as regras novas, o aceite de privacidade falha e ninguém consegue passar da tela de aceite.
+
+## v3.2 — Votação em dois passos (20/11/2026)
+
+- Quem vota em mais de um ponto agora vê **uma grade única de horários** ("Em quais horários posso?") e, logo abaixo, caixinhas **"Onde quero participar?"**. Os horários valem para todos os pontos marcados (posso e reserva).
+- O próprio votante escolhe os pontos. O campo "Onde vota" do cadastro continua como **restrição opcional** feita pelo organizador: só aparecem as caixinhas dos pontos liberados.
+- Horários bloqueados em um ponto não são copiados para ele.
+- Link "Preciso de horários diferentes em um ponto específico" abre a tela antiga, por ponto. Votos antigos com horários diferentes por ponto abrem direto nela, sem perder nada.
+- Organizadores continuam vendo os votos separados por ponto. Nenhuma mudança nas regras do Firestore.
+- Código novo: `public/js/votoUnico.js` (lógica pura) e `tests/votoUnico.test.mjs`.
+- Para publicar: aprovar o merge (o deploy roda os testes antes).
