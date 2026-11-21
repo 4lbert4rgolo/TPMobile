@@ -59,7 +59,12 @@ export async function ativarAvisos() {
     }
   } catch (e) {
     console.error(e);
-    toast('Não foi possível ativar os avisos agora. Tente de novo mais tarde.', 'erro');
+    if (e?.code === 'messaging/permission-blocked') {
+      toast('As notificações estão bloqueadas neste aparelho. Libere nas configurações do navegador (cadeado ao lado do endereço > Notificações > Permitir).', 'erro');
+    } else {
+      // O código entre parênteses ajuda a descobrir o problema (ex.: regras do Firestore não publicadas).
+      toast(`Não foi possível ativar os avisos agora. (${e?.code || e?.message || 'erro desconhecido'})`, 'erro');
+    }
   }
   dispensarFaixa();
   fecharModal();
