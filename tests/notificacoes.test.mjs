@@ -64,3 +64,11 @@ test('suporte: sem chave, iPhone sem instalar, bloqueado, ativo e pronto para at
   assert.equal(suporte({ chave: 'k', win: win('granted'), tokenGuardado: 't' }), 'ativo');
   assert.equal(suporte({ chave: 'k', win: win('granted') }), 'pode-ativar');
 });
+
+test('configuração: com Firebase ligado, tem o messagingSenderId que as notificações exigem', async () => {
+  const { firebaseConfig, chaveNotificacoes } = await import('../public/js/firebase-config.js');
+  if (!firebaseConfig.apiKey) return; // modo demonstração
+  assert.ok(firebaseConfig.messagingSenderId, 'falta messagingSenderId');
+  assert.equal(firebaseConfig.appId.split(':')[1], firebaseConfig.messagingSenderId);
+  assert.ok(chaveNotificacoes.startsWith('B'));
+});

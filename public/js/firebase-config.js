@@ -15,6 +15,8 @@ export const firebaseConfig = {
   authDomain: 'tpmobile-81727.firebaseapp.com',
   projectId: 'tpmobile-81727',
   appId: '1:894151015200:web:ed94f3c79c37b7a0a7f545',
+  // Número do projeto (é o número do meio do appId). As notificações precisam dele.
+  messagingSenderId: '894151015200',
 };
 
 // Chave de notificações (Web Push): Firebase > Configurações do projeto > Cloud Messaging >
