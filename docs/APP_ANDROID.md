@@ -11,7 +11,7 @@ No iPhone não existe .apk: lá continua o app instalável pelo Safari (Comparti
 1. Abra https://www.pwabuilder.com, cole `https://tpmobile-81727.web.app` e clique em **Start**.
 2. Espere a análise e clique em **Package For Stores** > **Android** > **Generate Package**.
 3. Na janela de opções, confira:
-   - **Package ID:** `app.tpmobile.carrinho` (anote: não dá para mudar depois);
+   - **Package ID:** `app.web.tpmobile_81727.twa` (o que foi usado no app publicado; não dá para mudar depois);
    - **App name:** `TPMobile` · **Short name:** `TPMobile`;
    - nas opções avançadas (**All settings**), deixe as **notificações** ligadas ("Notification delegation" / "Enable notifications"): é o que deixa os avisos chegarem pelo app;
    - **Signing key:** **Create new** (deixe o PWABuilder criar a chave).
@@ -20,7 +20,7 @@ No iPhone não existe .apk: lá continua o app instalável pelo Safari (Comparti
 
 ## Ligar o app ao site (para esconder a barra de endereço)
 Sem este passo o app funciona, mas mostra uma barrinha com o endereço do site no topo.
-1. Mande o arquivo **assetlinks.json** do .zip para o Claude (ou coloque em `public/.well-known/assetlinks.json` e faça o commit). O modelo está em `scripts/android/assetlinks.modelo.json`.
+1. **Já feito (21/11/2026):** o arquivo está em `public/.well-known/assetlinks.json`. Se um dia gerar o app com outra chave, troque esse arquivo.
 2. Depois de publicado, confira abrindo https://tpmobile-81727.web.app/.well-known/assetlinks.json no navegador: tem que aparecer o texto com o Package ID.
 3. Feche e abra o app: a barra some.
 

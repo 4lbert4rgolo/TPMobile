@@ -1,0 +1,8 @@
+[{
+      "relation": ["delegate_permission/common.handle_all_urls"],
+      "target": {
+        "namespace": "android_app",
+        "package_name": "app.web.tpmobile_81727.twa",
+        "sha256_cert_fingerprints": ["2A:F7:78:B5:FB:62:4F:0D:2D:5F:5E:47:FB:28:EE:EA:C2:80:21:0D:09:91:59:8B:A1:51:9F:D5:34:5F:F1:CC"]
+      }
+    }]
