@@ -28,6 +28,13 @@ pubsub-debug.log
 *.p12
 *.pfx
 # chaves de conta de serviço baixadas do Firebase/Google Cloud
+# chave e pacotes do app Android (PWABuilder): nunca no GitHub
+*.keystore
+*.jks
+signing-key-info.txt
+*Google Play package*.zip
+*.apk
+*.aab
 *-firebase-adminsdk-*.json
 *serviceAccount*.json
 *service-account*.json
