@@ -12,6 +12,7 @@ import { gerarEscala, validarEscala, contarParticipacoes, chave, nomeDia, dataCu
 
 /** Separador entre as pessoas da mesma dupla/trio. Para usar "e", troque por ' e '. */
 import { SEPARADOR_ESCALA, textoCelula, dataLonga, planilhaDoPonto } from './relatorios.js';
+import { imagensDaEscala, pdfDaEscala, compartilharArquivos, textoDaMensagem } from './compartilhar.js';
 
 export { SEPARADOR_ESCALA };
 
@@ -83,9 +84,15 @@ export async function renderEscala() {
           : '<button class="bg-green-600 text-white rounded-lg px-4 py-2 font-semibold text-sm" data-acao="publicar-escala">Publicar para todos</button>'}
         <span class="text-sm ${publicada ? 'text-green-700' : 'text-slate-500'}">${publicada ? 'Publicada: todos podem ver.' : 'Ainda não publicada: só os organizadores veem.'}</span>` : ''}
       <span class="flex-1"></span>
-      <button class="bg-slate-100 rounded-lg px-3 py-2 text-sm" data-acao="imprimir">Imprimir este ponto</button>
-      <button class="bg-slate-100 rounded-lg px-3 py-2 text-sm" data-acao="imprimir-todos">Imprimir todos</button>
-      <button class="bg-slate-100 rounded-lg px-3 py-2 text-sm" data-acao="exportar-excel">Exportar Excel</button>
+      <button class="bg-green-600 text-white rounded-lg px-3 py-2 text-sm font-semibold" data-acao="enviar-imagem" title="Abre a janela de compartilhar: escolha o WhatsApp e o grupo">Enviar imagem deste ponto</button>
+      <button class="bg-green-50 text-green-800 rounded-lg px-3 py-2 text-sm font-semibold" data-acao="enviar-imagens-todos">Imagens de todos os pontos</button>
+      <button class="bg-green-50 text-green-800 rounded-lg px-3 py-2 text-sm font-semibold" data-acao="enviar-pdf">PDF com todos os pontos</button>
+      <details class="mais-opcoes"><summary class="bg-slate-100 rounded-lg px-3 py-2 text-sm cursor-pointer">Mais</summary>
+        <div class="mais-opcoes-menu bg-white border rounded-lg shadow p-2">
+          <button class="w-full text-left rounded px-3 py-2 text-sm" data-acao="imprimir">Imprimir este ponto</button>
+          <button class="w-full text-left rounded px-3 py-2 text-sm" data-acao="imprimir-todos">Imprimir todos</button>
+          <button class="w-full text-left rounded px-3 py-2 text-sm" data-acao="exportar-excel">Exportar Excel</button>
+        </div></details>
     </div>
     <div id="escala-corpo"></div>`;
 
@@ -395,7 +402,40 @@ export function htmlImpressao(enquete, matriz, ponto, geradoEm = new Date()) {
   </div>`;
 }
 
+/* ------------------------------------------------------------ enviar para o grupo */
+
+let enviando = false;
+
+/**
+ * Gera a escala como imagem(ns) PNG ou como um PDF e abre a janela de compartilhar do aparelho.
+ * formato: 'imagem' (só o ponto aberto), 'imagens' (um arquivo por ponto) ou 'pdf' (uma página por ponto).
+ */
+export async function enviarEscala(formato) {
+  const e = enqueteAtual();
+  if (!estado.escala?.matriz) return toast('Gere a escala primeiro.', 'erro');
+  if (enviando) return; // evita gerar duas vezes com dois toques seguidos
+  enviando = true;
+  const pontos = formato === 'imagem' ? [estado.ponto] : e.pontos;
+  try {
+    const arquivos = formato === 'pdf'
+      ? [await pdfDaEscala(e, estado.escala.matriz, pontos)]
+      : await imagensDaEscala(e, estado.escala.matriz, pontos);
+    const resultado = await compartilharArquivos(arquivos, textoDaMensagem(e, pontos));
+    if (resultado === 'baixado') {
+      toast(arquivos.length > 1 ? 'Arquivos baixados. Anexe no grupo do WhatsApp.' : 'Arquivo baixado. Anexe no grupo do WhatsApp.');
+    }
+  } catch (err) {
+    console.error(err);
+    toast('Não foi possível gerar o arquivo da escala.', 'erro');
+  } finally {
+    enviando = false;
+  }
+}
+
+const fecharMenuMais = () => document.querySelector('.mais-opcoes')?.removeAttribute('open');
+
 export function imprimir(todos) {
+  fecharMenuMais();
   const e = enqueteAtual();
   if (!estado.escala?.matriz) return toast('Gere a escala primeiro.', 'erro');
   const pontos = todos ? e.pontos : [estado.ponto];
@@ -404,6 +444,7 @@ export function imprimir(todos) {
 }
 
 export function exportarExcel() {
+  fecharMenuMais();
   const e = enqueteAtual();
   if (!estado.escala?.matriz) return toast('Gere a escala primeiro.', 'erro');
   if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');

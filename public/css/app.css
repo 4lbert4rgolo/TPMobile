@@ -103,3 +103,11 @@ button[data-acao][disabled]:not(.chip-turno) { opacity: .45; cursor: not-allowed
 .faixa-offline[hidden] { display: none; }
 .legenda-item { display: inline-flex; align-items: center; gap: 0.4rem; white-space: nowrap; }
 .legenda-toques { row-gap: 0.5rem; }
+
+/* Menu "Mais" (imprimir / Excel) ao lado dos botões de enviar */
+.mais-opcoes { position: relative; }
+.mais-opcoes > summary { list-style: none; }
+.mais-opcoes > summary::-webkit-details-marker { display: none; }
+.mais-opcoes-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 20; min-width: 190px; }
+.mais-opcoes-menu button { display: block; }
+.mais-opcoes-menu button:hover { background: #f1f5f9; }

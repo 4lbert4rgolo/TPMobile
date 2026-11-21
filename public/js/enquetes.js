@@ -44,7 +44,7 @@ export function novoEditor() {
     dias: gerarDias(inicio, fim),
     turnosTexto: cfg.turnos.join('\n'),
     pontos: new Set(pontosAtivos(cfg)),
-    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixo: 'preferencia', equilibrarSemanas: true,
+    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixo: 'preferencia', equilibrarSemanas: true, umPorDia: true,
   };
   aplicarBloqueiosPadrao(ed);
   ed.titulo = tituloSugerido(ed);
@@ -67,6 +67,7 @@ export function editorDe(e, copia = false) {
     maxIrmas: e.regras?.maxIrmas ?? 3,
     maxIrmaos: e.regras?.maxIrmaos ?? '',
     parFixo: modoParFixo(e.regras),
+    umPorDia: e.regras?.umPorDia !== false,
     equilibrarSemanas: e.regras?.equilibrarSemanas ?? true,
   };
   return ed;
@@ -205,6 +206,7 @@ export function renderEditor() {
               <option value="ignorar" ${ed.parFixo === 'ignorar' ? 'selected' : ''}>Não considerar o par fixo nesta enquete</option>
             </select></label>
           <p class="text-xs text-slate-500">As equipes são sempre só de irmãos ou só de irmãs; o casal com par fixo é a exceção.</p>
+          <label class="flex items-center gap-2"><input type="checkbox" ${ed.umPorDia ? 'checked' : ''} data-campo="umPorDia"> Cada pessoa no máximo uma vez por dia</label>
           <label class="flex items-center gap-2"><input type="checkbox" ${ed.equilibrarSemanas ? 'checked' : ''} data-campo="equilibrarSemanas"> Dar prioridade a quem participou menos nas últimas ${SEMANAS_EQUILIBRIO} escalas</label>
         </div>
         <p class="text-xs text-slate-500 mt-2">Quem "precisa de trio" sempre entra em equipe de 3 pessoas. As demais equipes são duplas.</p>
@@ -246,6 +248,7 @@ export function campoMudou(el, digitando = false) {
     case 'maxIrmaos': ed.maxIrmaos = el.value; break;
     case 'parFixo': ed.parFixo = el.value; break;
     case 'equilibrarSemanas': ed.equilibrarSemanas = el.checked; break;
+    case 'umPorDia': ed.umPorDia = el.checked; break;
     default: break;
   }
 }
@@ -273,7 +276,7 @@ export async function salvarEditor(alvo) {
     turnos,
     pontos: [...ed.pontos],
     bloqueios: ed.bloqueios.filter((b) => (b.turno === '*' || turnos.includes(b.turno)) && (!b.ponto || ed.pontos.has(b.ponto))),
-    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixo: ed.parFixo, equilibrarSemanas: ed.equilibrarSemanas },
+    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixo: ed.parFixo, equilibrarSemanas: ed.equilibrarSemanas, umPorDia: ed.umPorDia },
   };
 
   const ok = await tentar(async () => {

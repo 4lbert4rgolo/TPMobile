@@ -70,6 +70,9 @@ export function modoParFixo(regras) {
   return regras?.parFixoJunto === false ? 'ignorar' : 'preferencia';
 }
 
+/** Cada pessoa no máximo uma vez por dia (regra "umPorDia", ligada a não ser que a enquete desligue). */
+export const umaVezPorDia = (regras) => regras?.umPorDia !== false;
+
 /** Os dois são o par fixo um do outro (basta um dos cadastros apontar para o outro). */
 export const saoCasal = (a, b) => Boolean(a && b && a.id !== b.id && (a.conjuge === b.id || b.conjuge === a.id));
 
@@ -129,11 +132,13 @@ function podeEscalar(pessoa, regras, carga) {
  * - Prefere quem participou menos nesta escala e, se ligado, nas escalas anteriores (equilíbrio).
  */
 function escolherEquipe(slot, ctx) {
-  const { porId, carga, ocupado, regras, pontos } = ctx;
+  const { porId, carga, ocupado, ocupadoNoDia, regras, pontos } = ctx;
 
   const livres = slot.cand
     .map((id) => porId.get(id))
-    .filter((p) => !ocupado.has(`${p.id}|${slot.data}|${slot.turno}`) && podeEscalar(p, regras, carga));
+    .filter((p) => !ocupado.has(`${p.id}|${slot.data}|${slot.turno}`) && podeEscalar(p, regras, carga))
+    // Quem já está escalado neste dia (em qualquer horário ou ponto) não entra de novo.
+    .filter((p) => !umaVezPorDia(regras) || !ocupadoNoDia.has(`${p.id}|${slot.data}`));
   const livresIds = new Set(livres.map((p) => p.id));
 
   const ordenados = [...livres].sort(
@@ -210,6 +215,7 @@ export function gerarEscala({ enquete, publicadores, votos, historico = new Map(
 
   const carga = new Map(pubs.map((p) => [p.id, 0]));
   const ocupado = new Set();
+  const ocupadoNoDia = new Set();
   const matriz = {};
   const slots = [];
 
@@ -238,7 +244,7 @@ export function gerarEscala({ enquete, publicadores, votos, historico = new Map(
   // Quem tem menos pontos é escolhido primeiro.
   const pesoHist = regras.equilibrarSemanas === false ? 0 : PESO_HISTORICO;
   const pontos = (id) => carga.get(id) + pesoHist * (historico.get(id) || 0);
-  const ctx = { porId, carga, ocupado, regras, pontos };
+  const ctx = { porId, carga, ocupado, ocupadoNoDia, regras, pontos };
 
   for (const slot of slots) {
     if (slot.cand.length < 2) continue;
@@ -248,6 +254,7 @@ export function gerarEscala({ enquete, publicadores, votos, historico = new Map(
     for (const membro of equipe) {
       carga.set(membro.id, carga.get(membro.id) + 1);
       ocupado.add(`${membro.id}|${slot.data}|${slot.turno}`);
+      ocupadoNoDia.add(`${membro.id}|${slot.data}`);
     }
 
     matriz[slot.ponto][slot.data][slot.turno] = {
@@ -342,6 +349,23 @@ export function validarEscala({ enquete, publicadores, votos, matriz }) {
           simultaneo.get(k).push(ponto);
         }
       }
+    }
+  }
+
+  // Mais de uma vez no mesmo dia (horários diferentes ou pontos diferentes).
+  if (umaVezPorDia(regras)) {
+    const noDia = new Map();
+    for (const [k, pontos] of simultaneo) {
+      const [id, data, turno] = k.split('|');
+      const chaveDia = `${id}|${data}`;
+      if (!noDia.has(chaveDia)) noDia.set(chaveDia, []);
+      noDia.get(chaveDia).push(...pontos.map((p) => `${turno} (${p})`));
+    }
+    for (const [k, lugares] of noDia) {
+      if (lugares.length < 2) continue;
+      const [id, data] = k.split('|');
+      const nome = porId.get(id)?.nome || 'Alguém';
+      avisos.push({ nivel: 'erro', msg: `${nome} está mais de uma vez em ${nomeDia(data).toLowerCase()}, ${dataCurta(data)}: ${lugares.join(', ')}.`, data });
     }
   }
 

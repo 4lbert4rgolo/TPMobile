@@ -11,7 +11,7 @@ import { $, SEM_ACESSO, erroAmigavel, estado, fecharModal, fonteGrande, gravarPr
 import { excluirPublicador, formularioPublicador, salvarPublicadorForm } from './publicadores.js';
 import { carregarBase, entrarComLink, iniciar, renderLogin } from './sessao.js';
 import { abrirMenu, fecharMenu, renderAba, renderApp } from './shell.js';
-import { atualizarResumoCelula, desenharEscala, editarCelula, exportarExcel, gerarEscalaAcao, gravarCelula, imprimir, publicarEscala } from './telaEscala.js';
+import { atualizarResumoCelula, desenharEscala, editarCelula, enviarEscala, exportarExcel, gerarEscalaAcao, gravarCelula, imprimir, publicarEscala } from './telaEscala.js';
 import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario } from './usuarios.js';
 import { alternarPontoVoto, alternarVoto, copiarPonto, votoPorPonto, votoSimples, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
 import { abrirLembreteGrupo, lembrar, votarPor } from './votos.js';
@@ -140,6 +140,9 @@ const acoes = {
   imprimir: () => imprimir(false),
   'imprimir-todos': () => imprimir(true),
   'exportar-excel': exportarExcel,
+  'enviar-imagem': () => enviarEscala('imagem'),
+  'enviar-imagens-todos': () => enviarEscala('imagens'),
+  'enviar-pdf': () => enviarEscala('pdf'),
   'editar-celula': (el) => editarCelula(el.dataset.ponto, el.dataset.data, el.dataset.turno),
   'limpar-celula': () => gravarCelula([]),
   'salvar-celula': () => {

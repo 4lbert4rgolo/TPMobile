@@ -18,6 +18,7 @@
 | 3.1 | Auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca, novo visual da impressão, do Excel e da escala |
 | 3.2 | Votação em dois passos: grade única de horários e escolha dos pontos pelo votante |
 | 3.3 | Equipes do mesmo gênero (casal é exceção) e par fixo "de preferência" |
+| 3.4 | Cada pessoa no máximo uma vez por dia; enviar a escala no grupo como imagem ou PDF |
 
 ---
 
@@ -193,6 +194,21 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 - Código novo: `public/js/votoUnico.js` (lógica pura) e `tests/votoUnico.test.mjs`.
 - Para publicar: aprovar o merge (o deploy roda os testes antes).
 
+
+## v3.4 — Uma vez por dia e escala enviada como imagem ou PDF (21/11/2026)
+
+**Cada pessoa no máximo uma vez por dia.** O gerador não coloca a mesma pessoa em dois horários do mesmo dia, nem em pontos diferentes. Regra nova `regras.umPorDia` (ligada por padrão; desligue em Enquetes > Editar > Regras da escala > "Cada pessoa no máximo uma vez por dia"). Na validação, quem foi colocado duas vezes no mesmo dia num ajuste manual aparece em **vermelho** ("Fulano está mais de uma vez em segunda-feira, 23/11: …"). Os substitutos dos pedidos de troca também não incluem quem já está escalado naquele dia.
+
+**Enviar a escala no grupo.** Os botões de imprimir e Excel deram lugar a:
+- **Enviar imagem deste ponto** — uma imagem PNG do ponto aberto.
+- **Imagens de todos os pontos** — uma imagem por ponto, todas de uma vez.
+- **PDF com todos os pontos** — um PDF, uma página A4 deitada por ponto.
+
+No celular abre a janela **Compartilhar** do aparelho: escolha o WhatsApp e o grupo. No computador (quando o navegador não tem essa janela) os arquivos são baixados, para anexar no WhatsApp Web. A imagem tem o mesmo visual da impressão (faixa verde, cabeçalho escuro, nomes centralizados um embaixo do outro, reuniões em bege, "Pregação" em cinza). **Imprimir** e **Exportar Excel** continuam no botão **Mais**.
+
+Como é feito (`public/js/compartilhar.js`): `planoDaPagina()` calcula a posição de cada texto e retângulo (função pura, testada); `pintar()` desenha num `<canvas>`; o PDF é montado à mão (`pdfDeImagens()`), sem biblioteca, com a imagem JPEG em cada página; `compartilharArquivos()` usa a Web Share API (`navigator.share` com arquivos) e baixa os arquivos quando ela não existe. Funciona sem internet.
+
+Sem mudança nas regras do Firestore. Testes novos em `tests/umPorDia.test.mjs` e `tests/compartilhar.test.mjs`.
 
 ## v3.3 — Equipes do mesmo gênero e par fixo "de preferência" (21/11/2026)
 

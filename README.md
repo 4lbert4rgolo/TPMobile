@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.1 (auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca e novo visual da impressão e do Excel) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.4 (cada pessoa no máximo uma vez por dia e escala enviada no grupo como imagem ou PDF) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
@@ -40,8 +40,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - **Auditoria** (Menu > Auditoria, administrador): quem fez o quê e quando, com busca e filtro por área. Cada escala também tem o seu **Histórico** (organizadores).
 - **Importar publicadores** de uma planilha (.xlsx/.csv ou colando as linhas), com prévia e modelo para baixar.
 - **Arquivar** enquetes passadas: saem da lista sem apagar nada.
-- **Impressão e Excel** com as cores do app: faixa verde com o ponto e o período, cabeçalho escuro, textos centralizados, reuniões em bege e "Pregação" em cinza. A escala na tela segue o mesmo visual.
-- Imprimir, exportar para Excel e texto pronto para o WhatsApp.
+- **Enviar a escala no grupo** como imagem (um ponto ou todos) ou como PDF (uma página por ponto): no celular abre a janela de compartilhar, é só escolher o WhatsApp e o grupo. Mesmo visual da impressão: faixa verde com o ponto e o período, cabeçalho escuro, textos centralizados, reuniões em bege e "Pregação" em cinza.
+- Imprimir e exportar para Excel continuam no botão **Mais**.
 
 **Dados e segurança**
 - Regras do Firestore (`firestore.rules`) controlam quem lê e grava cada coisa.
@@ -57,6 +57,7 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - **Equipes do mesmo gênero:** duplas e trios só de irmãos ou só de irmãs. A exceção é o casal (par fixo), que sai junto e pode completar um trio com mais alguém.
 - **Par fixo** (escolhido em cada enquete): **de preferência com o par** (padrão: o casal sai junto sempre que os dois puderem; se o par não puder, a pessoa sai com alguém do mesmo gênero), **só com o par** (sem o par, fica de fora) ou **não considerar**.
 - Ninguém fica em dois pontos no mesmo horário; só é escalado quem marcou o horário.
+- **Uma vez por dia:** cada pessoa sai no máximo uma vez por dia (pode desligar em cada enquete).
 - Cada publicador pode votar em **todos os pontos** ou só em alguns (campo "Onde vota"). O gerador nunca escala alguém fora do ponto dele.
 - Os horários com menos voluntários são preenchidos primeiro. Entre os candidatos, tem prioridade quem participou menos nesta escala e, com o equilíbrio ligado, nas 4 anteriores.
 - Depois de gerar, dá para trocar as pessoas de qualquer horário; o app avisa se a troca quebra uma regra.
@@ -95,13 +96,14 @@ public/                    site (pasta publicada no Firebase Hosting)
     enquetes.js            lista e editor de enquetes
     pontos.js              regras da configuração de pontos (sem tela, testável)
     relatorios.js          texto das células e desenho do Excel com cores (testável)
+    compartilhar.js        imagem e PDF da escala para enviar no grupo (testável)
     auditoria.js           eventos de auditoria: montar, descrever, filtrar (testável)
     telaAuditoria.js       registrar eventos, tela Auditoria e histórico da escala
     trocas.js              pedidos de troca e substitutos (testável)
     importar.js            leitura e validação da importação de publicadores (testável)
     telaPontos.js          tela "Pontos"
     escala.js              regras e gerador da escala, equilíbrio e controle de versão (sem tela, testável)
-    telaEscala.js          tela da escala: gerar, ajustar, publicar, imprimir, Excel
+    telaEscala.js          tela da escala: gerar, ajustar, publicar, enviar, imprimir, Excel
     agenda.js              Minha escala: horários da pessoa, .ics e Google Agenda (sem tela, testável)
     telaMinha.js           tela "Minha escala"
     publicadores.js        cadastro de publicadores

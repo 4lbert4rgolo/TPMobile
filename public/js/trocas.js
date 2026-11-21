@@ -6,7 +6,7 @@
 //     substitutoId?, substitutoNome?, resolvidoPor?, resolvidoEm? }
 // status: 'aberta' → 'resolvida' (alguém entrou no lugar), 'dispensada' (organizador) ou 'cancelada' (a própria pessoa).
 
-import { chave, pontosDoPublicador, contarParticipacoes, REGRAS_PADRAO, generosCompativeis } from './escala.js';
+import { chave, pontosDoPublicador, contarParticipacoes, REGRAS_PADRAO, generosCompativeis, umaVezPorDia } from './escala.js';
 
 /**
  * Identificação do pedido: a mesma pessoa no mesmo horário gera sempre o mesmo id,
@@ -44,7 +44,8 @@ export function substituirPessoa(celula, saiId, entra) {
 
 /**
  * Quem pode entrar no lugar: marcou o horário como reserva ("só se precisar") ou como "posso",
- * vota naquele ponto, está ativo, não está em outro ponto no mesmo horário e é do mesmo gênero
+ * vota naquele ponto, está ativo, não está em outro ponto no mesmo horário (nem em outro horário do dia,
+ * com a regra de uma vez por dia) e é do mesmo gênero
  * de quem fica na equipe (a não ser que forme casal com alguém dela).
  * Ordem: reservas primeiro, depois quem participou menos nesta escala.
  * `acimaDoLimite` avisa quando a irmã (ou o irmão, se houver limite) já chegou ao máximo.
@@ -55,10 +56,14 @@ export function substitutos({ enquete, matriz, votos, publicadores, troca }, max
   const celula = matriz?.[troca.ponto]?.[troca.data]?.[troca.turno];
   const naCelula = new Set(celula?.tipo === 'equipe' ? celula.pessoas.map((p) => p.id) : []);
 
+  // Ocupados: no mesmo horário em outro ponto e, com a regra de uma vez por dia, em qualquer horário do dia.
   const ocupados = new Set();
   for (const ponto of Object.keys(matriz || {})) {
-    const c = matriz[ponto]?.[troca.data]?.[troca.turno];
-    if (c?.tipo === 'equipe') c.pessoas.forEach((p) => ocupados.add(p.id));
+    for (const [turno, c] of Object.entries(matriz[ponto]?.[troca.data] || {})) {
+      if (turno !== troca.turno && !umaVezPorDia(regras)) continue;
+      if (turno === troca.turno && ponto === troca.ponto) continue; // a própria célula já está em naCelula
+      if (c?.tipo === 'equipe') c.pessoas.forEach((p) => ocupados.add(p.id));
+    }
   }
 
   const participacoes = contarParticipacoes(matriz || {});
