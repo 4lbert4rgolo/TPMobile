@@ -20,4 +20,4 @@ export const firebaseConfig = {
 // Chave de notificações (Web Push): Firebase > Configurações do projeto > Cloud Messaging >
 // "Certificados push da Web" > Gerar par de chaves. Copie a chave e cole aqui.
 // Enquanto estiver vazia, o botão de avisos explica que falta configurar. Veja docs/NOTIFICACOES.md.
-export const chaveNotificacoes = '';
+export const chaveNotificacoes = 'BKgetvbdMr8uLGAHZVML0SModTRtAJj96OUb23DfVwkB2NV7aBEhaS3JkdcoWlUD22XPrGeZQ4KVGFgb6s_9rGg';

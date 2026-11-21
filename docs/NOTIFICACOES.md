@@ -27,7 +27,7 @@ Tocar no aviso abre o app direto na aba certa (Votar, Minha escala ou Escala).
 2. Engrenagem ⚙️ > **Configurações do projeto** > aba **Cloud Messaging**.
 3. Em **Configuração da Web** > **Certificados push da Web**, clique em **Gerar par de chaves**.
 4. Copie a chave que aparece (um texto comprido começando com "B").
-5. Cole no arquivo `public/js/firebase-config.js`, em `chaveNotificacoes = '...'` (ou mande a chave para o Claude colar e publicar). Essa chave é pública, pode ficar no código.
+5. Cole no arquivo `public/js/firebase-config.js`, em `chaveNotificacoes`. **Já feito (21/11/2026).** Essa chave é pública, pode ficar no código.
 
 > Se em **Cloud Messaging** aparecer que a **API Firebase Cloud Messaging (V1)** está desativada, clique nos três pontinhos ao lado e em **Gerenciar API no Console do Google Cloud** > **Ativar**.
 
