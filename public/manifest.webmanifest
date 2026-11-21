@@ -1,7 +1,7 @@
 {
   "id": "./",
-  "name": "Escalas de Carrinho",
-  "short_name": "Carrinho",
+  "name": "TPMobile",
+  "short_name": "TPMobile",
   "description": "Votação e escala dos carrinhos do testemunho público",
   "lang": "pt-BR",
   "start_url": "./",

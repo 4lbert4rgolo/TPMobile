@@ -12,7 +12,7 @@ No iPhone não existe .apk: lá continua o app instalável pelo Safari (Comparti
 2. Espere a análise e clique em **Package For Stores** > **Android** > **Generate Package**.
 3. Na janela de opções, confira:
    - **Package ID:** `app.tpmobile.carrinho` (anote: não dá para mudar depois);
-   - **App name:** `Escalas de Carrinho` · **Short name:** `Carrinho`;
+   - **App name:** `TPMobile` · **Short name:** `TPMobile`;
    - nas opções avançadas (**All settings**), deixe as **notificações** ligadas ("Notification delegation" / "Enable notifications"): é o que deixa os avisos chegarem pelo app;
    - **Signing key:** **Create new** (deixe o PWABuilder criar a chave).
 4. Clique em **Download**. Vem um arquivo .zip. **Guarde esse .zip em lugar seguro** (Google Drive): dentro dele estão a chave de assinatura (`signing.keystore`) e as senhas (`signing-key-info.txt`). Sem ela não dá para atualizar o app depois.
