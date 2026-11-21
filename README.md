@@ -54,7 +54,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 ## Regras da escala
 - Equipes normais são **duplas**. Quem "precisa de trio" (idade ou necessidade especial) sempre entra em equipe de **3**.
 - Irmãs: máximo de participações por enquete (padrão 3, configurável). Máximo por irmão é opcional.
-- Quem tem **par fixo** só participa junto com o par (pode ser desligado em cada enquete).
+- **Equipes do mesmo gênero:** duplas e trios só de irmãos ou só de irmãs. A exceção é o casal (par fixo), que sai junto e pode completar um trio com mais alguém.
+- **Par fixo** (escolhido em cada enquete): **de preferência com o par** (padrão: o casal sai junto sempre que os dois puderem; se o par não puder, a pessoa sai com alguém do mesmo gênero), **só com o par** (sem o par, fica de fora) ou **não considerar**.
 - Ninguém fica em dois pontos no mesmo horário; só é escalado quem marcou o horário.
 - Cada publicador pode votar em **todos os pontos** ou só em alguns (campo "Onde vota"). O gerador nunca escala alguém fora do ponto dele.
 - Os horários com menos voluntários são preenchidos primeiro. Entre os candidatos, tem prioridade quem participou menos nesta escala e, com o equilíbrio ligado, nas 4 anteriores.

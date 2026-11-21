@@ -344,7 +344,7 @@ export function criarBackendDemo() {
         turnos: CONFIG_PADRAO.turnos,
         pontos: CONFIG_PADRAO.pontos,
         bloqueios: [{ data: quinta, turno: '18:00 às 20:00', motivo: 'Reunião de meio de semana' }],
-        regras: { maxIrmas: 3, parFixoJunto: true },
+        regras: { maxIrmas: 3, parFixo: 'preferencia' },
       },
     ]);
     gravar('votos', {});

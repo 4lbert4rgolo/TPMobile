@@ -6,7 +6,7 @@
 //     substitutoId?, substitutoNome?, resolvidoPor?, resolvidoEm? }
 // status: 'aberta' → 'resolvida' (alguém entrou no lugar), 'dispensada' (organizador) ou 'cancelada' (a própria pessoa).
 
-import { chave, pontosDoPublicador, contarParticipacoes, REGRAS_PADRAO } from './escala.js';
+import { chave, pontosDoPublicador, contarParticipacoes, REGRAS_PADRAO, generosCompativeis } from './escala.js';
 
 /**
  * Identificação do pedido: a mesma pessoa no mesmo horário gera sempre o mesmo id,
@@ -44,7 +44,8 @@ export function substituirPessoa(celula, saiId, entra) {
 
 /**
  * Quem pode entrar no lugar: marcou o horário como reserva ("só se precisar") ou como "posso",
- * vota naquele ponto, está ativo e não está em outro ponto no mesmo horário.
+ * vota naquele ponto, está ativo, não está em outro ponto no mesmo horário e é do mesmo gênero
+ * de quem fica na equipe (a não ser que forme casal com alguém dela).
  * Ordem: reservas primeiro, depois quem participou menos nesta escala.
  * `acimaDoLimite` avisa quando a irmã (ou o irmão, se houver limite) já chegou ao máximo.
  */
@@ -62,11 +63,15 @@ export function substitutos({ enquete, matriz, votos, publicadores, troca }, max
 
   const participacoes = contarParticipacoes(matriz || {});
   const votoDe = new Map((votos || []).map((v) => [v.publicadorId, v]));
+  // Quem fica na equipe depois que a pessoa sair (para conferir irmão/irmã).
+  const porId = new Map(publicadores.map((p) => [p.id, p]));
+  const ficam = [...naCelula].filter((id) => id !== troca.publicadorId).map((id) => porId.get(id)).filter(Boolean);
 
   const lista = [];
   for (const p of publicadores) {
     if (p.ativo === false || p.id === troca.publicadorId || naCelula.has(p.id) || ocupados.has(p.id)) continue;
     if (!pontosDoPublicador(p, enquete.pontos).includes(troca.ponto)) continue;
+    if (!generosCompativeis([...ficam, p])) continue; // equipe só de irmãos ou só de irmãs (casal é exceção)
     const v = votoDe.get(p.id);
     const tipo = (v?.reserva?.[troca.ponto] || []).includes(k) ? 'reserva'
       : (v?.disponibilidade?.[troca.ponto] || []).includes(k) ? 'disponivel' : null;

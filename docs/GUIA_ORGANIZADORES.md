@@ -18,7 +18,9 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
    - **Horários:** um por linha, no formato `06:00 às 08:00`. Esse formato também é o que leva o horário certo para o calendário do celular na "Minha escala".
    - **Pontos:** já vêm marcados os pontos **em uso**; desmarque o que não terá carrinho nesta semana. Para criar ou renomear um ponto, use Menu > Pontos.
    - **Bloqueios:** um horário ou o dia todo, em todos os pontos ou em um ponto só (ex.: reunião de meio de semana).
-   - **Regras da escala:** máximo por irmã, máximo por irmão, par fixo junto e **"Dar prioridade a quem participou menos nas últimas 4 escalas"** (equilíbrio entre semanas, ligado por padrão).
+   - **Regras da escala:** máximo por irmã, máximo por irmão, **par fixo** e **"Dar prioridade a quem participou menos nas últimas 4 escalas"** (equilíbrio entre semanas, ligado por padrão).
+     - **Par fixo:** *De preferência com o par* (padrão: o casal sai junto sempre que os dois puderem; se o par não marcou o horário, a pessoa pode sair com alguém do mesmo gênero), *Só com o par* (sem o par, a pessoa fica de fora) ou *Não considerar o par fixo nesta enquete*.
+     - Em qualquer opção, as equipes são **só de irmãos ou só de irmãs**; o casal é a exceção e pode completar um trio.
 3. Toque em **Salvar e abrir votação** (ou **Salvar**, para deixar como rascunho; rascunho só os organizadores veem).
 4. **Texto do WhatsApp** monta a mensagem para o grupo, com os bloqueios da semana.
 
@@ -36,7 +38,7 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
 2. Toque em **Gerar escala automática**. O app preenche primeiro os horários com menos voluntários e escolhe quem participou menos, nesta escala e nas 4 anteriores (se o equilíbrio estiver ligado).
 3. Confira os **Avisos** e o quadro de **Participações** embaixo da escala.
 4. Para trocar pessoas, toque no horário, marque ou desmarque os nomes e toque em **Salvar**. Quem votou naquele horário aparece primeiro ("votou neste horário"), depois quem é reserva ("reserva neste horário").
-   - Contorno **vermelho** = regra quebrada (ex.: equipe incompleta, irmã acima do limite). **Amarelo** = atenção (ex.: pessoa que não marcou aquele horário).
+   - Contorno **vermelho** = regra quebrada (ex.: equipe incompleta, irmã acima do limite, irmão e irmã que não são casal). **Amarelo** = atenção (ex.: pessoa que não marcou aquele horário).
 
 **Mais de um organizador ao mesmo tempo:** pode. Cada troca grava só aquele horário, em cima da versão mais nova. Se outra pessoa mudou o **mesmo** horário enquanto você editava, aparece "Fulano mudou este horário enquanto você editava", e a tela já mostra a versão nova: confira e faça de novo se ainda precisar. "Gerar escala" e "Publicar" também conferem se alguém mexeu antes. Embaixo da escala aparece **Última alteração: nome, data e hora**.
 
@@ -64,7 +66,7 @@ Sugestão para o grupo, depois de publicar:
 ## Cadastro de publicadores
 Menu > **Publicadores**. Use a **busca** para achar alguém rápido.
 - **Importar:** para cadastrar vários de uma vez. Envie a planilha (.xlsx ou .csv) ou cole as linhas copiadas, com as colunas Nome, Gênero, Telefone, Onde vota e Precisa de trio (o botão **Baixar o modelo em Excel** traz o formato). Confira a prévia: ela mostra quem será cadastrado, quem tem erro e quem já existe. O par fixo se liga depois, editando cada pessoa.
-- **Gênero**, **par fixo** (o casal participa sempre junto), **precisa de trio** (idade ou necessidade especial).
+- **Gênero** (define as equipes: só irmãos ou só irmãs), **par fixo** (o casal sai junto, conforme a regra da enquete), **precisa de trio** (idade ou necessidade especial).
 - **Onde vota:** todos os pontos ou só alguns.
 - **Telefone com WhatsApp** (opcional): faz o "Lembrar" abrir a conversa direto.
 - Guarde só o necessário. Não registre idade, saúde ou outros detalhes.

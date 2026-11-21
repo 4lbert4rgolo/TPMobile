@@ -110,10 +110,13 @@ test('troca: id fixo por pessoa e horário (pedir duas vezes não duplica)', () 
   assert.equal(trocasAbertas([{ ...t, status: 'resolvida' }]).length, 0);
 });
 
-test('troca: substitutos — reserva primeiro; fora quem está ocupado, inativo ou de outro ponto', () => {
-  const troca = { publicadorId: 'b', ponto: 'Bairro Novo', data: '2026-11-23', turno: T[0] };
-  const subs = substitutos({ enquete, matriz, votos, publicadores: pubs, troca });
-  assert.deepEqual(subs.map((s) => [s.id, s.tipo]), [['h', 'reserva'], ['g', 'disponivel'], ['c', 'disponivel']]);
+test('troca: substitutos — reserva primeiro; fora quem está ocupado, inativo, de outro ponto ou de outro gênero', () => {
+  // Bruno sai e Ana fica: só irmãs podem entrar (Hana, reserva).
+  const sai = (id) => substitutos({ enquete, matriz, votos, publicadores: pubs, troca: { publicadorId: id, ponto: 'Bairro Novo', data: '2026-11-23', turno: T[0] } });
+  assert.deepEqual(sai('b').map((s) => [s.id, s.tipo]), [['h', 'reserva']]);
+  // Ana sai e Bruno fica: só irmãos (Gil e Caio, que marcaram; Caio já tem 1 participação).
+  const subs = sai('a');
+  assert.deepEqual(subs.map((s) => [s.id, s.tipo]), [['g', 'disponivel'], ['c', 'disponivel']]);
   assert.equal(subs.find((s) => s.id === 'c').carga, 1);
 });
 

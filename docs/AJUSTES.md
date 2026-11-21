@@ -16,6 +16,8 @@
 | 2.9 | Perfis Votante / Servo Ministerial / Administrador, escala sem sobrescrita, equilíbrio entre semanas, Minha escala, busca, backup automático no Drive |
 | 3.0 | Configuração de pontos; fim do tipo "enquete de evento" |
 | 3.1 | Auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca, novo visual da impressão, do Excel e da escala |
+| 3.2 | Votação em dois passos: grade única de horários e escolha dos pontos pelo votante |
+| 3.3 | Equipes do mesmo gênero (casal é exceção) e par fixo "de preferência" |
 
 ---
 
@@ -190,3 +192,17 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 - Organizadores continuam vendo os votos separados por ponto. Nenhuma mudança nas regras do Firestore.
 - Código novo: `public/js/votoUnico.js` (lógica pura) e `tests/votoUnico.test.mjs`.
 - Para publicar: aprovar o merge (o deploy roda os testes antes).
+
+
+## v3.3 — Equipes do mesmo gênero e par fixo "de preferência" (21/11/2026)
+
+**Equipes do mesmo gênero.** O gerador só monta duplas e trios só de irmãos ou só de irmãs. A exceção é o casal com par fixo (basta um dos cadastros apontar para o outro): os dois saem juntos e podem completar um trio com mais alguém. Na validação, uma equipe de irmão com irmã que não são casal aparece em **vermelho** ("Equipe com irmão e irmã que não são casal"). Os substitutos sugeridos nos pedidos de troca também respeitam essa regra. Quem está sem gênero no cadastro não bloqueia.
+
+**Par fixo com três opções** (Regras da escala, no editor da enquete; campo `regras.parFixo`):
+- **De preferência com o par** (`preferencia`, padrão): o casal entra como uma unidade sempre que os dois estão livres (marcaram, não estão em outro ponto e não passaram do limite). Se o par não puder, a pessoa entra sozinha e forma equipe com alguém do mesmo gênero. Não mostra aviso de "sem o par".
+- **Só com o par** (`sempre`): como era antes. Sem o par, a pessoa fica de fora do horário, e o ajuste manual sem o par mostra o aviso amarelo.
+- **Não considerar o par fixo nesta enquete** (`ignorar`).
+
+Enquetes antigas guardavam só `parFixoJunto`: `false` continua valendo como "não considerar"; `true` (que era o padrão) passa a valer como "de preferência".
+
+Sem mudança nas regras do Firestore. Testes novos em `tests/escala.test.mjs`.

@@ -2,7 +2,7 @@ import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from
 import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { lembrar } from './votos.js';
-import { gerarDias, nomeDia, dataCurta, parseISO, toISO, SEMANAS_EQUILIBRIO } from './escala.js';
+import { gerarDias, nomeDia, dataCurta, parseISO, toISO, SEMANAS_EQUILIBRIO, modoParFixo } from './escala.js';
 import { pontosAtivos } from './pontos.js';
 
 /* ============================================================ enquetes (organizadores) */
@@ -44,7 +44,7 @@ export function novoEditor() {
     dias: gerarDias(inicio, fim),
     turnosTexto: cfg.turnos.join('\n'),
     pontos: new Set(pontosAtivos(cfg)),
-    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixoJunto: true, equilibrarSemanas: true,
+    bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixo: 'preferencia', equilibrarSemanas: true,
   };
   aplicarBloqueiosPadrao(ed);
   ed.titulo = tituloSugerido(ed);
@@ -66,7 +66,7 @@ export function editorDe(e, copia = false) {
     bloqueios: (e.bloqueios || []).map((b) => ({ ...b, data: somarDias(b.data, desloc) })),
     maxIrmas: e.regras?.maxIrmas ?? 3,
     maxIrmaos: e.regras?.maxIrmaos ?? '',
-    parFixoJunto: e.regras?.parFixoJunto ?? true,
+    parFixo: modoParFixo(e.regras),
     equilibrarSemanas: e.regras?.equilibrarSemanas ?? true,
   };
   return ed;
@@ -198,7 +198,13 @@ export function renderEditor() {
             <select class="border rounded-lg p-1" data-campo="maxIrmas">${[2, 3, 4, 5].map((n) => `<option ${Number(ed.maxIrmas) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
           <label class="flex items-center gap-2">Máximo por irmão
             <select class="border rounded-lg p-1" data-campo="maxIrmaos"><option value="">Sem limite</option>${[3, 4, 5, 6, 8, 10].map((n) => `<option ${Number(ed.maxIrmaos) === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
-          <label class="flex items-center gap-2"><input type="checkbox" ${ed.parFixoJunto ? 'checked' : ''} data-campo="parFixoJunto"> Quem tem par fixo só participa junto com o par</label>
+          <label class="block"><span class="font-medium">Par fixo</span>
+            <select class="w-full border rounded-lg p-2 mt-1" data-campo="parFixo">
+              <option value="preferencia" ${ed.parFixo === 'preferencia' ? 'selected' : ''}>De preferência com o par (se o par não puder, sai com alguém do mesmo gênero)</option>
+              <option value="sempre" ${ed.parFixo === 'sempre' ? 'selected' : ''}>Só com o par (se o par não puder, fica de fora)</option>
+              <option value="ignorar" ${ed.parFixo === 'ignorar' ? 'selected' : ''}>Não considerar o par fixo nesta enquete</option>
+            </select></label>
+          <p class="text-xs text-slate-500">As equipes são sempre só de irmãos ou só de irmãs; o casal com par fixo é a exceção.</p>
           <label class="flex items-center gap-2"><input type="checkbox" ${ed.equilibrarSemanas ? 'checked' : ''} data-campo="equilibrarSemanas"> Dar prioridade a quem participou menos nas últimas ${SEMANAS_EQUILIBRIO} escalas</label>
         </div>
         <p class="text-xs text-slate-500 mt-2">Quem "precisa de trio" sempre entra em equipe de 3 pessoas. As demais equipes são duplas.</p>
@@ -238,7 +244,7 @@ export function campoMudou(el, digitando = false) {
     case 'ponto': if (el.checked) ed.pontos.add(el.value); else ed.pontos.delete(el.value); break;
     case 'maxIrmas': ed.maxIrmas = el.value; break;
     case 'maxIrmaos': ed.maxIrmaos = el.value; break;
-    case 'parFixoJunto': ed.parFixoJunto = el.checked; break;
+    case 'parFixo': ed.parFixo = el.value; break;
     case 'equilibrarSemanas': ed.equilibrarSemanas = el.checked; break;
     default: break;
   }
@@ -267,7 +273,7 @@ export async function salvarEditor(alvo) {
     turnos,
     pontos: [...ed.pontos],
     bloqueios: ed.bloqueios.filter((b) => (b.turno === '*' || turnos.includes(b.turno)) && (!b.ponto || ed.pontos.has(b.ponto))),
-    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixoJunto: ed.parFixoJunto, equilibrarSemanas: ed.equilibrarSemanas },
+    regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixo: ed.parFixo, equilibrarSemanas: ed.equilibrarSemanas },
   };
 
   const ok = await tentar(async () => {

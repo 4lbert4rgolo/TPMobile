@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { gerarDias, gerarEscala, validarEscala, contarParticipacoes, chave, celulaBloqueada, pontosDoPublicador } from '../public/js/escala.js';
+import { gerarDias, gerarEscala, validarEscala, contarParticipacoes, chave, celulaBloqueada, pontosDoPublicador, modoParFixo, generosCompativeis, saoCasal } from '../public/js/escala.js';
 
 const TURNOS = ['06:00 às 08:00', '08:00 às 10:00', '10:00 às 12:00', '14:00 às 16:00', '16:00 às 18:00', '18:00 às 20:00'];
 const PONTOS = ['Bairro Novo', 'Atacadão Novo Mix', 'Morada dos Canários e Sabiás'];
@@ -58,8 +58,8 @@ test('gerarDias cria os dias do período (máximo 14)', () => {
   assert.equal(gerarDias('2026-10-01', '2026-12-31').length, 14);
 });
 
-test('a escala respeita todas as regras', () => {
-  const e = enquete();
+test('a escala respeita todas as regras (par fixo: só com o par)', () => {
+  const e = enquete({ regras: { maxIrmas: 3, parFixo: 'sempre' } });
   const votos = votosDeExemplo(e);
   const { matriz, avisos } = gerarEscala({ enquete: e, publicadores, votos });
   const porId = new Map(publicadores.map((p) => [p.id, p]));
@@ -83,6 +83,14 @@ test('a escala respeita todas as regras', () => {
       const par = porId.get(p.id).conjuge;
       if (par) assert.ok(c.pessoas.some((x) => x.id === par), `${p.nome} sem o par`);
     }
+  }
+
+  // 3b. equipe só de irmãos ou só de irmãs, a não ser com um casal
+  for (const c of todas) {
+    const membros = c.pessoas.map((p) => porId.get(p.id));
+    const generos = new Set(membros.map((m) => m.genero));
+    const temCasal = membros.some((m) => m.conjuge && membros.some((x) => x.id === m.conjuge));
+    assert.ok(generos.size === 1 || temCasal, `equipe mista sem casal: ${c.pessoas.map((p) => p.nome)}`);
   }
 
   // 4. ninguém em dois pontos no mesmo horário
@@ -202,4 +210,60 @@ test('a validação avisa quando um ajuste manual põe alguém fora do ponto del
   const avisos = validarEscala({ enquete: e, publicadores: restritos, votos: [], matriz });
   assert.ok(avisos.some((a) => /Regina está configurado para votar só em Atacadão Novo Mix/.test(a.msg)));
   assert.ok(!avisos.some((a) => /Regina não marcou/.test(a.msg)), 'não repete o aviso genérico para quem está fora do ponto');
+});
+
+/* ------------------------------------------------------------ v3.2: par fixo "de preferência" e gênero */
+
+
+test('par fixo: modo padrão é "de preferência"; enquetes antigas continuam funcionando', () => {
+  assert.equal(modoParFixo({}), 'preferencia');
+  assert.equal(modoParFixo({ parFixoJunto: true }), 'preferencia'); // era o padrão antigo
+  assert.equal(modoParFixo({ parFixoJunto: false }), 'ignorar');
+  assert.equal(modoParFixo({ parFixo: 'sempre' }), 'sempre');
+});
+
+test('gênero: irmão com irmã só se forem casal (e o casal pode completar trio)', () => {
+  const [anderson, bianca, regina, pedro] = ['a', 'b', 'c', 'm'].map((id) => publicadores.find((p) => p.id === id));
+  assert.ok(saoCasal(anderson, bianca));
+  assert.ok(generosCompativeis([regina, bianca]));
+  assert.ok(generosCompativeis([anderson, pedro]));
+  assert.ok(!generosCompativeis([pedro, regina]));
+  assert.ok(generosCompativeis([anderson, bianca]));
+  assert.ok(generosCompativeis([anderson, bianca, regina]));
+  assert.ok(!generosCompativeis([anderson, regina]));
+});
+
+test('par fixo "de preferência": sem o par, sai com alguém do mesmo gênero; com o par, sai junto', () => {
+  const T = ['06:00 às 08:00'];
+  const pubs = [
+    { id: 'a', nome: 'Anderson', genero: 'M', conjuge: 'b' },
+    { id: 'b', nome: 'Bianca', genero: 'F', conjuge: 'a' },
+    { id: 'm', nome: 'Pedro', genero: 'M' },
+    { id: 'c', nome: 'Regina', genero: 'F' },
+  ];
+  const base = { pontos: ['P'], turnos: T, dias: gerarDias('2026-10-26', '2026-10-26'), bloqueios: [] };
+  const k = chave('2026-10-26', T[0]);
+  const ids = (m) => m.P['2026-10-26'][T[0]].pessoas?.map((p) => p.id).sort();
+
+  // Bianca não marcou: Anderson sai com Pedro (mesmo gênero), nunca com Regina.
+  const semPar = [{ publicadorId: 'a', disponibilidade: { P: [k] } }, { publicadorId: 'm', disponibilidade: { P: [k] } }, { publicadorId: 'c', disponibilidade: { P: [k] } }];
+  assert.deepEqual(ids(gerarEscala({ enquete: { ...base, regras: {} }, publicadores: pubs, votos: semPar }).matriz), ['a', 'm']);
+  // No modo "só com o par", Anderson fica de fora: sobram Pedro e Regina, que não formam equipe.
+  assert.equal(gerarEscala({ enquete: { ...base, regras: { parFixo: 'sempre' } }, publicadores: pubs, votos: semPar }).matriz.P['2026-10-26'][T[0]].tipo, 'vazio');
+
+  // Os dois marcaram: o casal sai junto.
+  const comPar = [...semPar, { publicadorId: 'b', disponibilidade: { P: [k] } }];
+  assert.deepEqual(ids(gerarEscala({ enquete: { ...base, regras: {} }, publicadores: pubs, votos: comPar }).matriz), ['a', 'b']);
+});
+
+test('validação: equipe de irmão com irmã que não são casal é erro; sem o par só avisa no modo "sempre"', () => {
+  const T = ['06:00 às 08:00'];
+  const e = { pontos: ['P'], turnos: T, dias: gerarDias('2026-10-26', '2026-10-26'), bloqueios: [] };
+  const eq = (...ps) => ({ tipo: 'equipe', pessoas: ps.map((id) => ({ id, nome: publicadores.find((p) => p.id === id).nome })) });
+  const mista = { P: { '2026-10-26': { [T[0]]: eq('m', 'c') } } };
+  assert.ok(validarEscala({ enquete: { ...e, regras: {} }, publicadores, votos: [], matriz: mista }).some((a) => a.nivel === 'erro' && /não são casal/.test(a.msg)));
+  const andersonPedro = { P: { '2026-10-26': { [T[0]]: eq('a', 'm') } } };
+  const msgs = (regras) => validarEscala({ enquete: { ...e, regras }, publicadores, votos: [], matriz: andersonPedro }).map((a) => a.msg).join(' ');
+  assert.ok(!/sem o par fixo/.test(msgs({})));
+  assert.ok(/sem o par fixo/.test(msgs({ parFixo: 'sempre' })));
 });

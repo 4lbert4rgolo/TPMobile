@@ -55,7 +55,36 @@ export function pontosDoPublicador(pub, pontosDaEnquete) {
   return escolhidos.length ? escolhidos : pontosDaEnquete;
 }
 
-export const REGRAS_PADRAO = { maxIrmas: 3, maxIrmaos: null, parFixoJunto: true, equilibrarSemanas: true };
+export const REGRAS_PADRAO = { maxIrmas: 3, maxIrmaos: null, equilibrarSemanas: true };
+
+/**
+ * Como tratar quem tem par fixo (regra "parFixo" da enquete):
+ * - 'preferencia' (padrão): escala o casal junto sempre que os dois puderem; se o par não puder,
+ *   a pessoa pode sair com alguém do mesmo gênero.
+ * - 'sempre': só sai junto com o par (se o par não puder, a pessoa fica de fora do horário).
+ * - 'ignorar': nesta enquete o par fixo não conta.
+ * Enquetes antigas guardavam só "parFixoJunto": false vira 'ignorar'; true (era o padrão) vira 'preferencia'.
+ */
+export function modoParFixo(regras) {
+  if (['preferencia', 'sempre', 'ignorar'].includes(regras?.parFixo)) return regras.parFixo;
+  return regras?.parFixoJunto === false ? 'ignorar' : 'preferencia';
+}
+
+/** Os dois são o par fixo um do outro (basta um dos cadastros apontar para o outro). */
+export const saoCasal = (a, b) => Boolean(a && b && a.id !== b.id && (a.conjuge === b.id || b.conjuge === a.id));
+
+/**
+ * Equipe só com irmãos ou só com irmãs. A exceção é um casal (par fixo): os dois podem estar
+ * juntos e completar um trio com mais alguém. Quem está sem gênero no cadastro não bloqueia.
+ */
+export function generosCompativeis(membros) {
+  const generos = new Set(membros.map((m) => m?.genero).filter(Boolean));
+  if (generos.size <= 1) return true;
+  for (let i = 0; i < membros.length; i++) {
+    for (let j = i + 1; j < membros.length; j++) if (saoCasal(membros[i], membros[j])) return true;
+  }
+  return false;
+}
 
 /** Quantas escalas anteriores contam para o equilíbrio entre semanas. */
 export const SEMANAS_EQUILIBRIO = 4;
@@ -94,7 +123,8 @@ function podeEscalar(pessoa, regras, carga) {
 /**
  * Monta a melhor equipe para um horário.
  * - Equipe normal: dupla. Se alguém "precisa de trio", a equipe tem 3 pessoas.
- * - Quem tem par fixo só participa junto com o par.
+ * - Par fixo: junto sempre que os dois puderem ("de preferência") ou só junto ("sempre").
+ * - Equipe só com irmãos ou só com irmãs (o casal é a exceção).
  * - Irmãs respeitam o limite de participações.
  * - Prefere quem participou menos nesta escala e, se ligado, nas escalas anteriores (equilíbrio).
  */
@@ -112,20 +142,22 @@ function escolherEquipe(slot, ctx) {
 
   const usados = new Set();
   const unidades = [];
+  const modo = modoParFixo(regras);
 
+  // "Unidades": o casal com par fixo entra como uma unidade só; os outros, um por um.
   for (const pessoa of ordenados) {
     if (usados.has(pessoa.id)) continue;
-    const par = regras.parFixoJunto && pessoa.conjuge ? porId.get(pessoa.conjuge) : null;
+    usados.add(pessoa.id);
+    const par = modo !== 'ignorar' && pessoa.conjuge ? porId.get(pessoa.conjuge) : null;
 
-    if (par) {
-      usados.add(pessoa.id);
-      if (livresIds.has(par.id)) {
-        usados.add(par.id);
-        unidades.push([pessoa, par]);
-      }
-      // Sem o par disponível, a pessoa não participa neste horário.
+    if (par && livresIds.has(par.id) && !usados.has(par.id)) {
+      usados.add(par.id);
+      unidades.push([pessoa, par]);
+    } else if (par && modo === 'sempre') {
+      // "Só com o par": sem o par disponível, a pessoa não participa neste horário.
     } else {
-      usados.add(pessoa.id);
+      // "De preferência": o par não pode agora, então a pessoa entra sozinha
+      // (e só vai formar equipe com alguém do mesmo gênero, pela regra abaixo).
       unidades.push([pessoa]);
     }
   }
@@ -137,6 +169,7 @@ function escolherEquipe(slot, ctx) {
     const requerTrio = membros.some((m) => m.requerTrio);
     const alvo = requerTrio ? 3 : 2;
     if (membros.length !== alvo) return;
+    if (!generosCompativeis(membros)) return; // irmão com irmã, só se forem casal
 
     const media = membros.reduce((soma, m) => soma + pontos(m.id), 0) / membros.length;
     const custo = media - (requerTrio ? 0.4 : 0); // dá chance a quem precisa de trio
@@ -284,8 +317,13 @@ export function validarEscala({ enquete, publicadores, votos, matriz }) {
           avisos.push({ nivel: 'erro', msg: `${quem} só participa em trio, mas a equipe tem ${celula.pessoas.length} pessoas.`, ...onde });
         }
 
+        if (!generosCompativeis(membros)) {
+          avisos.push({ nivel: 'erro', msg: `Equipe com irmão e irmã que não são casal (${nomes.join(', ')}).`, ...onde });
+        }
+
         for (const m of membros) {
-          if (regras.parFixoJunto && m.conjuge && !celula.pessoas.some((p) => p.id === m.conjuge)) {
+          // Sem o par fixo só é aviso quando a enquete pede "só com o par".
+          if (modoParFixo(regras) === 'sempre' && m.conjuge && !celula.pessoas.some((p) => p.id === m.conjuge)) {
             const par = porId.get(m.conjuge);
             avisos.push({ nivel: 'aviso', msg: `${m.nome} está sem o par fixo${par ? ` (${par.nome})` : ''}.`, ...onde });
           }
