@@ -171,7 +171,9 @@ export async function renovar(backend, chave, uid) {
 export async function avisar(backend, aviso) {
   try {
     await backend.enfileirarNotificacao(aviso);
+    return true;
   } catch (e) {
     console.warn('Aviso por notificação não registrado:', e);
+    return false;
   }
 }

@@ -89,7 +89,9 @@ export async function avisarQuemFalta() {
   const faltam = estado.pubs.filter((p) => p.ativo !== false && !votaram.has(p.id)).map((p) => p.id);
   if (!faltam.length) return toast('Todos já votaram.');
   if (!confirm(`Mandar uma notificação para os ${faltam.length} que ainda não votaram?`)) return;
-  await avisar(estado.backend, avisoLembrete(e, faltam));
+  if (!(await avisar(estado.backend, avisoLembrete(e, faltam)))) {
+    return toast('Não foi possível registrar o aviso. As notificações já foram configuradas? (veja docs/NOTIFICACOES.md)', 'erro');
+  }
   registrar({ area: 'votos', acao: 'Notificou quem falta votar', alvo: e.titulo, enqueteId: e.id, detalhe: `${faltam.length} pessoa(s)` });
   toast('Aviso enviado. Chega em alguns minutos para quem ativou as notificações; para os outros, use o WhatsApp.');
 }
