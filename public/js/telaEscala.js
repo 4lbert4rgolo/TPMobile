@@ -1,3 +1,4 @@
+import { avisar, avisoEscalaPublicada, avisoSubstituto } from './notificacoes.js';
 import { recarregarEnquetes } from './enquetes.js';
 import { registrar } from './telaAuditoria.js';
 import { detalheTrocaCelula, lugarDaCelula } from './auditoria.js';
@@ -178,9 +179,10 @@ export async function resolverTroca(trocaId, subId) {
   if (!ok) return;
   await tentar(() => estado.backend.salvarTroca(e.id, { ...t, status: 'resolvida', substitutoId: sub.id, substitutoNome: sub.nome, resolvidoPor: estado.perfil.nome, resolvidoEm: new Date().toISOString() }));
   registrar({ area: 'trocas', acao: 'Resolveu um pedido de troca', alvo: e.titulo, enqueteId: e.id, detalhe: `${detalheTrocaCelula(t.ponto, t.data, t.turno, antes, depois)} (pedido de ${t.nome})` });
+  avisar(estado.backend, avisoSubstituto(t, sub)); // notificação no celular do substituto
   estado.trocas = await estado.backend.listarTrocas(e.id);
   desenharEscala();
-  if (confirm(`Avisar ${sub.nome} pelo WhatsApp agora?`)) {
+  if (confirm(`Avisar ${sub.nome} também pelo WhatsApp agora?`)) {
     window.open(urlWhats(sub, mensagemSubstituto(sub, t, lugarDaCelula(t.ponto, t.data, t.turno))), '_blank', 'noopener');
   }
 }
@@ -371,6 +373,7 @@ export async function publicarEscala(publicar) {
   });
   if (!ok) return;
   registrar({ area: 'escala', acao: publicar ? 'Publicou a escala' : 'Retirou a escala da publicação', alvo: e.titulo, enqueteId: e.id });
+  if (publicar) avisar(estado.backend, avisoEscalaPublicada(e, estado.escala.matriz));
   const okEnquete = await tentar(
     () => estado.backend.salvarEnquete({ ...e, status: publicar ? 'publicada' : 'fechada' }),
     publicar ? 'Escala publicada para todos.' : 'Escala retirada da publicação.'

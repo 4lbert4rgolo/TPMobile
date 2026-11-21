@@ -1,6 +1,7 @@
 import { botaoInstalar, pedirArmazenamentoPersistente } from './instalar.js';
 import { $, SEM_ACESSO, ehOrganizador, erroAmigavel, estado, lerPref, rotuloFonte, toast, tokenDoLink } from './nucleo.js';
 import { renderApp } from './shell.js';
+import { renovarAvisos } from './telaNotificacoes.js';
 import { firebaseConfig } from './firebase-config.js';
 import { criarBackendFirebase, criarBackendDemo, configurado, CONFIG_PADRAO, normalizarPapel } from './data.js';
 
@@ -69,6 +70,7 @@ export async function aoAutenticar(u) {
     if (!SEM_ACESSO.includes(estado.perfil.papel)) await carregarBase();
     renderApp();
     pedirArmazenamentoPersistente();
+    if (!SEM_ACESSO.includes(estado.perfil.papel)) renovarAvisos();
   } catch (e) {
     console.error(e);
     toast(erroAmigavel(e), 'erro');

@@ -1,5 +1,7 @@
+import { avisar, avisoLembrete } from './notificacoes.js';
 import { urlDoLink } from './links.js';
-import { $, abrirModal, ehAdmin, enqueteAtual, esc, estado, pubPorId } from './nucleo.js';
+import { $, abrirModal, ehAdmin, enqueteAtual, esc, estado, pubPorId, toast } from './nucleo.js';
+import { registrar } from './telaAuditoria.js';
 import { carregarVoto, escolherEnquetePadrao, htmlVoto, seletorEnquete } from './votar.js';
 import { pontosDoPublicador } from './escala.js';
 
@@ -32,7 +34,9 @@ export async function renderVotos() {
     <div class="mb-3">
       <div class="flex flex-wrap items-center justify-between gap-2">
         <p class="text-slate-700"><strong>${votaram} de ${ativos.length}</strong> publicadores já votaram${faltam ? ` · faltam ${faltam}` : ' · todos votaram 🎉'}.</p>
-        ${aberta && faltam ? '<button class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold" data-acao="lembrar-grupo">📣 Lembrar o grupo</button>' : ''}
+        ${aberta && faltam ? `<span class="flex flex-wrap gap-2">
+          <button class="bg-blue-100 text-blue-800 rounded-lg px-4 py-2 text-sm font-semibold" data-acao="avisar-quem-falta">🔔 Notificar quem falta</button>
+          <button class="bg-blue-600 text-white rounded-lg px-4 py-2 text-sm font-semibold" data-acao="lembrar-grupo">📣 Lembrar o grupo</button></span>` : ''}
       </div>
       <div class="h-2 bg-slate-200 rounded-full mt-2 overflow-hidden" role="progressbar" aria-valuenow="${pct}" aria-valuemin="0" aria-valuemax="100"><div class="h-2 bg-green-500 rounded-full" style="width:${pct}%"></div></div>
     </div>
@@ -75,6 +79,19 @@ export function lembrar(pubId) {
   const url = cv ? urlDoLink(cv.id) : linkGeral();
   const texto = `Olá, ${pub.nome}! 🛒 A enquete do carrinho "${e.titulo}" está aberta e ainda falta o seu voto. É rapidinho, é só tocar no link:\n${url}\nVocê pode mudar o voto depois, até a enquete encerrar.`;
   window.open(urlWhats(pub, texto), '_blank', 'noopener');
+}
+
+/** Notificação no celular para quem ainda não votou (só chega para quem ativou os avisos). */
+export async function avisarQuemFalta() {
+  const e = enqueteAtual();
+  if (!e) return;
+  const votaram = new Set(estado.votos.map((v) => v.publicadorId));
+  const faltam = estado.pubs.filter((p) => p.ativo !== false && !votaram.has(p.id)).map((p) => p.id);
+  if (!faltam.length) return toast('Todos já votaram.');
+  if (!confirm(`Mandar uma notificação para os ${faltam.length} que ainda não votaram?`)) return;
+  await avisar(estado.backend, avisoLembrete(e, faltam));
+  registrar({ area: 'votos', acao: 'Notificou quem falta votar', alvo: e.titulo, enqueteId: e.id, detalhe: `${faltam.length} pessoa(s)` });
+  toast('Aviso enviado. Chega em alguns minutos para quem ativou as notificações; para os outros, use o WhatsApp.');
 }
 
 export function abrirLembreteGrupo() {

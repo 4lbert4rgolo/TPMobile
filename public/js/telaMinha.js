@@ -1,3 +1,4 @@
+import { avisar, avisoPedidoTroca } from './notificacoes.js';
 import { $, esc, estado, tentar, toast } from './nucleo.js';
 import { novaTroca, trocaDoHorario } from './trocas.js';
 import { lugarDaCelula } from './auditoria.js';
@@ -107,6 +108,7 @@ export async function pedirTroca(el) {
   const ok = await tentar(() => estado.backend.salvarTroca(enqueteId, troca), 'Pedido enviado. Os organizadores vão procurar alguém para o seu lugar.');
   if (!ok) return;
   registrar({ area: 'trocas', acao: 'Pediu troca', alvo: enquete.titulo, enqueteId, detalhe: `${lugarDaCelula(ponto, data, turno)}${troca.motivo ? ` · ${troca.motivo}` : ''}` });
+  avisar(estado.backend, avisoPedidoTroca(troca));
   renderMinha();
 }
 

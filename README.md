@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.4 (cada pessoa no máximo uma vez por dia e escala enviada no grupo como imagem ou PDF) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.5 (notificações no celular e app Android) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
@@ -26,7 +26,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - Vê a escala publicada, com os próprios horários destacados.
 - **Minha escala:** lista os próximos horários da pessoa, com os companheiros de equipe, o link do **Google Agenda** em cada horário e o botão **Levar tudo para o calendário** (arquivo `.ics`, com lembrete 1 hora antes).
 - **Preciso trocar:** na Minha escala, pede a troca de um horário (com motivo opcional) e acompanha o pedido.
-- **Letras maiores** e **app instalável** no celular.
+- **Avisos no celular** (barra de notificação): nova enquete, lembrete de votar, os próprios horários quando a escala é publicada e trocas. Ativa em Menu > 🔔 Avisos no celular.
+- **Letras maiores**, **app instalável** no celular e **app Android** (.apk enviado pelo WhatsApp).
 
 **Para os organizadores**
 - **Pontos** (Menu > Pontos): criar, renomear, reordenar, remover e marcar quais estão **em uso**. Renomear atualiza o "Onde vota" dos publicadores, os horários de costume e os rascunhos.
@@ -69,6 +70,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 | [docs/GUIA_ORGANIZADORES.md](docs/GUIA_ORGANIZADORES.md) | Passo a passo da semana: criar a enquete, acompanhar os votos, gerar, ajustar e publicar a escala |
 | [docs/COMO_ENTRAR.md](docs/COMO_ENTRAR.md) | Como cada pessoa entra (link pessoal ou e-mail e senha) e como o administrador cuida dos acessos |
 | [docs/APP_INSTALAVEL.md](docs/APP_INSTALAVEL.md) | Instalar no celular, login no iPhone, atualizações |
+| [docs/NOTIFICACOES.md](docs/NOTIFICACOES.md) | Avisos no celular: o que chega, como ativar e a configuração (chave e script do Google) |
+| [docs/APP_ANDROID.md](docs/APP_ANDROID.md) | Gerar o app Android (.apk) no PWABuilder e mandar pelo WhatsApp |
 | [docs/PUBLICAR.md](docs/PUBLICAR.md) | Como publicar uma versão nova (GitHub) e as regras do Firestore |
 | [docs/CONFIGURAR_FIREBASE.md](docs/CONFIGURAR_FIREBASE.md) | Configuração inicial do Firebase (já feita; serve para refazer ou consultar) |
 | [docs/AJUSTES.md](docs/AJUSTES.md) | Histórico de versões: o que mudou em cada uma |
@@ -97,6 +100,8 @@ public/                    site (pasta publicada no Firebase Hosting)
     pontos.js              regras da configuração de pontos (sem tela, testável)
     relatorios.js          texto das células e desenho do Excel com cores (testável)
     compartilhar.js        imagem e PDF da escala para enviar no grupo (testável)
+    notificacoes.js        avisos no celular: textos, ativar, desativar (testável)
+    telaNotificacoes.js    faixa e tela "Avisos no celular"
     auditoria.js           eventos de auditoria: montar, descrever, filtrar (testável)
     telaAuditoria.js       registrar eventos, tela Auditoria e histórico da escala
     trocas.js              pedidos de troca e substitutos (testável)

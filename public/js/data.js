@@ -229,6 +229,26 @@ export async function criarBackendFirebase(cfg) {
     },
     salvarTroca: (enqueteId, troca) => F.setDoc(ref('enquetes', enqueteId, 'trocas', troca.id), semId(troca)),
 
+    /* ---------- notificações no celular (ver notificacoes.js) */
+    // O "token" é o endereço deste aparelho no Firebase Cloud Messaging. A biblioteca de mensagens
+    // só é baixada aqui, quando a pessoa ativa os avisos (quem não ativa não carrega nada a mais).
+    async obterTokenPush(chave, registro) {
+      const M = await import(`${base}firebase-messaging.js`);
+      if (!(await M.isSupported())) return null;
+      return M.getToken(M.getMessaging(app), { vapidKey: chave, serviceWorkerRegistration: registro });
+    },
+    async apagarTokenPush() {
+      const M = await import(`${base}firebase-messaging.js`);
+      return M.deleteToken(M.getMessaging(app));
+    },
+    salvarDispositivo: (token, uid) => F.setDoc(ref('dispositivos', token), {
+      token, uid, plataforma: (navigator.userAgentData?.platform || navigator.platform || '').slice(0, 40), atualizadoEm: F.serverTimestamp(),
+    }),
+    removerDispositivo: (token) => F.deleteDoc(ref('dispositivos', token)),
+    enfileirarNotificacao: (aviso) => F.addDoc(col('notificacoes'), {
+      ...aviso, uid: auth.currentUser?.uid || null, status: 'pendente', criadoEm: F.serverTimestamp(),
+    }),
+
     /**
      * Grava a escala sem apagar a mudança de outro organizador.
      * Usa uma "transação": o Firestore lê a versão que está no banco AGORA, passa para `alterar`
@@ -515,6 +535,14 @@ export function criarBackendDemo() {
       const todas = ler('trocas', {});
       todas[enqueteId] = { ...(todas[enqueteId] || {}), [troca.id]: troca };
       gravar('trocas', todas);
+    },
+    // Notificações na demonstração: nada é enviado; o pedido de aviso fica guardado para conferir.
+    async obterTokenPush() { return ler('tokenPush', null) || (gravar('tokenPush', `demo-${Date.now()}`), ler('tokenPush', null)); },
+    async apagarTokenPush() { gravar('tokenPush', null); },
+    async salvarDispositivo(token, uid) { gravar('dispositivos', { ...ler('dispositivos', {}), [token]: { token, uid, atualizadoEm: new Date().toISOString() } }); },
+    async removerDispositivo(token) { const d = ler('dispositivos', {}); delete d[token]; gravar('dispositivos', d); },
+    async enfileirarNotificacao(aviso) {
+      gravar('notificacoes', [{ ...aviso, id: `n${Date.now()}`, uid: sessao()?.uid, status: 'pendente', criadoEm: new Date().toISOString() }, ...ler('notificacoes', [])]);
     },
     async getEscala(enqueteId) { return ler('escalas', {})[enqueteId] || null; },
     async salvarEscala(enqueteId, dados) {

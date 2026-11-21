@@ -1,3 +1,4 @@
+import { avisar, avisoEnqueteAberta } from './notificacoes.js';
 import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from './nucleo.js';
 import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
@@ -283,6 +284,8 @@ export async function salvarEditor(alvo) {
     const id = await estado.backend.salvarEnquete(enquete);
     const acao = !ed.id ? 'Criou a enquete' : alvo === 'aberta' && ed.status !== 'aberta' ? 'Editou e abriu a votação' : 'Editou a enquete';
     registrar({ area: 'enquetes', acao, alvo: enquete.titulo, enqueteId: id || ed.id, detalhe: `${dataCurta(enquete.inicio)} a ${dataCurta(enquete.fim)} · ${enquete.pontos.length} ponto(s)` });
+    // Abriu a votação agora: avisa todos no celular.
+    if (alvo === 'aberta' && ed.status !== 'aberta') avisar(estado.backend, avisoEnqueteAberta(enquete, Boolean(ed.id) && ed.status !== 'rascunho'));
   }, alvo === 'aberta' ? 'Enquete salva e votação aberta.' : 'Enquete salva.');
 
   if (ok) {
@@ -299,6 +302,7 @@ export async function mudarStatus(id, status, mensagem) {
   if (ok) {
     const acoes = { aberta: 'Abriu a votação', fechada: 'Encerrou a votação', publicada: 'Publicou a escala', rascunho: 'Voltou para rascunho' };
     registrar({ area: 'enquetes', acao: acoes[status] || `Mudou a situação para ${status}`, alvo: e.titulo, enqueteId: id });
+    if (status === 'aberta' && e.status !== 'aberta') avisar(estado.backend, avisoEnqueteAberta(e, e.status !== 'rascunho'));
     await recarregarEnquetes(); renderAba();
   }
 }

@@ -11,6 +11,9 @@ Script do Google Apps Script que copia todo o Firestore do TPMobile para a pasta
 
 Para desligar: execute `desativarBackup`. Se uma execução falhar, o Google manda um e-mail avisando.
 
+## Notificações no celular (arquivo Notificacoes.gs)
+O mesmo projeto também envia os avisos do app para o celular. Passo a passo em [docs/NOTIFICACOES.md](../../docs/NOTIFICACOES.md): atualizar o `appsscript.json` (permissão `firebase.messaging`), adicionar o arquivo `Notificacoes.gs`, executar `ativarNotificacoes` (uma vez) e `testarNotificacao`.
+
 ## O que vai no arquivo
 Um `.json` por dia (`tpmobile-backup-AAAA-MM-DD_HH-mm.json`), com todas as coleções do banco do jeito que estão no Firestore: `publicadores`, `enquetes` (com as subcoleções `votos` e `escala` dentro de cada enquete, em `_subcolecoes`), `disponibilidadePadrao`, `config` e `usuarios`. O arquivo tem nomes e telefones: a pasta do Drive deve ficar só com você.
 

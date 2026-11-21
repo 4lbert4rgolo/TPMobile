@@ -1,4 +1,5 @@
 import { renderEnquetes } from './enquetes.js';
+import { faixaNotificacoes } from './telaNotificacoes.js';
 import { botaoInstalar } from './instalar.js';
 import { renderLinks } from './links.js';
 import { $, SEM_ACESSO, ehOrganizador, erroAmigavel, esc, estado, rotuloFonte } from './nucleo.js';
@@ -44,6 +45,7 @@ export function htmlMenu(abas) {
         ${itens ? `<p class="menu-titulo">Seções</p>${itens}` : ''}
         <p class="menu-titulo">Preferências</p>
         ${botaoInstalar('menu-item')}
+        <button class="menu-item" data-acao="abrir-avisos">🔔 Avisos no celular</button>
         <button class="menu-item" data-acao="fonte">${rotuloFonte()}</button>
         <p class="menu-titulo">Sobre</p>
         <button class="menu-item" data-acao="privacidade">Privacidade e dados</button>
@@ -54,6 +56,12 @@ export function htmlMenu(abas) {
 
 export function renderApp() {
   const p = estado.perfil;
+  // Ao tocar numa notificação, o app abre com "?aba=minha" (ou outra aba) no endereço.
+  const pedida = new URLSearchParams(location.search).get('aba');
+  if (pedida) {
+    if (abasDoPerfil().some(([id]) => id === pedida)) estado.aba = pedida;
+    history.replaceState(null, '', location.pathname + location.hash);
+  }
   if (!estado.aba) estado.aba = ehOrganizador() ? 'enquetes' : 'votar';
   estado.menuAberto = false;
   const abas = abasDoPerfil();
@@ -81,7 +89,7 @@ export function renderApp() {
     </div>
     <div id="menu"></div>
     <main class="max-w-6xl mx-auto p-4 sm:p-6">
-      ${!p.privacidadeAceitaEm ? telaAceitePrivacidade() : SEM_ACESSO.includes(p.papel) ? telaPendente() : '<div id="conteudo"></div>'}
+      ${!p.privacidadeAceitaEm ? telaAceitePrivacidade() : SEM_ACESSO.includes(p.papel) ? telaPendente() : `${faixaNotificacoes()}<div id="conteudo"></div>`}
     </main>
     <footer class="text-center text-xs text-slate-400 py-6">© 2026 TPMobile</footer>`;
 

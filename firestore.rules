@@ -118,6 +118,41 @@ service cloud.firestore {
       allow delete: if administrador();
     }
 
+    // Notificações no celular: cada aparelho que ativou os avisos guarda aqui o seu endereço (token).
+    // Cada um grava só em nome próprio. Ninguém lista os aparelhos pelo app: quem lê é o script
+    // do Google (scripts/apps-script), que entra com a conta do dono do projeto.
+    match /dispositivos/{token} {
+      allow read: if logado() && resource.data.uid == request.auth.uid;
+      allow create, update: if aprovado()
+        && request.resource.data.keys().hasOnly(['token', 'uid', 'plataforma', 'atualizadoEm'])
+        && request.resource.data.token == token
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.atualizadoEm == request.time
+        && request.resource.data.plataforma is string && request.resource.data.plataforma.size() <= 40;
+      allow delete: if logado() && (resource.data.uid == request.auth.uid || administrador());
+    }
+
+    // Pedidos de aviso ("fila"): o app grava, o script do Google envia e marca como enviado.
+    // Organizadores avisam qualquer coisa; votante só avisa os organizadores sobre um pedido de troca.
+    match /notificacoes/{id} {
+      allow read: if organizador();
+      allow create: if aprovado()
+        && request.resource.data.keys().hasOnly(['tipo', 'titulo', 'corpo', 'url', 'para', 'porPublicador', 'uid', 'status', 'criadoEm'])
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.status == 'pendente'
+        && request.resource.data.criadoEm == request.time
+        && request.resource.data.titulo is string && request.resource.data.titulo.size() <= 80
+        && request.resource.data.corpo is string && request.resource.data.corpo.size() <= 400
+        && request.resource.data.url is string && request.resource.data.url.size() <= 40
+        && request.resource.data.para is map
+        && (organizador()
+          || (request.resource.data.tipo == 'troca-pedido'
+            && request.resource.data.para == { 'organizadores': true }
+            && !('porPublicador' in request.resource.data)));
+      allow update: if false;
+      allow delete: if administrador();
+    }
+
     match /enquetes/{enqueteId} {
       // Rascunhos só os organizadores veem.
       allow read: if organizador()

@@ -16,3 +16,8 @@ export const firebaseConfig = {
   projectId: 'tpmobile-81727',
   appId: '1:894151015200:web:ed94f3c79c37b7a0a7f545',
 };
+
+// Chave de notificações (Web Push): Firebase > Configurações do projeto > Cloud Messaging >
+// "Certificados push da Web" > Gerar par de chaves. Copie a chave e cole aqui.
+// Enquanto estiver vazia, o botão de avisos explica que falta configurar. Veja docs/NOTIFICACOES.md.
+export const chaveNotificacoes = '';

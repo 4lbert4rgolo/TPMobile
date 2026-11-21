@@ -19,6 +19,7 @@
 | 3.2 | Votação em dois passos: grade única de horários e escolha dos pontos pelo votante |
 | 3.3 | Equipes do mesmo gênero (casal é exceção) e par fixo "de preferência" |
 | 3.4 | Cada pessoa no máximo uma vez por dia; enviar a escala no grupo como imagem ou PDF |
+| 3.5 | Notificações no celular e app Android (.apk) |
 
 ---
 
@@ -194,6 +195,18 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 - Código novo: `public/js/votoUnico.js` (lógica pura) e `tests/votoUnico.test.mjs`.
 - Para publicar: aprovar o merge (o deploy roda os testes antes).
 
+
+## v3.5 — Notificações no celular e app Android (21/11/2026)
+
+**Avisos na barra de notificação** (detalhes em [NOTIFICACOES.md](NOTIFICACOES.md)): nova enquete (todos), "Falta o seu voto" (botão **🔔 Notificar quem falta** na aba Votos), escala publicada (cada escalado recebe os próprios horários), pedido de troca (organizadores) e "Você entrou na escala" (substituto). O toque abre o app na aba certa (`?aba=...`).
+- Ativar: faixa "Receber avisos no celular?" na primeira vez ou Menu > **🔔 Avisos no celular** (também desativa). iPhone só com o app na tela de início.
+- Como funciona: o app guarda o token do aparelho em `dispositivos` e grava o pedido de aviso em `notificacoes`; o script do Google (`scripts/apps-script/Notificacoes.gs`, no mesmo projeto do backup) envia a cada 5 minutos pela API HTTP v1 do Firebase Cloud Messaging, com a conta dona do projeto (sem chave de servidor e sem plano pago); o `sw.js` mostra a notificação (eventos `push` e `notificationclick`).
+- Regras novas no Firestore para `dispositivos` e `notificacoes` (**rodar `npm run deploy:regras`**). Falta colar a chave Web Push em `firebase-config.js` (`chaveNotificacoes`) e ativar o script (`ativarNotificacoes`).
+- Pedidos enviados são apagados depois de 30 dias e aparelhos sem uso há 3 meses saem da lista (junto com o backup diário). O backup não inclui `dispositivos`.
+
+**App Android** (detalhes em [APP_ANDROID.md](APP_ANDROID.md)): .apk gerado no PWABuilder (Trusted Web Activity), enviado pelo WhatsApp. O app abre o próprio site, então as atualizações continuam automáticas. O `firebase.json` passou a publicar a pasta `.well-known` (para o `assetlinks.json`, que esconde a barra de endereço).
+
+Testes novos: `tests/notificacoes.test.mjs` e regras em `tests-regras/regras.spec.mjs`.
 
 ## v3.4 — Uma vez por dia e escala enviada como imagem ou PDF (21/11/2026)
 

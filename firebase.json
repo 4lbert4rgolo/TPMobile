@@ -7,8 +7,10 @@
     "public": "public",
     "ignore": [
       "firebase.json",
-      "**/.*",
-      "**/node_modules/**"
+      "**/node_modules/**",
+      "**/.DS_Store",
+      "**/.git/**",
+      "**/.gitkeep"
     ],
     "headers": [
       {
@@ -31,6 +33,19 @@
       {
         "source": "**/*.@(js|css|html|webmanifest|png|svg|ico)",
         "headers": [
+          {
+            "key": "Cache-Control",
+            "value": "no-cache"
+          }
+        ]
+      },
+      {
+        "source": "/.well-known/assetlinks.json",
+        "headers": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
           {
             "key": "Cache-Control",
             "value": "no-cache"

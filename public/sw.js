@@ -5,7 +5,7 @@
 // são guardadas na primeira vez e usadas do aparelho depois: assim o app abre mesmo sem internet.
 // Os dados (Firestore) e o login não passam por aqui: o próprio Firebase guarda o cache deles.
 
-const VERSAO = 'tpmobile-v3.4';
+const VERSAO = 'tpmobile-v3.5';
 const BIBLIOTECAS = 'tpmobile-bibliotecas-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
@@ -15,6 +15,7 @@ const ARQUIVOS = [
   'js/pontos.js', 'js/telaPontos.js',
   'js/votoUnico.js',
   'js/relatorios.js', 'js/auditoria.js', 'js/telaAuditoria.js', 'js/trocas.js', 'js/importar.js', 'js/compartilhar.js',
+  'js/notificacoes.js', 'js/telaNotificacoes.js',
   'js/data.js', 'js/escala.js', 'js/firebase-config.js',
   'css/tailwind.css', 'css/app.css', 'icons/icon-192.png',
 ];
@@ -63,4 +64,36 @@ self.addEventListener('fetch', (e) => {
       })
       .catch(() => caches.match(req).then((guardado) => guardado || caches.match('index.html')))
   );
+});
+
+/* ------------------------------------------------------------ notificações no celular */
+// O script do Google manda o aviso pelo Firebase Cloud Messaging; o aparelho acorda este service
+// worker com o evento "push", mesmo com o app fechado, e aqui o aviso vira uma notificação.
+// O aviso vem como dados ({ titulo, corpo, url, tag }); "notification" fica como reserva.
+
+self.addEventListener('push', (e) => {
+  let conteudo = {};
+  try { conteudo = e.data ? e.data.json() : {}; } catch { conteudo = { data: { corpo: e.data?.text() } }; }
+  const d = conteudo.data || {};
+  const n = conteudo.notification || {};
+  const titulo = d.titulo || n.title || 'TPMobile';
+  e.waitUntil(self.registration.showNotification(titulo, {
+    body: d.corpo || n.body || '',
+    icon: 'icons/icon-192.png',
+    badge: 'icons/icon-192.png',
+    tag: d.tag || undefined,          // aviso com a mesma tag substitui o anterior (não acumula)
+    data: { url: d.url || './' },
+    lang: 'pt-BR',
+  }));
+});
+
+// Tocou na notificação: abre o app (ou traz para frente a janela que já estava aberta).
+self.addEventListener('notificationclick', (e) => {
+  e.notification.close();
+  const destino = new URL(e.notification.data?.url || './', self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((janelas) => {
+    const aberta = janelas.find((j) => j.url.startsWith(self.registration.scope));
+    if (aberta) return aberta.navigate(destino).then((j) => (j || aberta).focus()).catch(() => aberta.focus());
+    return self.clients.openWindow(destino);
+  }));
 });

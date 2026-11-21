@@ -20,7 +20,8 @@ const PASTA_BACKUP = 'TPMobile Backups';    // nome da pasta no Drive
 const DIAS_PARA_GUARDAR = 90;               // 3 meses, igual à regra de retenção do app
 const HORA_DO_BACKUP = 3;                   // roda entre 3h e 4h da manhã
 // "convites" guarda os links pessoais de acesso; o botão de backup do app também não inclui.
-const COLECOES_IGNORADAS = ['convites'];
+// "dispositivos" são os endereços dos celulares para as notificações (não servem num backup).
+const COLECOES_IGNORADAS = ['convites', 'dispositivos'];
 // ===========================================================
 
 const BASE = 'https://firestore.googleapis.com/v1/projects/' + PROJETO + '/databases/(default)/documents';
@@ -49,6 +50,10 @@ function fazerBackup() {
   pasta.createFile(nomeArquivo, JSON.stringify(dados, null, 2), 'application/json');
 
   limparAntigos_(pasta);
+  // Se o arquivo Notificacoes.gs estiver no projeto, aproveita para apagar avisos antigos.
+  if (typeof limparNotificacoes_ === 'function') {
+    try { limparNotificacoes_(); } catch (e) { console.warn('Limpeza dos avisos: ' + e.message); }
+  }
   console.log('Backup salvo no Drive: ' + PASTA_BACKUP + '/' + nomeArquivo);
 }
 

@@ -14,7 +14,8 @@ import { abrirMenu, fecharMenu, renderAba, renderApp } from './shell.js';
 import { atualizarResumoCelula, desenharEscala, editarCelula, enviarEscala, exportarExcel, gerarEscalaAcao, gravarCelula, imprimir, publicarEscala } from './telaEscala.js';
 import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario } from './usuarios.js';
 import { alternarPontoVoto, alternarVoto, copiarPonto, votoPorPonto, votoSimples, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
-import { abrirLembreteGrupo, lembrar, votarPor } from './votos.js';
+import { abrirLembreteGrupo, avisarQuemFalta, lembrar, votarPor } from './votos.js';
+import { abrirAvisos, ativarAvisos, desativarAvisos, dispensarFaixa } from './telaNotificacoes.js';
 import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
 import { normalizarPapel } from './data.js';
 import { filtrarLinhas } from './busca.js';
@@ -30,6 +31,11 @@ const acoes = {
   menu: () => (estado.menuAberto ? fecharMenu() : abrirMenu()),
   'fechar-menu': fecharMenu,
   privacidade: () => { fecharMenu(); abrirPrivacidade(); },
+  'abrir-avisos': () => { fecharMenu(); abrirAvisos(); },
+  'ativar-avisos': ativarAvisos,
+  'desativar-avisos': desativarAvisos,
+  'dispensar-avisos': dispensarFaixa,
+  'avisar-quem-falta': avisarQuemFalta,
   backup: baixarBackup,
   'limpar-antigos': limparDadosAntigos,
   'fechar-menu-fundo': (el, e) => { if (e.target === el) fecharMenu(); },

@@ -28,6 +28,7 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
 - Em **Enquetes**, cada enquete aberta mostra "12 de 40 já votaram". Toque em **ver quem falta e lembrar**.
 - Em **Votos**:
   - **Lembrar** abre o WhatsApp com a mensagem pronta para a pessoa (direto na conversa, se houver telefone no cadastro). Se ela tiver link pessoal, a mensagem leva o link.
+  - **🔔 Notificar quem falta** manda um aviso no celular de quem ainda não votou (só chega para quem ativou os avisos; chega em até 5 minutos).
   - **📣 Lembrar o grupo** monta um texto para o grupo, sem citar nomes.
   - **Lançar votos** / **Editar votos**: para quem votou pelo grupo ou não usa o celular. Funciona mesmo com a votação encerrada. Fica registrado na auditoria.
   - A lista mostra também quantos horários cada um marcou como **reserva** ("só se precisar").
@@ -65,6 +66,15 @@ Sugestão para o grupo, depois de publicar:
 > A escala do carrinho desta semana já está no app. Em ☰ Menu > *Minha escala* você vê só os seus horários e pode levá-los para o calendário do celular. Se não puder ir, toque em *Preciso trocar*.
 
 **Enquetes passadas:** depois de encerrada ou publicada, use **Arquivar** para tirar a enquete da lista (nada é apagado). "Mostrar as enquetes arquivadas" traz de volta.
+
+## Avisos automáticos no celular
+Quem ativou os avisos (Menu > 🔔 Avisos no celular) recebe sozinho, sem você fazer nada além do normal:
+- **Abrir votação** → todos recebem "Nova enquete do carrinho".
+- **Publicar para todos** → cada escalado recebe os próprios horários; os outros, "Escala publicada".
+- **Preciso trocar** → os organizadores recebem o pedido.
+- **Resolver o pedido** → o substituto recebe "Você entrou na escala" (o WhatsApp continua oferecido também).
+
+Configuração e problemas: [NOTIFICACOES.md](NOTIFICACOES.md).
 
 ## Cadastro de publicadores
 Menu > **Publicadores**. Use a **busca** para achar alguém rápido.

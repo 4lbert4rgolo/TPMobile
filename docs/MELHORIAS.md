@@ -6,6 +6,9 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Notificações no celular (FCM + script do Google) e app Android (.apk pelo PWABuilder) | v3.5 |
+| Uma vez por dia por pessoa; escala enviada no grupo como imagem ou PDF | v3.4 |
+| Equipes do mesmo gênero e par fixo "de preferência" | v3.3 |
 | Auditoria, aceite de privacidade, reserva e "Preciso trocar", importar publicadores, arquivar enquetes, internet fraca, novo visual da impressão e do Excel | v3.1 |
 | Configuração de pontos (Menu > Pontos) e fim da "enquete de evento" | v3.0 |
 | Perfis: só Votante, Servo Ministerial e Administrador (anciãos = Administrador) | v2.9 |
@@ -33,8 +36,6 @@ Todas as sugestões anteriores foram feitas. Ficam só ideias, para avaliar com 
 
 | Ideia | Observação |
 |---|---|
-| **Notificações no celular** (barra de notificação) | Nova enquete aberta; lembrete para quem não votou, um dia antes do fim; escala publicada ("você está escalado…"); lembrete na véspera do horário; pedido de troca para os organizadores e aviso ao substituto. Usa o Firebase Cloud Messaging. No Android funciona pelo Chrome; no iPhone só com o app instalado na tela inicial (iOS 16.4 ou mais novo). Envio pelo Google Apps Script (grátis, até ~5 min de atraso) ou por Cloud Functions (na hora, exige o plano Blaze com cartão). |
-| **App Android (.apk) fora da Play Store** | Empacotar o site como app Android (Trusted Web Activity, pelo PWABuilder/Bubblewrap ou Android Studio) e enviar o arquivo .apk pelo WhatsApp. O app abre o próprio site, então as atualizações continuam automáticas. Precisa do arquivo `.well-known/assetlinks.json` no site para esconder a barra de endereço; quem instala precisa permitir "fontes desconhecidas". No iPhone não existe esse caminho: continua o app instalável pelo Safari. |
 | Prazo da votação | A enquete encerra sozinha na data e hora marcadas. |
 | Tela "Hoje" | Quem está em cada ponto agora e nos próximos horários. |
 | Restaurar dados a partir de um backup | Hoje o backup só é baixado; restaurar ainda é manual. |
@@ -47,4 +48,4 @@ Todas as sugestões anteriores foram feitas. Ficam só ideias, para avaliar com 
 
 ## Fora do TPMobile
 
-- Notificação automática (push): estava fora de propósito; agora está na lista de ideias acima (avaliar depois).
+- Notificação automática (push): feita na v3.5.

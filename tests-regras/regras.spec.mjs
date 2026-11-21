@@ -344,3 +344,28 @@ test('enquete arquivada: organizador arquiva; votante não', async () => {
   await assertSucceeds(updateDoc(doc(como('servo'), 'enquetes', 'pub'), { arquivada: true }));
   await assertFails(updateDoc(doc(como('vot'), 'enquetes', 'pub'), { arquivada: false }));
 });
+
+/* ---------------------------------------------------------------- notificações */
+
+const disp = (uid, token = 'tok1') => ({ token, uid, plataforma: 'Android', atualizadoEm: serverTimestamp() });
+const aviso = (extra = {}) => ({ tipo: 'enquete', titulo: 'Nova enquete', corpo: 'Vote', url: '?aba=votar', para: { todos: true }, uid: 'servo', status: 'pendente', criadoEm: serverTimestamp(), ...extra });
+
+test('notificações: cada um grava e apaga só o próprio aparelho', async () => {
+  await assertSucceeds(setDoc(doc(como('vot'), 'dispositivos', 'tok1'), disp('vot')));
+  await assertFails(setDoc(doc(como('vot'), 'dispositivos', 'tok2'), disp('adm', 'tok2')));
+  await assertFails(setDoc(doc(como('vot'), 'dispositivos', 'tok3'), disp('vot', 'outro')));
+  await assertFails(setDoc(doc(como('pend'), 'dispositivos', 'tok4'), disp('pend', 'tok4')));
+  await assertFails(getDocs(collection(como('servo'), 'dispositivos')));
+  await assertFails(deleteDoc(doc(como('servo'), 'dispositivos', 'tok1')));
+  await assertSucceeds(deleteDoc(doc(como('vot'), 'dispositivos', 'tok1')));
+});
+
+test('notificações: organizador pede aviso para todos; votante só avisa troca aos organizadores', async () => {
+  await assertSucceeds(addDoc(collection(como('servo'), 'notificacoes'), aviso()));
+  await assertFails(addDoc(collection(como('servo'), 'notificacoes'), aviso({ status: 'enviada' })));
+  await assertFails(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot' })));
+  await assertSucceeds(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot', tipo: 'troca-pedido', para: { organizadores: true } })));
+  await assertFails(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot', tipo: 'troca-pedido', para: { todos: true } })));
+  await assertFails(getDocs(collection(como('vot'), 'notificacoes')));
+  await assertSucceeds(getDocs(collection(como('servo'), 'notificacoes')));
+});
