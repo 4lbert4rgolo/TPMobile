@@ -90,9 +90,6 @@ input[type="checkbox"], input[type="radio"] { accent-color: #0f7a68; }
 /* botões desligados (ex.: Salvar sem alterações, subir o primeiro ponto) */
 button[data-acao][disabled]:not(.chip-turno) { opacity: .45; cursor: not-allowed; }
 
-/* Voto "só se precisar" (reserva): bege com borda tracejada, para diferenciar do verde de "posso" */
-.chip-turno[data-reserva="true"] { background: #fdf3e2; border: 2px dashed #d9962b; color: #8a5a12; }
-.chip-reserva { font-size: 0.75rem; font-weight: 600; }
 .chip-legenda { pointer-events: none; min-height: auto; padding: 0.2rem 0.6rem; font-size: 0.75rem; }
 
 /* Horário com pedido de troca aberto (só os organizadores veem) */

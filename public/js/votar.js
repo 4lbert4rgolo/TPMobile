@@ -61,8 +61,6 @@ export async function carregarVoto(enquete, pubId) {
     disp: doCostume
       ? horariosDoCostume(enquete, padrao)
       : Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.disponibilidade?.[ponto] || [])])),
-    // "Só se precisar": horários de reserva. Não entram na escala automática; viram substitutos.
-    reserva: Object.fromEntries(enquete.pontos.map((ponto) => [ponto, new Set(existente?.reserva?.[ponto] || [])])),
   };
   iniciarTelaUnica();
 }
@@ -75,7 +73,7 @@ export async function carregarVoto(enquete, pubId) {
 function iniciarTelaUnica() {
   const v = estado.voto;
   const permitidos = pontosPermitidosDoVoto();
-  const u = iniciarUnico(v.disp, v.reserva, permitidos, true);
+  const u = iniciarUnico(v.disp, permitidos, true);
   v.mestre = u.mestre;
   v.escolhidos = u.escolhidos;
   v.unificado = permitidos.length > 1 && u.unificado;
@@ -83,8 +81,7 @@ function iniciarTelaUnica() {
 
 function sincronizarMestre() {
   const v = estado.voto;
-  const { disp, reserva } = aplicarMestre(enqueteAtual(), v.mestre, v.escolhidos, pontosPermitidosDoVoto());
-  v.disp = disp; v.reserva = reserva;
+  v.disp = aplicarMestre(enqueteAtual(), v.mestre, v.escolhidos, pontosPermitidosDoVoto()).disp;
   v.salvo = false;
 }
 
@@ -118,15 +115,11 @@ export function totalMarcado(campo = 'disp') {
     .reduce((soma, [, conjunto]) => soma + conjunto.size, 0);
 }
 
-/** "5 horário(s) · 2 de reserva" */
+/** "5 horário(s) marcado(s) · 2 ponto(s)" */
 export function textoContagem() {
   const v = estado.voto;
-  if (v.unificado) {
-    const reservas = v.mestre.reserva.size;
-    return `${v.mestre.disp.size} horário(s) marcado(s)${reservas ? ` · ${reservas} de reserva` : ''} · ${v.escolhidos.size} ponto(s)`;
-  }
-  const reservas = totalMarcado('reserva');
-  return `${totalMarcado()} horário(s) marcado(s)${reservas ? ` · ${reservas} de reserva` : ''}`;
+  if (v.unificado) return `${v.mestre.disp.size} horário(s) marcado(s) · ${v.escolhidos.size} ponto(s)`;
+  return `${totalMarcado()} horário(s) marcado(s)`;
 }
 
 export function htmlVoto(enquete, leitura = false) {
@@ -168,10 +161,9 @@ export function htmlVoto(enquete, leitura = false) {
                 const motivo = celulaBloqueada(enquete, dia.data, turno, ponto);
                 const k = chave(dia.data, turno);
                 const marcado = v.disp[ponto].has(k);
-                const reserva = !marcado && v.reserva[ponto]?.has(k);
                 return `<button type="button" class="chip-turno" ${motivo || !aberta ? 'disabled' : ''} title="${esc(motivo || '')}"
-                  aria-pressed="${marcado}" data-reserva="${reserva}" aria-label="${esc(turno)}${marcado ? ': posso' : reserva ? ': só se precisar' : ''}"
-                  data-acao="alternar-voto" data-ponto="${esc(ponto)}" data-chave="${esc(k)}">${esc(turno)}${reserva ? '<span class="chip-reserva"> · reserva</span>' : ''}</button>`;
+                  aria-pressed="${marcado}" aria-label="${esc(turno)}${marcado ? ': posso' : ''}"
+                  data-acao="alternar-voto" data-ponto="${esc(ponto)}" data-chave="${esc(k)}">${esc(turno)}</button>`;
               }).join('')}
             </div></div>`;
         }).join('')}
@@ -202,8 +194,7 @@ export function htmlVoto(enquete, leitura = false) {
   const legenda = aberta
     ? `<div class="flex flex-wrap items-center gap-x-4 text-sm text-slate-700 mb-3 legenda-toques" aria-hidden="true">
         <span class="legenda-item"><span class="chip-turno chip-legenda" aria-pressed="true">1 toque</span> posso</span>
-        <span class="legenda-item"><span class="chip-turno chip-legenda" data-reserva="true">2 toques</span> só se precisar (reserva)</span>
-        <span class="legenda-item"><span class="chip-turno chip-legenda">3 toques</span> desmarca</span>
+        <span class="legenda-item"><span class="chip-turno chip-legenda">tocar de novo</span> desmarca</span>
       </div>`
     : '';
   return v.unificado
@@ -226,10 +217,9 @@ function htmlUnico(enquete, aberta) {
           const bloqueado = bloqueadoEmTodos(enquete, dia.data, turno, v.escolhidos);
           const k = chave(dia.data, turno);
           const marcado = v.mestre.disp.has(k);
-          const reserva = !marcado && v.mestre.reserva.has(k);
           return `<button type="button" class="chip-turno" ${bloqueado || !aberta ? 'disabled' : ''}
-            aria-pressed="${marcado}" data-reserva="${reserva}" aria-label="${esc(turno)}${marcado ? ': posso' : reserva ? ': só se precisar' : ''}"
-            data-acao="alternar-voto" data-ponto="*" data-chave="${esc(k)}">${esc(turno)}${reserva ? '<span class="chip-reserva"> · reserva</span>' : ''}</button>`;
+            aria-pressed="${marcado}" aria-label="${esc(turno)}${marcado ? ': posso' : ''}"
+            data-acao="alternar-voto" data-ponto="*" data-chave="${esc(k)}">${esc(turno)}</button>`;
         }).join('')}
       </div></div>`;
   }).join('');
@@ -267,7 +257,7 @@ export function votoPorPonto() { estado.voto.unificado = false; renderAreaVoto()
 export function votoSimples() {
   // Volta para a grade única usando o primeiro ponto que tem horários marcados.
   const v = estado.voto;
-  const u = iniciarUnico(v.disp, v.reserva, pontosPermitidosDoVoto(), true);
+  const u = iniciarUnico(v.disp, pontosPermitidosDoVoto(), true);
   v.mestre = u.mestre; v.escolhidos = u.escolhidos; v.unificado = true;
   sincronizarMestre();
   renderAreaVoto();
@@ -317,29 +307,16 @@ export async function renderVotar() {
     <div id="area-voto">${htmlVoto(enquete)}</div>`;
 }
 
-/**
- * Cada toque passa para o próximo estado: desmarcado → posso → só se precisar (reserva) → desmarcado.
- * "Posso" fica em estado.voto.disp e "reserva" em estado.voto.reserva (nunca nos dois).
- */
-export function proximoEstado(atual) {
-  return { vazio: 'posso', posso: 'reserva', reserva: 'vazio' }[atual] || 'posso';
-}
-
+/** Cada toque liga ou desliga o horário ("posso" ↔ desmarcado). */
 export function alternarVoto(botao) {
   const { ponto, chave: k } = botao.dataset;
   const unico = ponto === '*';
   const disp = unico ? estado.voto.mestre.disp : estado.voto.disp[ponto];
-  const reserva = unico ? estado.voto.mestre.reserva : (estado.voto.reserva[ponto] || (estado.voto.reserva[ponto] = new Set()));
-  const atual = disp.has(k) ? 'posso' : reserva.has(k) ? 'reserva' : 'vazio';
-  const novo = proximoEstado(atual);
-  disp.delete(k); reserva.delete(k);
-  if (novo === 'posso') disp.add(k);
-  if (novo === 'reserva') reserva.add(k);
+  const marcar = !disp.has(k);
+  if (marcar) disp.add(k); else disp.delete(k);
   const turno = k.split('|').slice(1).join('|');
-  botao.setAttribute('aria-pressed', String(novo === 'posso'));
-  botao.dataset.reserva = String(novo === 'reserva');
-  botao.setAttribute('aria-label', `${turno}${novo === 'posso' ? ': posso' : novo === 'reserva' ? ': só se precisar' : ''}`);
-  botao.innerHTML = `${esc(turno)}${novo === 'reserva' ? '<span class="chip-reserva"> · reserva</span>' : ''}`;
+  botao.setAttribute('aria-pressed', String(marcar));
+  botao.setAttribute('aria-label', `${turno}${marcar ? ': posso' : ''}`);
   if (unico) sincronizarMestre();
   estado.voto.salvo = false;
   $('#aviso-salvo')?.remove();
@@ -351,7 +328,7 @@ export function marcarPonto(ponto, marcar) {
   const e = enqueteAtual();
   if (ponto === '*') {
     const m = estado.voto.mestre;
-    m.disp.clear(); m.reserva.clear();
+    m.disp.clear();
     if (marcar) for (const dia of e.dias) if (dia.ativo !== false) for (const turno of e.turnos) if (!bloqueadoEmTodos(e, dia.data, turno, estado.voto.escolhidos)) m.disp.add(chave(dia.data, turno));
     sincronizarMestre();
     renderAreaVoto();
@@ -359,7 +336,6 @@ export function marcarPonto(ponto, marcar) {
   }
   const conjunto = estado.voto.disp[ponto];
   conjunto.clear();
-  estado.voto.reserva[ponto]?.clear();
   if (marcar) {
     for (const dia of e.dias) for (const turno of e.turnos) if (!celulaBloqueada(e, dia.data, turno, ponto)) conjunto.add(chave(dia.data, turno));
   }
@@ -368,11 +344,9 @@ export function marcarPonto(ponto, marcar) {
 
 export function copiarPonto(ponto) {
   const origem = estado.voto.disp[ponto];
-  const origemReserva = estado.voto.reserva[ponto] || new Set();
   for (const outro of pontosPermitidosDoVoto()) {
     if (outro === ponto) continue;
     estado.voto.disp[outro] = new Set(origem);
-    estado.voto.reserva[outro] = new Set(origemReserva);
   }
   estado.voto.salvo = false;
   renderAreaVoto();
@@ -388,10 +362,8 @@ export async function salvarVoto() {
   const disponibilidade = Object.fromEntries(
     Object.entries(v.disp).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
   );
-  const reserva = Object.fromEntries(
-    Object.entries(v.reserva || {}).filter(([ponto]) => permitidos.includes(ponto)).map(([ponto, conjunto]) => [ponto, [...conjunto]])
-  );
-  const dados = { disponibilidade, reserva, nome: pub?.nome || '' };
+  // O voto é gravado inteiro (substitui o anterior): marcações antigas de "reserva" somem ao salvar.
+  const dados = { disponibilidade, nome: pub?.nome || '' };
   const porOutro = v.pubId !== estado.perfil.publicadorId;
 
   // Sem internet: o voto fica guardado no aparelho e o Firebase envia sozinho quando a conexão voltar.
@@ -404,7 +376,7 @@ export async function salvarVoto() {
   }
 
   const ok = await tentar(() => estado.backend.salvarVoto(e.id, v.pubId, dados), 'Votos salvos!');
-  if (ok && porOutro) registrar({ area: 'votos', acao: 'Lançou os votos de outra pessoa', alvo: pub?.nome || v.pubId, enqueteId: e.id, detalhe: `${Object.values(disponibilidade).flat().length} horário(s), ${Object.values(reserva).flat().length} de reserva` });
+  if (ok && porOutro) registrar({ area: 'votos', acao: 'Lançou os votos de outra pessoa', alvo: pub?.nome || v.pubId, enqueteId: e.id, detalhe: `${Object.values(disponibilidade).flat().length} horário(s)` });
   if (ok && v.guardarPadrao) {
     const padrao = costumeDoVoto(disponibilidade);
     try { await estado.backend.salvarPadrao(v.pubId, padrao); v.padrao = padrao; v.guardarPadrao = false; } catch { toast('O voto foi salvo, mas não deu para guardar o costume.', 'erro'); }

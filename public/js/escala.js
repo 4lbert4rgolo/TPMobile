@@ -294,10 +294,10 @@ export function validarEscala({ enquete, publicadores, votos, matriz }) {
   const porId = new Map(publicadores.map((p) => [p.id, p]));
   const avisos = [];
 
-  // Quem marcou o horário como "posso" ou como reserva ("só se precisar") não gera aviso ao ser escalado.
+  // Quem marcou o horário como "posso" não gera aviso ao ser escalado.
   const votou = new Set();
   for (const voto of votos || []) {
-    for (const d of [voto.disponibilidade || {}, voto.reserva || {}]) {
+    for (const d of [voto.disponibilidade || {}]) {
       for (const ponto of Object.keys(d)) {
         for (const c of d[ponto]) votou.add(`${voto.publicadorId}|${ponto}|${c}`);
       }

@@ -23,7 +23,7 @@ export function htmlTextoPrivacidade() {
         <ul class="list-disc pl-5 space-y-1">
           <li>Nome, gênero e regras de participação de cada publicador.</li>
           <li>Telefone (opcional), usado só para abrir uma conversa no WhatsApp.</li>
-          <li>Os horários em que cada pessoa votou (inclusive os de reserva), os pedidos de troca e a escala montada.</li>
+          <li>Os horários em que cada pessoa votou, os pedidos de troca e a escala montada.</li>
           <li>Nome e e-mail de quem criou uma conta, o perfil de acesso e a data em que aceitou este aviso.</li>
           <li>Um registro de quem alterou escalas, enquetes, cadastros e acessos, e quando (auditoria).</li>
         </ul>

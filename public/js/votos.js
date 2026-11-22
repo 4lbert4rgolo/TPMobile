@@ -48,10 +48,9 @@ export async function renderVotos() {
             const v = porPub.get(p.id);
             const perm = pontosDoPublicador(p, enquete.pontos);
             const n = v ? Object.entries(v.disponibilidade || {}).filter(([pt]) => perm.includes(pt)).reduce((s, [, l]) => s + l.length, 0) : 0;
-            const r = v ? Object.entries(v.reserva || {}).filter(([pt]) => perm.includes(pt)).reduce((s, [, l]) => s + l.length, 0) : 0;
             return `<tr class="border-t">
               <td class="p-3 font-medium">${esc(p.nome)}</td>
-              <td class="p-3">${v ? `<span class="text-green-700">Votou · ${n} horário(s)${r ? ` · ${r} de reserva` : ''}</span>` : '<span class="text-slate-400">Ainda não votou</span>'}</td>
+              <td class="p-3">${v ? `<span class="text-green-700">Votou · ${n} horário(s)</span>` : '<span class="text-slate-400">Ainda não votou</span>'}</td>
               <td class="p-3 text-right whitespace-nowrap">${!v && aberta ? `<button class="text-green-700 underline mr-3 font-semibold" data-acao="lembrar" data-id="${esc(p.id)}">Lembrar</button>` : ''}<button class="text-blue-700 underline" data-acao="votar-por" data-id="${esc(p.id)}">${v ? 'Editar votos' : 'Lançar votos'}</button></td>
             </tr>`;
           }).join('')}

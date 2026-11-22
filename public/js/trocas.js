@@ -43,11 +43,11 @@ export function substituirPessoa(celula, saiId, entra) {
 }
 
 /**
- * Quem pode entrar no lugar: marcou o horário como reserva ("só se precisar") ou como "posso",
+ * Quem pode entrar no lugar: marcou o horário como "posso",
  * vota naquele ponto, está ativo, não está em outro ponto no mesmo horário (nem em outro horário do dia,
  * com a regra de uma vez por dia) e é do mesmo gênero
  * de quem fica na equipe (a não ser que forme casal com alguém dela).
- * Ordem: reservas primeiro, depois quem participou menos nesta escala.
+ * Ordem: quem participou menos nesta escala primeiro.
  * `acimaDoLimite` avisa quando a irmã (ou o irmão, se houver limite) já chegou ao máximo.
  */
 export function substitutos({ enquete, matriz, votos, publicadores, troca }, maximo = 8) {
@@ -78,16 +78,15 @@ export function substitutos({ enquete, matriz, votos, publicadores, troca }, max
     if (!pontosDoPublicador(p, enquete.pontos).includes(troca.ponto)) continue;
     if (!generosCompativeis([...ficam, p])) continue; // equipe só de irmãos ou só de irmãs (casal é exceção)
     const v = votoDe.get(p.id);
-    const tipo = (v?.reserva?.[troca.ponto] || []).includes(k) ? 'reserva'
-      : (v?.disponibilidade?.[troca.ponto] || []).includes(k) ? 'disponivel' : null;
-    if (!tipo) continue;
+    if (!(v?.disponibilidade?.[troca.ponto] || []).includes(k)) continue;
+    const tipo = 'disponivel';
     const carga = participacoes.get(p.id)?.total || 0;
     const limite = p.genero === 'F' ? regras.maxIrmas : regras.maxIrmaos;
     lista.push({ id: p.id, nome: p.nome, tipo, carga, acimaDoLimite: Boolean(limite) && carga >= limite, requerTrio: Boolean(p.requerTrio) });
   }
 
   return lista
-    .sort((a, b) => (a.tipo === b.tipo ? 0 : a.tipo === 'reserva' ? -1 : 1) || a.acimaDoLimite - b.acimaDoLimite || a.carga - b.carga || a.nome.localeCompare(b.nome, 'pt'))
+    .sort((a, b) => a.acimaDoLimite - b.acimaDoLimite || a.carga - b.carga || a.nome.localeCompare(b.nome, 'pt'))
     .slice(0, maximo);
 }
 

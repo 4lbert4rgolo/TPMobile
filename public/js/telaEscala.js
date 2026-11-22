@@ -143,15 +143,15 @@ export function painelTrocas(enquete, matriz) {
   if (!abertas.length) return '';
   return `<div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-3">
     <h3 class="font-bold text-amber-900 mb-1">Pedidos de troca (${abertas.length})</h3>
-    <p class="text-sm text-amber-900 mb-3">Toque num nome para colocá-lo no lugar de quem pediu. Primeiro aparecem as reservas ("só se precisar"), depois quem marcou o horário e participou menos.</p>
+    <p class="text-sm text-amber-900 mb-3">Toque num nome para colocá-lo no lugar de quem pediu. Aparecem quem marcou o horário, primeiro quem participou menos.</p>
     <ul class="space-y-3">${abertas.map((t) => {
       const subs = substitutos({ enquete, matriz, votos: estado.votos, publicadores: estado.pubs, troca: t });
       return `<li class="bg-white rounded-lg border p-3">
         <p class="text-sm"><strong>${esc(t.nome)}</strong> pediu troca · ${esc(lugarDaCelula(t.ponto, t.data, t.turno))}${t.motivo ? ` · <em>${esc(t.motivo)}</em>` : ''}</p>
         <div class="flex flex-wrap gap-2 mt-2">
-          ${subs.map((s) => `<button class="text-sm rounded-full px-3 py-1 ${s.tipo === 'reserva' ? 'bg-amber-100 text-amber-900' : 'bg-green-50 text-green-800'}" data-acao="resolver-troca" data-id="${esc(t.id)}" data-sub="${esc(s.id)}">
-            ${esc(s.nome)} · ${s.tipo === 'reserva' ? 'reserva' : 'marcou'} · ${s.carga}x${s.acimaDoLimite ? ' · no limite' : ''}${s.requerTrio ? ' · trio' : ''}</button>`).join('')
-            || '<span class="text-sm text-slate-600">Ninguém marcou este horário como disponível ou reserva. Toque no horário na tabela para escolher outra pessoa.</span>'}
+          ${subs.map((s) => `<button class="text-sm rounded-full px-3 py-1 bg-green-50 text-green-800" data-acao="resolver-troca" data-id="${esc(t.id)}" data-sub="${esc(s.id)}">
+            ${esc(s.nome)} · ${s.carga}x${s.acimaDoLimite ? ' · no limite' : ''}${s.requerTrio ? ' · trio' : ''}</button>`).join('')
+            || '<span class="text-sm text-slate-600">Ninguém mais marcou este horário. Toque no horário na tabela para escolher outra pessoa.</span>'}
           <button class="text-sm underline text-slate-600 ml-auto" data-acao="dispensar-troca" data-id="${esc(t.id)}">Dispensar pedido</button>
         </div>
       </li>`;
@@ -230,10 +230,9 @@ export function editarCelula(ponto, data, turno) {
   const selecionados = new Set(atual?.tipo === 'equipe' ? atual.pessoas.map((p) => p.id) : []);
   const k = chave(data, turno);
   const voluntarios = new Set(estado.votos.filter((v) => (v.disponibilidade?.[ponto] || []).includes(k)).map((v) => v.publicadorId));
-  const reservas = new Set(estado.votos.filter((v) => (v.reserva?.[ponto] || []).includes(k)).map((v) => v.publicadorId));
 
-  // Ordem: quem votou neste horário, depois quem é reserva, depois os outros.
-  const peso = (id) => (voluntarios.has(id) ? 0 : reservas.has(id) ? 1 : 2);
+  // Ordem: quem votou neste horário primeiro, depois os outros.
+  const peso = (id) => (voluntarios.has(id) ? 0 : 1);
   const lista = estado.pubs.filter((p) => p.ativo !== false).sort((a, b) => peso(a.id) - peso(b.id) || a.nome.localeCompare(b.nome, 'pt'));
 
   abrirModal(`
@@ -247,7 +246,6 @@ export function editarCelula(ponto, data, turno) {
         <input type="checkbox" name="celula" value="${esc(p.id)}" ${selecionados.has(p.id) ? 'checked' : ''}>
         <span class="flex-1">${esc(p.nome)} <span class="text-xs text-slate-400">${p.genero === 'F' ? 'irmã' : 'irmão'}</span></span>
         ${voluntarios.has(p.id) ? '<span class="text-xs bg-green-100 text-green-800 rounded-full px-2">votou neste horário</span>' : ''}
-        ${reservas.has(p.id) ? '<span class="text-xs bg-amber-100 text-amber-800 rounded-full px-2">reserva neste horário</span>' : ''}
         ${p.requerTrio ? '<span class="text-xs bg-amber-100 text-amber-800 rounded-full px-2">trio</span>' : ''}
         ${p.conjuge ? `<span class="text-xs bg-slate-100 text-slate-600 rounded-full px-2">par: ${esc(pubPorId(p.conjuge)?.nome || '')}</span>` : ''}
         ${p.pontosVoto?.length ? `<span class="text-xs bg-slate-100 text-slate-600 rounded-full px-2">só em ${esc(p.pontosVoto.join(', '))}</span>` : ''}

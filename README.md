@@ -3,14 +3,14 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.5 (notificações no celular e app Android) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.6 (voto mais simples: sem a opção de reserva) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
 
 | Perfil | O que faz |
 |---|---|
-| **Votante** | Marca os horários em que pode (ou "só se precisar", como reserva), em cada ponto, vê a escala publicada e a "Minha escala" e pede troca de um horário |
+| **Votante** | Marca os horários em que pode, em cada ponto, vê a escala publicada e a "Minha escala" e pede troca de um horário |
 | **Servo Ministerial** | Tudo do votante, mais: configura os pontos, cria e configura enquetes, cadastra publicadores, lança votos por outra pessoa, lembra quem não votou, gera, ajusta e publica a escala |
 | **Administrador** (inclui os anciãos) | Tudo do servo ministerial, mais: aprova usuários, define perfis, gera e revoga os links pessoais, baixa o backup e apaga dados antigos |
 
@@ -21,7 +21,7 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 **Para quem vota**
 - Entra pelo **link pessoal** (sem e-mail e sem senha) ou com conta de e-mail e senha.
 - Vê só os pontos em que pode votar e encontra os **horários de costume** já marcados.
-- Cada horário tem três estados: 1 toque = **posso**, 2 toques = **só se precisar** (reserva), 3 toques = desmarca. A reserva não entra na escala automática: serve para substituições.
+- Um toque marca o horário (**posso**), outro toque desmarca.
 - No **primeiro acesso**, confirma que leu o aviso de privacidade (uma vez só).
 - Vê a escala publicada, com os próprios horários destacados.
 - **Minha escala:** lista os próximos horários da pessoa, com os companheiros de equipe, o link do **Google Agenda** em cada horário e o botão **Levar tudo para o calendário** (arquivo `.ics`, com lembrete 1 hora antes).
@@ -37,7 +37,7 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - **Dois organizadores ao mesmo tempo:** cada troca grava só aquele horário em cima da versão mais nova do banco. Se outra pessoa mudou o mesmo horário, nada é apagado: o app avisa e mostra a versão nova. A tela mostra quem fez a última alteração.
 - **Equilíbrio entre semanas:** quem participou menos nas últimas 4 escalas tem prioridade (pode desligar em cada enquete).
 - **Busca** nas listas de Publicadores, Usuários e Links de acesso.
-- **Pedidos de troca:** aparecem em destaque na Escala, com os substitutos sugeridos (reservas primeiro, depois quem marcou o horário e participou menos). Um toque coloca o substituto no lugar e oferece avisá-lo pelo WhatsApp.
+- **Pedidos de troca:** aparecem em destaque na Escala, com os substitutos sugeridos (quem marcou o horário, primeiro quem participou menos). Um toque coloca o substituto no lugar e oferece avisá-lo pelo WhatsApp.
 - **Auditoria** (Menu > Auditoria, administrador): quem fez o quê e quando, com busca e filtro por área. Cada escala também tem o seu **Histórico** (organizadores).
 - **Importar publicadores** de uma planilha (.xlsx/.csv ou colando as linhas), com prévia e modelo para baixar.
 - **Arquivar** enquetes passadas: saem da lista sem apagar nada.

@@ -81,7 +81,7 @@ test('auditoria: filtro por área e busca sem acento; agrupado por dia', () => {
   assert.equal(grupos[0].eventos[0].acao, 'Resolveu um pedido de troca'); // mais novo primeiro
 });
 
-/* ------------------------------------------------------------ trocas e reserva */
+/* ------------------------------------------------------------ trocas */
 
 const pubs = [
   { id: 'a', nome: 'Ana', genero: 'F' }, { id: 'b', nome: 'Bruno', genero: 'M' },
@@ -93,8 +93,9 @@ const pubs = [
 const k = chave('2026-11-23', T[0]);
 const votos = [
   { publicadorId: 'g', disponibilidade: { 'Bairro Novo': [k] } },
-  { publicadorId: 'h', reserva: { 'Bairro Novo': [k] } },
-  { publicadorId: 'e', reserva: { 'Bairro Novo': [k] } }, // já está no Atacadão no mesmo horário
+  { publicadorId: 'h', disponibilidade: { 'Bairro Novo': [k] } },
+  { publicadorId: 'e', disponibilidade: { 'Bairro Novo': [k] } }, // já está no Atacadão no mesmo horário
+  { publicadorId: 'f', reserva: { 'Bairro Novo': [k] } }, // voto antigo "só se precisar": não conta mais
   { publicadorId: 'i', disponibilidade: { 'Bairro Novo': [k] } }, // só vota no Atacadão
   { publicadorId: 'j', disponibilidade: { 'Bairro Novo': [k] } }, // inativo
   { publicadorId: 'c', disponibilidade: { 'Bairro Novo': [k] } }, // livre neste horário, mas já tem 1 participação
@@ -110,10 +111,10 @@ test('troca: id fixo por pessoa e horário (pedir duas vezes não duplica)', () 
   assert.equal(trocasAbertas([{ ...t, status: 'resolvida' }]).length, 0);
 });
 
-test('troca: substitutos — reserva primeiro; fora quem está ocupado, inativo, de outro ponto ou de outro gênero', () => {
-  // Bruno sai e Ana fica: só irmãs podem entrar (Hana, reserva).
+test('troca: substitutos — só quem marcou; fora quem está ocupado, inativo, de outro ponto, de outro gênero ou com voto antigo de reserva', () => {
+  // Bruno sai e Ana fica: só irmãs podem entrar (Hana).
   const sai = (id) => substitutos({ enquete, matriz, votos, publicadores: pubs, troca: { publicadorId: id, ponto: 'Bairro Novo', data: '2026-11-23', turno: T[0] } });
-  assert.deepEqual(sai('b').map((s) => [s.id, s.tipo]), [['h', 'reserva']]);
+  assert.deepEqual(sai('b').map((s) => [s.id, s.tipo]), [['h', 'disponivel']]);
   // Ana sai e Bruno fica: só irmãos (Gil e Caio, que marcaram; Caio já tem 1 participação).
   const subs = sai('a');
   assert.deepEqual(subs.map((s) => [s.id, s.tipo]), [['g', 'disponivel'], ['c', 'disponivel']]);
@@ -132,10 +133,10 @@ test('troca: o substituto entra na mesma posição', () => {
   assert.deepEqual(nova.pessoas, [{ id: 'a', nome: 'Ana' }, { id: 'g', nome: 'Gil' }]);
 });
 
-test('reserva: escalar quem marcou "só se precisar" não gera aviso', () => {
-  const m = { 'Bairro Novo': { '2026-11-23': { [T[0]]: eq(['h', 'Hana'], ['g', 'Gil']) } } };
+test('voto antigo de reserva não conta como "marcou": escalar gera aviso', () => {
+  const m = { 'Bairro Novo': { '2026-11-23': { [T[0]]: eq(['f', 'Fábio'], ['g', 'Gil']) } } };
   const avisos = validarEscala({ enquete: { ...enquete, regras: {} }, publicadores: pubs, votos, matriz: m });
-  assert.equal(avisos.filter((a) => /não marcou/.test(a.msg)).length, 0);
+  assert.equal(avisos.filter((a) => /Fábio.*não marcou|não marcou.*Fábio/.test(a.msg)).length, 1);
 });
 
 /* ------------------------------------------------------------ importar */

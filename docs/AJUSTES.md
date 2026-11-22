@@ -20,6 +20,7 @@
 | 3.3 | Equipes do mesmo gênero (casal é exceção) e par fixo "de preferência" |
 | 3.4 | Cada pessoa no máximo uma vez por dia; enviar a escala no grupo como imagem ou PDF |
 | 3.5 | Notificações no celular e app Android (.apk) |
+| 3.6 | Voto mais simples: sem a opção de reserva ("só se precisar") |
 
 ---
 
@@ -195,6 +196,12 @@ Trocar o nome de um ponto atualiza o "Onde vota" dos publicadores, os horários 
 - Código novo: `public/js/votoUnico.js` (lógica pura) e `tests/votoUnico.test.mjs`.
 - Para publicar: aprovar o merge (o deploy roda os testes antes).
 
+
+## v3.6 — Voto sem a opção de reserva (22/11/2026)
+
+A opção "só se precisar" (reserva) saiu: agora **um toque marca "posso" e outro toque desmarca**. A legenda da votação, a contagem, a lista de votos, o editor do horário e os substitutos dos pedidos de troca não falam mais em reserva. Substituto sugerido é sempre quem marcou o horário, primeiro quem participou menos.
+
+Votos antigos com reserva: a marcação é ignorada (não conta como "marcou" nem como substituto) e some quando a pessoa salvar o voto de novo. Sem mudança nas regras do Firestore.
 
 ## v3.5 — Notificações no celular e app Android (21/11/2026)
 

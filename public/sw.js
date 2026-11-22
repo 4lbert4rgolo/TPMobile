@@ -5,7 +5,7 @@
 // são guardadas na primeira vez e usadas do aparelho depois: assim o app abre mesmo sem internet.
 // Os dados (Firestore) e o login não passam por aqui: o próprio Firebase guarda o cache deles.
 
-const VERSAO = 'tpmobile-v3.5.2';
+const VERSAO = 'tpmobile-v3.6';
 const BIBLIOTECAS = 'tpmobile-bibliotecas-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',

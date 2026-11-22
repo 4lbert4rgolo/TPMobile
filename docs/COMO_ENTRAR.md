@@ -24,7 +24,7 @@ Dentro do app, as seções ficam no **☰ Menu** (canto direito do cabeçalho).
 2. Toca em **Criar conta** e preenche o **nome** (como aparece na lista de publicadores), um **e-mail** e uma **senha** com pelo menos 6 caracteres.
 3. Aparece "Conta aguardando aprovação". É normal: um administrador precisa liberar o acesso.
 4. Quando for liberado, entra de novo (ou toca em "Já fui aprovado: atualizar"). Na primeira vez, confirma o aviso de privacidade ("Li e concordo") e vê a enquete aberta.
-5. Marca os horários em cada ponto (1 toque = posso; 2 toques = só se precisar, como reserva; 3 toques = desmarca) e toca em **Salvar meus votos**. Pode voltar e mudar até a votação encerrar.
+5. Marca os horários em cada ponto (1 toque marca "posso"; outro toque desmarca) e toca em **Salvar meus votos**. Pode voltar e mudar até a votação encerrar.
 6. Depois que a escala for publicada, ela aparece em Menu > **Escala**, com os horários dele em destaque.
 7. Em Menu > **Minha escala** ele vê só os próprios horários, com quem vai estar, e pode levá-los para o calendário do celular (**Google Agenda** em cada horário, ou **Levar tudo para o calendário** no iPhone). Se não puder ir, toca em **Preciso trocar** naquele horário.
 

@@ -31,14 +31,13 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
   - **🔔 Notificar quem falta** manda um aviso no celular de quem ainda não votou (só chega para quem ativou os avisos; chega em até 5 minutos).
   - **📣 Lembrar o grupo** monta um texto para o grupo, sem citar nomes.
   - **Lançar votos** / **Editar votos**: para quem votou pelo grupo ou não usa o celular. Funciona mesmo com a votação encerrada. Fica registrado na auditoria.
-  - A lista mostra também quantos horários cada um marcou como **reserva** ("só se precisar").
 - Quando terminar o prazo, toque em **Encerrar votação** na enquete.
 
 ## 3. Gerar e ajustar a escala
 1. Na enquete, toque em **Montar escala** (ou Menu > **Escala** e escolha a enquete).
 2. Toque em **Gerar escala automática**. O app preenche primeiro os horários com menos voluntários e escolhe quem participou menos, nesta escala e nas 4 anteriores (se o equilíbrio estiver ligado).
 3. Confira os **Avisos** e o quadro de **Participações** embaixo da escala.
-4. Para trocar pessoas, toque no horário, marque ou desmarque os nomes e toque em **Salvar**. Quem votou naquele horário aparece primeiro ("votou neste horário"), depois quem é reserva ("reserva neste horário").
+4. Para trocar pessoas, toque no horário, marque ou desmarque os nomes e toque em **Salvar**. Quem votou naquele horário aparece primeiro ("votou neste horário").
    - Contorno **vermelho** = regra quebrada (ex.: equipe incompleta, irmã acima do limite, irmão e irmã que não são casal, a mesma pessoa duas vezes no mesmo dia). **Amarelo** = atenção (ex.: pessoa que não marcou aquele horário).
 
 **Mais de um organizador ao mesmo tempo:** pode. Cada troca grava só aquele horário, em cima da versão mais nova. Se outra pessoa mudou o **mesmo** horário enquanto você editava, aparece "Fulano mudou este horário enquanto você editava", e a tela já mostra a versão nova: confira e faça de novo se ainda precisar. "Gerar escala" e "Publicar" também conferem se alguém mexeu antes. Embaixo da escala aparece **Última alteração: nome, data e hora**.
@@ -50,7 +49,7 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
 ## 3b. Pedidos de troca
 Quando um irmão toca em **Preciso trocar** na Minha escala:
 - O horário fica com contorno **bege** na tabela, e aparece o quadro **Pedidos de troca** em cima da escala, com o motivo (se ele escreveu).
-- Abaixo do pedido, o app sugere quem pode entrar: primeiro as **reservas** ("só se precisar"), depois quem **marcou** o horário, de quem participou menos para quem participou mais. "No limite" avisa que a irmã (ou o irmão) já chegou ao máximo da semana.
+- Abaixo do pedido, o app sugere quem pode entrar: quem **marcou** o horário, de quem participou menos para quem participou mais. "No limite" avisa que a irmã (ou o irmão) já chegou ao máximo da semana.
 - Toque no nome: a pessoa entra no lugar, o pedido é encerrado e o app pergunta se quer **avisar o substituto pelo WhatsApp** (mensagem pronta).
 - Ninguém serve? Toque no horário na tabela e escolha outra pessoa, ou **Dispensar pedido** (a escala não muda).
 
