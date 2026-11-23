@@ -242,3 +242,7 @@ Sem mudança nas regras do Firestore. Testes novos em `tests/umPorDia.test.mjs` 
 Enquetes antigas guardavam só `parFixoJunto`: `false` continua valendo como "não considerar"; `true` (que era o padrão) passa a valer como "de preferência".
 
 Sem mudança nas regras do Firestore. Testes novos em `tests/escala.test.mjs`.
+
+## v3.7 — Rodapé com copyright (23/11/2026)
+
+Rodapé no mesmo modelo do AlpDesk: faixa escura com linha verde no topo, "TPMobile © 2026" e "Desenvolvido por Albert Argolo". Aparece na tela de entrada e dentro do app, e não sai na impressão. Fica no `index.html` (um só lugar), com o estilo `.rodape-site` em `app.css`. Sem mudança nas regras do Firestore.

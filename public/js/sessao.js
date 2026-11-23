@@ -108,7 +108,7 @@ export function renderLogin(modo = 'entrar') {
   const novo = modo === 'criar';
   $('#app').innerHTML = `
     ${faixaDemo()}
-    <div class="min-h-screen flex items-center justify-center p-4">
+    <div class="flex items-center justify-center p-4" style="min-height:calc(100vh - 100px)">
       <div class="bg-white rounded-2xl shadow-lg w-full max-w-md p-6">
         <div class="text-right">${botaoInstalar('text-xs underline text-slate-600 mr-3')}<button class="text-xs underline text-slate-600" data-acao="fonte">${rotuloFonte()}</button></div>
         <h1 class="text-xl font-bold text-blue-800 text-center">Gestor de Escalas de Carrinho</h1>

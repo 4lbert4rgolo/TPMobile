@@ -90,8 +90,7 @@ export function renderApp() {
     <div id="menu"></div>
     <main class="max-w-6xl mx-auto p-4 sm:p-6">
       ${!p.privacidadeAceitaEm ? telaAceitePrivacidade() : SEM_ACESSO.includes(p.papel) ? telaPendente() : `${faixaNotificacoes()}<div id="conteudo"></div>`}
-    </main>
-    <footer class="text-center text-xs text-slate-400 py-6">© 2026 TPMobile</footer>`;
+    </main>`;
 
   // Primeiro acesso: só segue depois do aceite do aviso de privacidade.
   if (p.privacidadeAceitaEm && !SEM_ACESSO.includes(p.papel)) renderAba();
