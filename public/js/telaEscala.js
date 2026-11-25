@@ -4,7 +4,7 @@ import { registrar } from './telaAuditoria.js';
 import { detalheTrocaCelula, lugarDaCelula } from './auditoria.js';
 import { trocasAbertas, substitutos, substituirPessoa, mensagemSubstituto } from './trocas.js';
 import { urlWhats } from './votos.js';
-import { $, abrirModal, ehOrganizador, enqueteAtual, erroAmigavel, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
+import { $, abrirModal, carregarExcel, ehOrganizador, enqueteAtual, erroAmigavel, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
 import { renderAba } from './shell.js';
 import { escolherEnquetePadrao, seletorEnquete } from './votar.js';
 import { gerarEscala, validarEscala, contarParticipacoes, chave, nomeDia, dataCurta, celulaBloqueada, REGRAS_PADRAO, trocarCelula, exigirVersao, historicoDeParticipacoes, SEMANAS_EQUILIBRIO } from './escala.js';
@@ -450,11 +450,11 @@ export function imprimir(todos) {
   window.print();
 }
 
-export function exportarExcel() {
+export async function exportarExcel() {
   fecharMenuMais();
   const e = enqueteAtual();
   if (!estado.escala?.matriz) return toast('Gere a escala primeiro.', 'erro');
-  if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');
+  if (!(await carregarExcel())) return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');
 
   // Uma aba por ponto. As cores só aparecem quando a biblioteca xlsx-js-style carregou
   // (ela substitui a XLSX comum); senão a planilha sai igual, só sem as cores.

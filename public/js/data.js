@@ -45,10 +45,12 @@ export const ehEnderecoDeTeste = (host) => host === 'localhost' || host === '127
 
 export async function criarBackendFirebase(cfg, { chaveAppCheck = '' } = {}) {
   const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSAO}/`;
-  const [{ initializeApp }, A, F] = await Promise.all([
+  // Baixa os módulos ao mesmo tempo (o do App Check também, se houver chave), em vez de um depois do outro.
+  const [{ initializeApp }, A, F, C] = await Promise.all([
     import(`${base}firebase-app.js`),
     import(`${base}firebase-auth.js`),
     import(`${base}firebase-firestore.js`),
+    chaveAppCheck ? import(`${base}firebase-app-check.js`).catch((e) => { console.warn('App Check não carregou:', e); return null; }) : null,
   ]);
 
   const app = initializeApp(cfg);
@@ -56,10 +58,9 @@ export async function criarBackendFirebase(cfg, { chaveAppCheck = '' } = {}) {
   // feito para mexer no banco por fora). Usa o reCAPTCHA do Google Cloud Fraud Defense (antigo
   // reCAPTCHA Enterprise; o reCAPTCHA clássico foi descontinuado), invisível para o usuário.
   // Precisa vir ANTES de abrir o login e o banco. Sem chave, o app funciona como antes.
-  if (chaveAppCheck) {
+  if (chaveAppCheck && C) {
     try {
       if (ehEnderecoDeTeste(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
-      const C = await import(`${base}firebase-app-check.js`);
       C.initializeAppCheck(app, { provider: new C.ReCaptchaEnterpriseProvider(chaveAppCheck), isTokenAutoRefreshEnabled: true });
     } catch (e) {
       console.warn('App Check não iniciou:', e);

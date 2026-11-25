@@ -43,6 +43,26 @@ export const ehAdmin = () => estado.perfil?.papel === 'admin';
 export const enqueteAtual = () => estado.enquetes.find((e) => e.id === estado.enqueteId) || null;
 export const pubPorId = (id) => estado.pubs.find((p) => p.id === id) || null;
 
+/**
+ * Carrega a biblioteca de Excel com cores (vendor/xlsx-estilo.js) só quando alguém for gerar uma planilha.
+ * Antes ela era baixada em todo carregamento do app (415 KB) e atrasava a abertura.
+ * Devolve true quando a variável global XLSX está pronta; false se não deu para carregar.
+ */
+let carregandoExcel = null;
+export function carregarExcel() {
+  if (typeof XLSX !== 'undefined') return Promise.resolve(true);
+  if (!carregandoExcel) {
+    carregandoExcel = new Promise((ok) => {
+      const s = document.createElement('script');
+      s.src = 'vendor/xlsx-estilo.js';
+      s.onload = () => ok(typeof XLSX !== 'undefined');
+      s.onerror = () => { carregandoExcel = null; s.remove(); ok(false); }; // deixa tentar de novo
+      document.head.appendChild(s);
+    });
+  }
+  return carregandoExcel;
+}
+
 export function toast(msg, tipo = 'ok') {
   const cor = tipo === 'erro' ? 'bg-red-600' : 'bg-slate-800';
   const el = document.createElement('div');

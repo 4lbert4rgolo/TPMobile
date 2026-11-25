@@ -1,4 +1,4 @@
-import { $, abrirModal, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
+import { $, abrirModal, carregarExcel, esc, estado, fecharModal, pubPorId, tentar, toast } from './nucleo.js';
 import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
 import { numeroWhats } from './votos.js';
@@ -226,8 +226,8 @@ export async function confirmarImportacao() {
   if (ok) { fecharModal(); renderAba(); }
 }
 
-export function baixarModeloImportacao() {
-  if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');
+export async function baixarModeloImportacao() {
+  if (!(await carregarExcel())) return toast('A biblioteca do Excel não carregou. Verifique a internet.', 'erro');
   const ws = XLSX.utils.aoa_to_sheet(linhasDoModelo(estado.config.pontos || []));
   COLUNAS.forEach((_, c) => { const k = XLSX.utils.encode_cell({ r: 0, c }); if (ws[k]) ws[k].s = ESTILOS.cabecalho; });
   ws['!cols'] = [{ wch: 28 }, { wch: 10 }, { wch: 18 }, { wch: 32 }, { wch: 16 }];

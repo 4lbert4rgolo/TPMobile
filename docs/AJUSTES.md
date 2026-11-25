@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.15 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.16 (em revisão), anterior publicada: v3.15.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -29,6 +29,7 @@
 | 3.13 | Perfil escolhido no link pessoal; uma linha por pessoa em Usuários; aviso de acesso duplicado |
 | 3.14 | Segurança: App Check, CSP, bibliotecas de Excel no próprio site (SheetJS 0.20.3) e regras mais rígidas |
 | 3.15 | App Check ligado (Google Cloud Fraud Defense), ainda sem bloquear |
+| 3.16 | Abertura mais rápida: Excel carrega só na hora; módulos do Firebase baixados juntos |
 
 ---
 
@@ -337,3 +338,9 @@ Nada muda na tela para os irmãos. Detalhes e passo a passo em [docs/SEGURANCA.m
 - Chave de site do App Check preenchida em `firebase-config.js` e app registrado no Firebase (App Check > Apps > TPmobile: **Registrado**).
 - O provedor passou a ser o **Google Cloud Fraud Defense** (antigo reCAPTCHA Enterprise, `ReCaptchaEnterpriseProvider`), porque o reCAPTCHA clássico foi descontinuado.
 - O Cloud Firestore continua **Não aplicado**: por enquanto o App Check só mede. Aplicar depois de alguns dias, conforme o docs/SEGURANCA.md.
+
+## v3.16 — Abertura mais rápida (25/11/2026)
+
+Depois da v3.14 o app ficou mais lento para abrir: a biblioteca de Excel (415 KB) era baixada em todo carregamento, antes de o app começar.
+- A biblioteca de Excel agora carrega **só quando alguém gera uma planilha** (escala em Excel ou modelo de importação), pela função `carregarExcel()` em `js/nucleo.js`.
+- O módulo do App Check é baixado junto com os outros módulos do Firebase, e não depois deles.
