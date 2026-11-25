@@ -36,7 +36,14 @@ export function configurado(cfg) {
 
 /* ------------------------------------------------------------------ Firebase */
 
-export async function criarBackendFirebase(cfg) {
+/**
+ * Endereços de teste (computador do desenvolvedor): o App Check não tem reCAPTCHA para eles, então usa um
+ * "token de depuração". Na primeira vez, o Console (F12) mostra o token; cadastre-o no Firebase
+ * (App Check > Apps > ⋮ > Gerenciar tokens de depuração). Veja docs/SEGURANCA.md.
+ */
+export const ehEnderecoDeTeste = (host) => host === 'localhost' || host === '127.0.0.1' || host.endsWith('.test');
+
+export async function criarBackendFirebase(cfg, { chaveAppCheck = '' } = {}) {
   const base = `https://www.gstatic.com/firebasejs/${FIREBASE_VERSAO}/`;
   const [{ initializeApp }, A, F] = await Promise.all([
     import(`${base}firebase-app.js`),
@@ -45,6 +52,18 @@ export async function criarBackendFirebase(cfg) {
   ]);
 
   const app = initializeApp(cfg);
+  // App Check: prova para o Firebase que o pedido vem do app TPMobile de verdade (e não de um programa
+  // feito para mexer no banco por fora). Usa o reCAPTCHA v3, que é invisível para o usuário.
+  // Precisa vir ANTES de abrir o login e o banco. Sem chave, o app funciona como antes.
+  if (chaveAppCheck) {
+    try {
+      if (ehEnderecoDeTeste(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
+      const C = await import(`${base}firebase-app-check.js`);
+      C.initializeAppCheck(app, { provider: new C.ReCaptchaV3Provider(chaveAppCheck), isTokenAutoRefreshEnabled: true });
+    } catch (e) {
+      console.warn('App Check não iniciou:', e);
+    }
+  }
   const auth = A.getAuth(app);
   // Cache no aparelho: o que já foi aberto continua aparecendo com internet fraca ou sem internet,
   // e o que for gravado sem internet é enviado quando a conexão voltar. Se o navegador não deixar
@@ -257,9 +276,11 @@ export async function criarBackendFirebase(cfg) {
       token, uid, plataforma: (navigator.userAgentData?.platform || navigator.platform || '').slice(0, 40), atualizadoEm: F.serverTimestamp(),
     }),
     removerDispositivo: (token) => F.deleteDoc(ref('dispositivos', token)),
-    enfileirarNotificacao: (aviso) => F.addDoc(col('notificacoes'), {
-      ...aviso, uid: auth.currentUser?.uid || null, status: 'pendente', criadoEm: F.serverTimestamp(),
-    }),
+    // Aviso com id fixo (pedido de troca) usa esse id; os demais ganham um id automático.
+    enfileirarNotificacao: ({ id, ...aviso }) => {
+      const dados = { ...aviso, uid: auth.currentUser?.uid || null, status: 'pendente', criadoEm: F.serverTimestamp() };
+      return id ? F.setDoc(ref('notificacoes', id), dados) : F.addDoc(col('notificacoes'), dados);
+    },
 
     /**
      * Grava a escala sem apagar a mudança de outro organizador.
@@ -571,7 +592,7 @@ export function criarBackendDemo() {
     async salvarDispositivo(token, uid) { gravar('dispositivos', { ...ler('dispositivos', {}), [token]: { token, uid, atualizadoEm: new Date().toISOString() } }); },
     async removerDispositivo(token) { const d = ler('dispositivos', {}); delete d[token]; gravar('dispositivos', d); },
     async enfileirarNotificacao(aviso) {
-      gravar('notificacoes', [{ ...aviso, id: `n${Date.now()}`, uid: sessao()?.uid, status: 'pendente', criadoEm: new Date().toISOString() }, ...ler('notificacoes', [])]);
+      gravar('notificacoes', [{ ...aviso, id: aviso.id || `n${Date.now()}`, uid: sessao()?.uid, status: 'pendente', criadoEm: new Date().toISOString() }, ...ler('notificacoes', [])]);
     },
     async getEscala(enqueteId) { return ler('escalas', {})[enqueteId] || null; },
     async salvarEscala(enqueteId, dados) {

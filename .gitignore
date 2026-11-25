@@ -2,6 +2,8 @@
 # Dependências e builds
 # ---------------------------------------------------------------------------
 node_modules/
+# bibliotecas copiadas de node_modules pelo `npm install` (scripts/copiar-bibliotecas.mjs)
+public/vendor/
 dist/
 build/
 coverage/

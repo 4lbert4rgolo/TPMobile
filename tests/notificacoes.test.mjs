@@ -47,6 +47,14 @@ test('aviso: pedido de troca vai para os organizadores; substituto recebe só o 
   assert.match(s.corpo, /^Gil, você entrou no lugar de Bruno/);
 });
 
+test('aviso de troca (v3.14): id fixo por pedido, no formato que as regras conferem', () => {
+  const troca = { id: 'p1_2026-11-26_0_0', nome: 'Bruno', data: '2026-11-26', turno: T[0], ponto: 'Bairro Novo', criadoEm: '2026-11-25T10:00:00.000Z' };
+  const p = avisoPedidoTroca(troca, 'enq1');
+  assert.equal(p.id, 'troca~enq1~p1_2026-11-26_0_0~2026-11-25T10:00:00.000Z');
+  assert.equal(p.id.split('~').length, 4);
+  assert.equal(avisoPedidoTroca(troca).id, undefined); // sem enquete, id automático
+});
+
 test('aviso: textos cabem nos limites das regras do Firestore', () => {
   const longo = { nome: 'X'.repeat(60), data: '2026-11-26', turno: T[0], ponto: 'P'.repeat(60), motivo: 'm'.repeat(500) };
   for (const a of [avisoEnqueteAberta(enquete), avisoLembrete(enquete, ['a']), avisoEscalaPublicada(enquete, {}), avisoPedidoTroca(longo), avisoSubstituto(longo, { id: 'g', nome: 'Gil' })]) {

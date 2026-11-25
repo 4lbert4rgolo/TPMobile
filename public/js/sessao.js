@@ -2,7 +2,7 @@ import { botaoInstalar, pedirArmazenamentoPersistente } from './instalar.js';
 import { $, SEM_ACESSO, ehOrganizador, erroAmigavel, estado, lerPref, rotuloFonte, toast, tokenDoLink } from './nucleo.js';
 import { renderApp } from './shell.js';
 import { renovarAvisos } from './telaNotificacoes.js';
-import { firebaseConfig } from './firebase-config.js';
+import { firebaseConfig, chaveAppCheck } from './firebase-config.js';
 import { criarBackendFirebase, criarBackendDemo, configurado, CONFIG_PADRAO, normalizarPapel } from './data.js';
 
 export async function entrarComLink() {
@@ -27,7 +27,7 @@ export async function iniciar() {
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
   document.documentElement.classList.toggle('fonte-grande', lerPref('fonte') === 'grande');
   try {
-    estado.backend = configurado(firebaseConfig) ? await criarBackendFirebase(firebaseConfig) : criarBackendDemo();
+    estado.backend = configurado(firebaseConfig) ? await criarBackendFirebase(firebaseConfig, { chaveAppCheck }) : criarBackendDemo();
   } catch (e) {
     console.error(e);
     $('#app').innerHTML = `<p class="p-8 text-center text-red-600">Não foi possível conectar ao Firebase. Confira o arquivo firebase-config.js.</p>`;

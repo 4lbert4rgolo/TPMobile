@@ -44,6 +44,11 @@ service cloud.firestore {
       return cadastro().publicadorId;
     }
 
+    // Texto com limite de tamanho (evita gravar textos enormes).
+    function texto(v, max) {
+      return v is string && v.size() <= max;
+    }
+
     // Cada pessoa cria o próprio cadastro:
     //  - com e-mail e senha: sempre como "pendente", até o administrador aprovar;
     //  - pelo link pessoal: como "votante", ligado ao publicador daquele link.
@@ -112,9 +117,16 @@ service cloud.firestore {
         && request.resource.data.keys().hasOnly(['area', 'acao', 'alvo', 'detalhe', 'enqueteId', 'uid', 'nome', 'papel', 'quando', 'quandoISO'])
         && request.resource.data.uid == request.auth.uid
         && request.resource.data.nome == cadastro().nome
+        // O perfil gravado no registro tem de ser o perfil real de quem fez (o antigo "anciao" vale como admin).
+        && (request.resource.data.papel == cadastro().papel
+            || (cadastro().papel == 'anciao' && request.resource.data.papel == 'admin'))
         && request.resource.data.quando == request.time
-        && request.resource.data.acao is string && request.resource.data.acao.size() <= 120
-        && request.resource.data.detalhe is string && request.resource.data.detalhe.size() <= 600
+        && texto(request.resource.data.area, 40)
+        && texto(request.resource.data.acao, 120)
+        && texto(request.resource.data.alvo, 160)
+        && texto(request.resource.data.detalhe, 600)
+        && texto(request.resource.data.quandoISO, 40)
+        && (request.resource.data.enqueteId == null || texto(request.resource.data.enqueteId, 100))
         && (organizador() || request.resource.data.area in ['privacidade', 'trocas']);
       allow update: if false;
       allow delete: if administrador();
@@ -136,6 +148,18 @@ service cloud.firestore {
 
     // Pedidos de aviso ("fila"): o app grava, o script do Google envia e marca como enviado.
     // Organizadores avisam qualquer coisa; votante só avisa os organizadores sobre um pedido de troca.
+    // Aviso de pedido de troca feito pelo votante: o id é "troca~{enquete}~{pedido}~{criadoEm}".
+    // Só vale se o pedido existe, é da própria pessoa e está aberto: um aviso por pedido, sem repetição.
+    function avisoDeTrocaValido(id) {
+      let partes = id.split('~');
+      let caminho = /databases/$(database)/documents/enquetes/$(partes[1])/trocas/$(partes[2]);
+      return partes.size() == 4 && partes[0] == 'troca'
+        && exists(caminho)
+        && get(caminho).data.publicadorId == meuPublicadorId()
+        && get(caminho).data.status == 'aberta'
+        && get(caminho).data.criadoEm == partes[3];
+    }
+
     match /notificacoes/{id} {
       allow read: if organizador();
       allow create: if aprovado()
@@ -150,7 +174,8 @@ service cloud.firestore {
         && (organizador()
           || (request.resource.data.tipo == 'troca-pedido'
             && request.resource.data.para == { 'organizadores': true }
-            && !('porPublicador' in request.resource.data)));
+            && !('porPublicador' in request.resource.data)
+            && avisoDeTrocaValido(id)));
       allow update: if false;
       allow delete: if administrador();
     }
@@ -186,6 +211,11 @@ service cloud.firestore {
           || (aprovado()
               && pubId == meuPublicadorId()
               && request.resource.data.publicadorId == pubId
+              // Só os campos do voto, com tamanho limitado.
+              && request.resource.data.keys().hasOnly(['disponibilidade', 'nome', 'publicadorId', 'atualizadoEm'])
+              && request.resource.data.disponibilidade is map
+              && request.resource.data.disponibilidade.size() <= 30
+              && (!('nome' in request.resource.data) || texto(request.resource.data.nome, 100))
               && get(/databases/$(database)/documents/enquetes/$(enqueteId)).data.status == 'aberta');
         allow delete: if organizador();
       }
@@ -193,12 +223,19 @@ service cloud.firestore {
       // Pedidos de troca ("Preciso trocar"). A pessoa pede e cancela os próprios;
       // os organizadores veem todos e resolvem ou dispensam.
       match /trocas/{trocaId} {
+        // Pedido feito pelo votante: só os campos do pedido, com tamanho limitado.
+        function pedidoValido(d) {
+          return d.keys().hasOnly(['publicadorId', 'nome', 'ponto', 'data', 'turno', 'motivo', 'status', 'criadoEm'])
+            && texto(d.nome, 100) && texto(d.ponto, 100) && texto(d.data, 10) && texto(d.turno, 40)
+            && texto(d.motivo, 200) && texto(d.criadoEm, 40);
+        }
         allow read: if organizador()
           || (aprovado() && resource.data.publicadorId == meuPublicadorId());
         allow create: if organizador()
           || (aprovado()
               && request.resource.data.publicadorId == meuPublicadorId()
               && request.resource.data.status == 'aberta'
+              && pedidoValido(request.resource.data)
               && trocaId.matches(meuPublicadorId() + '_.*'));
         allow update: if organizador()
           || (aprovado()
@@ -207,7 +244,8 @@ service cloud.firestore {
               && (
                 (request.resource.data.status == 'cancelada'
                   && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status']))
-                || (resource.data.status != 'aberta' && request.resource.data.status == 'aberta')
+                || (resource.data.status != 'aberta' && request.resource.data.status == 'aberta'
+                  && pedidoValido(request.resource.data))
               ));
         allow delete: if organizador();
       }

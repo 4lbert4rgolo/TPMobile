@@ -33,6 +33,10 @@ const obrigatorios = [
   'public/manifest.webmanifest', 'public/sw.js', 'public/icons/icon-192.png', 'public/icons/icon-512.png',
 ];
 for (const f of obrigatorios) if (!existe(f)) erros.push(`Falta o arquivo ${f}.`);
+// Bibliotecas de Excel servidas pelo próprio site (copiadas pelo `npm install`).
+for (const f of ['public/vendor/xlsx-estilo.js', 'public/vendor/xlsx.mjs']) {
+  if (!existe(f)) erros.push(`Falta ${f}. Rode "npm install" (ele copia as bibliotecas de Excel para public/vendor).`);
+}
 
 // 3) o index.html é o do app, e não o modelo que o `firebase init` cria
 if (existe('public/index.html')) {
