@@ -38,6 +38,11 @@ jobs:
       - name: Bibliotecas do app
         run: npm install --omit=dev --no-audit --no-fund
 
+      # Cada publicação ganha um nome de versão próprio (código do commit) no service worker:
+      # assim os aparelhos sempre baixam a versão nova inteira, mesmo se alguém esquecer de mudar VERSAO.
+      - name: Versão do service worker
+        run: sed -i "s/^const VERSAO = .*/const VERSAO = 'tpmobile-${GITHUB_SHA::7}';/" public/sw.js && grep -n "^const VERSAO" public/sw.js
+
       - name: Deploy no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0
         with:

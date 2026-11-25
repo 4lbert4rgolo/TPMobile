@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.16 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.17 (em revisão), anterior publicada: v3.16.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -30,6 +30,7 @@
 | 3.14 | Segurança: App Check, CSP, bibliotecas de Excel no próprio site (SheetJS 0.20.3) e regras mais rígidas |
 | 3.15 | App Check ligado (Google Cloud Fraud Defense), ainda sem bloquear |
 | 3.16 | Abertura mais rápida: Excel carrega só na hora; módulos do Firebase baixados juntos |
+| 3.17 | Abertura bem mais rápida: arquivos do app vêm do aparelho, com troca de versão segura |
 
 ---
 
@@ -344,3 +345,12 @@ Nada muda na tela para os irmãos. Detalhes e passo a passo em [docs/SEGURANCA.m
 Depois da v3.14 o app ficou mais lento para abrir: a biblioteca de Excel (415 KB) era baixada em todo carregamento, antes de o app começar.
 - A biblioteca de Excel agora carrega **só quando alguém gera uma planilha** (escala em Excel ou modelo de importação), pela função `carregarExcel()` em `js/nucleo.js`.
 - O módulo do App Check é baixado junto com os outros módulos do Firebase, e não depois deles.
+
+## v3.17 — Abertura bem mais rápida (25/11/2026)
+
+Medição no site (v3.16): uns 2,3 s só para baixar os ~38 arquivos do app, porque o service worker buscava cada um na internet a cada abertura, numa cadeia (um arquivo puxa o outro).
+- **Arquivos do app vêm do aparelho:** ao instalar uma versão, o service worker baixa todos os arquivos de uma vez para uma "gaveta" com o nome da versão; ao abrir, usa essa gaveta (no teste: 38 arquivos em ~0,2 s). Nunca mistura arquivo novo com antigo.
+- **Versão nova chega sozinha:** o navegador confere se há versão nova; se houver, baixa inteira em segundo plano e o app **recarrega sozinho** quando isso acontece nos primeiros 20 s (e a pessoa não está digitando nem com uma janela aberta); senão, aparece na próxima abertura.
+- **Nome da versão automático:** o deploy do GitHub troca `VERSAO` no `sw.js` pelo código do commit, então toda publicação gera uma versão nova, mesmo se alguém esquecer de mudar.
+- **Conferência antes de publicar:** `npm run verificar` agora confere que todo arquivo de `public/js` está na lista do `sw.js` e que todos os arquivos da lista existem (se faltar um, a versão nova não instalaria).
+- As três primeiras buscas no banco (configuração, enquetes e publicadores) agora vão juntas.

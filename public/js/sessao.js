@@ -23,8 +23,29 @@ export async function entrarComLink() {
   await aoAutenticar(estado.backend.usuarioAtual());
 }
 
+/**
+ * Registra o service worker e cuida da troca de versão.
+ * Quando uma versão nova termina de baixar, o novo service worker assume ("controllerchange").
+ * Se isso acontecer logo na abertura (até 20 s) e a pessoa não estiver digitando nem com uma janela aberta,
+ * recarrega na hora para já mostrar a versão nova. Senão, a versão nova aparece na próxima vez que abrir.
+ */
+function registrarServiceWorker() {
+  if (!('serviceWorker' in navigator) || !location.protocol.startsWith('http')) return;
+  const jaTinha = Boolean(navigator.serviceWorker.controller); // primeira visita: não precisa recarregar
+  navigator.serviceWorker.register('sw.js').catch(() => {});
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!jaTinha || window.__recarregando) return;
+    const digitando = document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName);
+    const janelaAberta = Boolean(document.querySelector('#modal')?.innerHTML.trim());
+    if (performance.now() < 20000 && !digitando && !janelaAberta) {
+      window.__recarregando = true;
+      location.reload();
+    }
+  });
+}
+
 export async function iniciar() {
-  if ('serviceWorker' in navigator && location.protocol.startsWith('http')) navigator.serviceWorker.register('sw.js').catch(() => {});
+  registrarServiceWorker();
   document.documentElement.classList.toggle('fonte-grande', lerPref('fonte') === 'grande');
   try {
     estado.backend = configurado(firebaseConfig) ? await criarBackendFirebase(firebaseConfig, { chaveAppCheck }) : criarBackendDemo();
@@ -81,17 +102,17 @@ export async function aoAutenticar(u) {
 export async function carregarBase() {
   const b = estado.backend;
   const org = ehOrganizador();
-  estado.config = { ...CONFIG_PADRAO, ...(await b.getConfig()) };
-  estado.enquetes = await b.listarEnquetes({ somenteVisiveis: !org });
-
-  if (org) {
-    estado.pubs = await b.listarPublicadores();
-  } else if (estado.perfil.publicadorId) {
+  // As três buscas não dependem uma da outra: vão juntas (antes era uma depois da outra).
+  const buscarPubs = async () => {
+    if (org) return b.listarPublicadores();
+    if (!estado.perfil.publicadorId) return [];
     const p = await b.getPublicador(estado.perfil.publicadorId);
-    estado.pubs = p ? [p] : [];
-  } else {
-    estado.pubs = [];
-  }
+    return p ? [p] : [];
+  };
+  const [config, enquetes, pubs] = await Promise.all([b.getConfig(), b.listarEnquetes({ somenteVisiveis: !org }), buscarPubs()]);
+  estado.config = { ...CONFIG_PADRAO, ...config };
+  estado.enquetes = enquetes;
+  estado.pubs = pubs;
 }
 
 export function faixaDemo() {

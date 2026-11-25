@@ -33,6 +33,15 @@ const obrigatorios = [
   'public/manifest.webmanifest', 'public/sw.js', 'public/icons/icon-192.png', 'public/icons/icon-512.png',
 ];
 for (const f of obrigatorios) if (!existe(f)) erros.push(`Falta o arquivo ${f}.`);
+// O service worker baixa a lista ARQUIVOS inteira ao instalar: se faltar um arquivo, a versão nova não instala
+// e os aparelhos ficam presos na antiga. E todo arquivo de public/js precisa estar na lista.
+if (existe('public/sw.js')) {
+  const sw = ler('public/sw.js');
+  const lista = [...(sw.match(/const ARQUIVOS = \[([\s\S]*?)\];/)?.[1] || '').matchAll(/'([^']+)'/g)].map((m) => m[1]);
+  for (const f of lista) if (f !== './' && !existe(join('public', f))) erros.push(`sw.js lista ${f}, mas o arquivo não existe em public/.`);
+  for (const f of readdirSync(join(raiz, 'public', 'js'))) if (f.endsWith('.js') && !lista.includes(`js/${f}`)) erros.push(`public/js/${f} não está na lista ARQUIVOS do sw.js.`);
+}
+
 // Bibliotecas de Excel servidas pelo próprio site (copiadas pelo `npm install`).
 for (const f of ['public/vendor/xlsx-estilo.js', 'public/vendor/xlsx.mjs']) {
   if (!existe(f)) erros.push(`Falta ${f}. Rode "npm install" (ele copia as bibliotecas de Excel para public/vendor).`);

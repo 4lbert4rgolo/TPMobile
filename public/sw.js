@@ -1,12 +1,19 @@
 // Service worker do TPMobile.
-// Faz o app ser instalável e abrir mais rápido. Sempre tenta a internet primeiro, para que
-// uma versão nova do app apareça logo; a cópia guardada só entra se a internet falhar.
-// As bibliotecas de Excel ficam em vendor/ (próprio site) e são guardadas na primeira vez que abrem.
+// Faz o app ser instalável e abrir rápido, inclusive sem internet.
+//
+// Como as versões funcionam (v3.17):
+//  - Cada versão publicada tem um nome próprio em VERSAO (o deploy do GitHub troca sozinho pelo
+//    código do commit). Ao instalar, o service worker baixa TODOS os arquivos do app de uma vez
+//    para uma "gaveta" (cache) com esse nome.
+//  - Ao abrir, os arquivos do app vêm direto dessa gaveta: rápido e sempre da mesma versão
+//    (nunca um arquivo novo misturado com um antigo).
+//  - Enquanto isso, o navegador confere se há versão nova. Se houver, ela é baixada inteira em
+//    segundo plano e o app recarrega sozinho para usá-la (veja sessao.js).
 // As bibliotecas de outros endereços (Firebase, fontes) têm a versão no endereço, então
-// são guardadas na primeira vez e usadas do aparelho depois: assim o app abre mesmo sem internet.
+// são guardadas na primeira vez e usadas do aparelho depois.
 // Os dados (Firestore) e o login não passam por aqui: o próprio Firebase guarda o cache deles.
 
-const VERSAO = 'tpmobile-v3.16';
+const VERSAO = 'tpmobile-v3.17';
 const BIBLIOTECAS = 'tpmobile-bibliotecas-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
@@ -23,7 +30,10 @@ const ARQUIVOS = [
 ];
 
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(VERSAO).then((c) => c.addAll(ARQUIVOS)).then(() => self.skipWaiting()));
+  // cache: 'reload' busca da internet (e não do cache do navegador), para a gaveta nova ser mesmo da versão nova.
+  e.waitUntil(caches.open(VERSAO)
+    .then((c) => c.addAll(ARQUIVOS.map((u) => new Request(u, { cache: 'reload' }))))
+    .then(() => self.skipWaiting()));
 });
 
 self.addEventListener('activate', (e) => {
@@ -55,16 +65,19 @@ self.addEventListener('fetch', (e) => {
     return;
   }
 
+  // Endereços internos do Firebase Hosting (/__/...) e .well-known: sempre da internet, sem guardar.
+  if (url.pathname.startsWith('/__/') || url.pathname.startsWith('/.well-known/')) return;
+
+  // Arquivos do app: primeiro a gaveta desta versão; se faltar algum, busca na internet e guarda.
+  // A página (index.html) vem da gaveta mesmo com ?aba=... no endereço (links das notificações).
+  const pedido = req.mode === 'navigate' ? 'index.html' : req;
   e.respondWith(
-    fetch(req)
+    caches.open(VERSAO).then((c) => c.match(pedido, { ignoreSearch: req.mode === 'navigate' }).then((guardado) => guardado || fetch(req)
       .then((res) => {
-        if (res.ok) {
-          const copia = res.clone();
-          caches.open(VERSAO).then((c) => c.put(req, copia));
-        }
+        if (res.ok && req.mode !== 'navigate') c.put(req, res.clone());
         return res;
       })
-      .catch(() => caches.match(req).then((guardado) => guardado || caches.match('index.html')))
+      .catch(() => c.match('index.html'))))
   );
 });
 
