@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.17 (em revisão), anterior publicada: v3.16.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.17 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
