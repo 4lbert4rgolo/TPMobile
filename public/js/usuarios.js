@@ -4,6 +4,7 @@ import { carregarBase } from './sessao.js';
 import { renderAba, renderApp } from './shell.js';
 import { PAPEIS, normalizarPapel } from './data.js';
 import { campoBusca } from './busca.js';
+import { agruparUsuarios, contasDeEmailDo, PAPEIS_LINK, planoDeUnificacao } from './acessos.js';
 
 /* ============================================================ usuários (administrador) */
 
@@ -26,9 +27,18 @@ export function publicadorSugerido(usuario) {
   return achados.length === 1 ? achados[0].id : null;
 }
 
+/** Todos os uids da mesma pessoa: os aparelhos que entraram pelo mesmo link pessoal (ou só o próprio uid). */
+export function uidsDoGrupo(uid) {
+  const u = estado.usuarios.find((x) => x.id === uid);
+  if (!u?.conviteId) return [uid];
+  return estado.usuarios.filter((x) => x.conviteId === u.conviteId).map((x) => x.id);
+}
+
+/** true se, tirando esta pessoa (todos os aparelhos dela), não sobra nenhum administrador. */
 export const ehUltimoAdmin = (uid) => {
+  const grupo = new Set(uidsDoGrupo(uid));
   const admins = estado.usuarios.filter((u) => u.papel === 'admin');
-  return admins.length === 1 && admins[0].id === uid;
+  return admins.some((u) => grupo.has(u.id)) && !admins.some((u) => !grupo.has(u.id));
 };
 
 export async function recarregarUsuarios() {
@@ -42,6 +52,32 @@ export async function recarregarUsuarios() {
     }
   }
   estado.usuarios = lista.map((u) => ({ ...u, papel: normalizarPapel(u.papel) }));
+  await unificarDuplicados();
+}
+
+/**
+ * Acessos duplicados (antes da v3.13 cada aparelho do link virava um usuário separado):
+ * iguala o perfil de todos os aparelhos da mesma pessoa e grava esse perfil no link.
+ * Roda sozinho quando um administrador abre Usuários ou Links de acesso; quando não há nada a fazer, não grava nada.
+ */
+async function unificarDuplicados() {
+  if (estado.perfil?.papel !== 'admin') return;
+  let convites;
+  try { convites = await estado.backend.listarConvites(); } catch (e) { console.error(e); return; }
+  const plano = planoDeUnificacao(estado.usuarios, convites);
+  if (!plano.usuarios.length && !plano.convites.length) return;
+  try {
+    for (const u of plano.usuarios) await estado.backend.atualizarUsuario(u.id, { papel: u.papel });
+    for (const cv of plano.convites) await estado.backend.atualizarConvite(cv.id, { papel: cv.papel });
+  } catch (e) {
+    console.error(e); // sem permissão agora: tenta de novo na próxima vez que abrir a tela
+    return;
+  }
+  const pessoas = [...new Set([...plano.usuarios, ...plano.convites].map((x) => x.nome).filter(Boolean))];
+  registrar({ area: 'usuarios', acao: 'Unificou acessos duplicados do link pessoal', alvo: `${pessoas.length} pessoa(s)`, detalhe: pessoas.join(', ') });
+  const mudou = new Map(plano.usuarios.map((u) => [u.id, u.papel]));
+  estado.usuarios = estado.usuarios.map((u) => (mudou.has(u.id) ? { ...u, papel: mudou.get(u.id) } : u));
+  if (plano.usuarios.length) toast(`Acessos duplicados unificados: ${pessoas.join(', ')}.`);
 }
 
 export async function renderUsuarios() {
@@ -49,9 +85,16 @@ export async function renderUsuarios() {
   await recarregarUsuarios();
 
   const nomeOrdem = (a, b) => (a.nome || '').localeCompare(b.nome || '', 'pt');
-  const pendentes = estado.usuarios.filter((u) => u.papel === 'pendente').sort(nomeOrdem);
-  const ativos = estado.usuarios.filter((u) => !SEM_ACESSO.includes(u.papel)).sort(nomeOrdem);
-  const removidos = estado.usuarios.filter((u) => u.papel === 'removido').sort(nomeOrdem);
+  // Uma linha por pessoa: os aparelhos que entraram pelo mesmo link pessoal ficam juntos.
+  const grupos = agruparUsuarios(estado.usuarios);
+  const pendentes = grupos.filter((u) => u.papel === 'pendente').sort(nomeOrdem);
+  const ativos = grupos.filter((u) => !SEM_ACESSO.includes(u.papel)).sort(nomeOrdem);
+  const removidos = grupos.filter((u) => u.papel === 'removido').sort(nomeOrdem);
+  // Para avisar quando a mesma pessoa tem conta de e-mail E link pessoal (acesso duplicado).
+  const temLink = new Set(estado.usuarios.filter((u) => u.conviteId && u.papel !== 'removido').map((u) => u.publicadorId));
+  const comoEntra = (u) => (u.conviteId
+    ? `Link pessoal · ${u.aparelhos} aparelho(s)${contasDeEmailDo(u.publicadorId, estado.usuarios).length ? ' · <span class="text-amber-700">também entra com e-mail</span>' : ''}`
+    : `${esc(u.email || '')}${u.publicadorId && temLink.has(u.publicadorId) ? ' · <span class="text-amber-700">também entra pelo link pessoal</span>' : ''}`);
   const pubs = [...estado.pubs].sort((a, b) => a.nome.localeCompare(b.nome, 'pt'));
 
   const linha = (u) => {
@@ -62,10 +105,11 @@ export async function renderUsuarios() {
     return `<tr class="border-t ${pendente ? 'bg-amber-50' : ''}" data-uid="${esc(u.id)}" data-busca="${esc(semAcento([u.nome, u.email, pub?.nome, PAPEIS[u.papel]].filter(Boolean).join(' ')))}">
       <td class="p-3">
         <input class="border rounded-lg p-1 w-full min-w-[9rem]" value="${esc(u.nome || '')}" data-campo-usuario="nome" aria-label="Nome">
-        <p class="text-xs text-slate-500 mt-1">${u.conviteId ? 'Entrou pelo link pessoal' : esc(u.email || '')}</p>
+        <p class="text-xs text-slate-500 mt-1">${comoEntra(u)}</p>
+        ${u.misturado ? '<p class="text-xs text-amber-700 mt-1">Os aparelhos desta pessoa estavam com perfis diferentes. Confira o perfil e toque em Salvar para igualar.</p>' : ''}
         <p class="text-xs mt-1 ${u.privacidadeAceitaEm ? 'text-green-700' : 'text-amber-700'}">${u.privacidadeAceitaEm ? `Privacidade aceita em ${dataHora(u.privacidadeAceitaEm)}` : 'Ainda não aceitou o aviso de privacidade'}</p></td>
       <td class="p-3"><select class="border rounded-lg p-1" data-campo-usuario="papel" aria-label="Perfil">
-        ${Object.entries(PAPEIS).filter(([v]) => v !== 'removido').map(([v, r]) => `<option value="${v}" ${u.papel === v ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
+        ${Object.entries(PAPEIS).filter(([v]) => v !== 'removido' && (!u.conviteId || PAPEIS_LINK.includes(v))).map(([v, r]) => `<option value="${v}" ${u.papel === v ? 'selected' : ''}>${r}</option>`).join('')}</select></td>
       <td class="p-3"><select class="border rounded-lg p-1" data-campo-usuario="publicadorId" aria-label="Publicador">
         <option value="">— nenhum —</option>
         ${pubs.map((p) => `<option value="${esc(p.id)}" ${escolhido === p.id ? 'selected' : ''}>${esc(p.nome)}</option>`).join('')}</select>
@@ -83,7 +127,7 @@ export async function renderUsuarios() {
 
   c.innerHTML = `
     <h2 class="text-lg font-bold mb-1">Usuários</h2>
-    <p class="text-sm text-slate-600 mb-4">Defina o perfil de cada pessoa e ligue o acesso dela ao nome na lista de publicadores. <strong>Remover acesso</strong> bloqueia na hora, e você pode reativar depois. Anciãos devem ter o perfil <strong>Administrador</strong>.</p>
+    <p class="text-sm text-slate-600 mb-4">Defina o perfil de cada pessoa e ligue o acesso dela ao nome na lista de publicadores. Quem entra pelo link pessoal aparece numa linha só, mesmo usando vários aparelhos: mudar o perfil aqui muda também o link. <strong>Remover acesso</strong> bloqueia na hora, e você pode reativar depois. Anciãos devem ter o perfil <strong>Administrador</strong>.</p>
     ${campoBusca('Buscar por nome, e-mail ou perfil')}
 
     ${pendentes.length ? `<h3 class="font-bold text-amber-800 mb-2">Aguardando aprovação (${pendentes.length})</h3>${tabela(pendentes)}` : ''}
@@ -95,7 +139,7 @@ export async function renderUsuarios() {
       <summary class="cursor-pointer font-bold">Acessos removidos (${removidos.length})</summary>
       <div class="bg-white rounded-xl shadow-sm border overflow-x-auto mt-2"><table class="w-full text-sm"><tbody>
         ${removidos.map((u) => `<tr class="border-t first:border-t-0" data-busca="${esc(semAcento([u.nome, u.email].filter(Boolean).join(' ')))}">
-          <td class="p-3"><p class="font-medium">${esc(u.nome || '—')}</p><p class="text-xs text-slate-500">${u.conviteId ? 'Entrava pelo link pessoal' : esc(u.email || '')}</p></td>
+          <td class="p-3"><p class="font-medium">${esc(u.nome || '—')}</p><p class="text-xs text-slate-500">${u.conviteId ? `Entrava pelo link pessoal · ${u.aparelhos} aparelho(s)` : esc(u.email || '')}</p></td>
           <td class="p-3 text-right whitespace-nowrap">
             <button class="text-blue-700 underline mr-3" data-acao="reativar-usuario" data-id="${esc(u.id)}">Reativar como votante</button>
             <button class="text-red-600 underline" data-acao="excluir-usuario" data-id="${esc(u.id)}">Excluir registro</button></td></tr>`).join('')}
@@ -116,14 +160,21 @@ export async function salvarUsuario(uid) {
   if (uid === estado.perfil.uid && papel !== 'admin' && !confirm('Você está tirando o seu próprio perfil de administrador. Continuar?')) return;
 
   const antes = estado.usuarios.find((x) => x.id === uid);
-  const ok = await tentar(() => estado.backend.atualizarUsuario(uid, { nome, papel, publicadorId }), 'Usuário atualizado.');
+  const uids = uidsDoGrupo(uid);
+  const ok = await tentar(async () => {
+    for (const id of uids) await estado.backend.atualizarUsuario(id, { nome, papel, publicadorId });
+    // Link pessoal: o link guarda o mesmo perfil e nome, para o próximo aparelho já entrar certo (sem duplicar).
+    if (antes?.conviteId && PAPEIS_LINK.includes(papel)) {
+      try { await estado.backend.atualizarConvite(antes.conviteId, { papel, nome, ...(publicadorId ? { publicadorId } : {}) }); } catch (e) { console.error(e); /* link já revogado */ }
+    }
+  }, 'Usuário atualizado.');
   if (!ok) return;
   const mudancas = [];
   if (antes?.papel !== papel) mudancas.push(`perfil: ${PAPEIS[antes?.papel] || antes?.papel || '—'} → ${PAPEIS[papel] || papel}`);
   if ((antes?.publicadorId || null) !== publicadorId) mudancas.push(`ligado a: ${estado.pubs.find((p) => p.id === publicadorId)?.nome || 'ninguém'}`);
   if (antes?.nome !== nome) mudancas.push(`nome: ${antes?.nome || '—'} → ${nome}`);
   registrar({ area: 'usuarios', acao: antes?.papel === 'pendente' && papel !== 'pendente' ? 'Aprovou o acesso' : 'Alterou o usuário', alvo: nome, detalhe: mudancas.join(' · ') || 'sem mudança' });
-  if (uid === estado.perfil.uid) {
+  if (uids.includes(estado.perfil.uid)) {
     estado.perfil = { ...estado.perfil, nome, papel, publicadorId };
     await carregarBase();
     renderApp();
@@ -135,10 +186,14 @@ export async function salvarUsuario(uid) {
 export async function removerAcesso(uid) {
   const u = estado.usuarios.find((x) => x.id === uid);
   if (!u) return;
-  if (uid === estado.perfil.uid) return toast('Você não pode remover o seu próprio acesso.', 'erro');
+  if (uidsDoGrupo(uid).includes(estado.perfil.uid)) return toast('Você não pode remover o seu próprio acesso.', 'erro');
   if (ehUltimoAdmin(uid)) return toast('Este é o único administrador. Nomeie outro antes de remover.', 'erro');
   if (!confirm(`${u.papel === 'pendente' ? 'Recusar' : 'Remover o acesso de'} ${u.nome || 'esta pessoa'}? A pessoa perde o acesso na hora. Você pode reativar depois.`)) return;
-  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'removido' }), 'Acesso removido.')) {
+  if (await tentar(async () => {
+    for (const id of uidsDoGrupo(uid)) await estado.backend.atualizarUsuario(id, { papel: 'removido' });
+    // O link pessoal para de aceitar aparelhos novos (senão um celular novo entraria de novo, como outra pessoa).
+    if (u.conviteId) { try { await estado.backend.atualizarConvite(u.conviteId, { ativo: false }); } catch (e) { console.error(e); } }
+  }, 'Acesso removido.')) {
     registrar({ area: 'usuarios', acao: u.papel === 'pendente' ? 'Recusou o acesso' : 'Removeu o acesso', alvo: u.nome || u.email || uid });
     renderAba();
   }
@@ -146,7 +201,10 @@ export async function removerAcesso(uid) {
 
 export async function reativarUsuario(uid) {
   const u = estado.usuarios.find((x) => x.id === uid);
-  if (await tentar(() => estado.backend.atualizarUsuario(uid, { papel: 'votante' }), 'Acesso reativado como votante.')) {
+  if (await tentar(async () => {
+    for (const id of uidsDoGrupo(uid)) await estado.backend.atualizarUsuario(id, { papel: 'votante' });
+    if (u?.conviteId) { try { await estado.backend.atualizarConvite(u.conviteId, { ativo: true, papel: 'votante' }); } catch (e) { console.error(e); } }
+  }, 'Acesso reativado como votante.')) {
     registrar({ area: 'usuarios', acao: 'Reativou o acesso (votante)', alvo: u?.nome || u?.email || uid });
     renderAba();
   }
@@ -155,7 +213,7 @@ export async function reativarUsuario(uid) {
 export async function excluirRegistroUsuario(uid) {
   const u = estado.usuarios.find((x) => x.id === uid);
   if (!u || !confirm(`Excluir o registro de ${u.nome || 'esta pessoa'}? Se ela entrar de novo com a mesma conta de e-mail, aparecerá como aguardando aprovação.`)) return;
-  if (await tentar(() => estado.backend.excluirUsuario(uid), 'Registro excluído.')) {
+  if (await tentar(async () => { for (const id of uidsDoGrupo(uid)) await estado.backend.excluirUsuario(id); }, 'Registro excluído.')) {
     registrar({ area: 'usuarios', acao: 'Excluiu o registro do usuário', alvo: u.nome || u.email || uid });
     renderAba();
   }

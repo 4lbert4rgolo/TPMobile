@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.2 (em revisão), anterior publicada: v3.1.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.13 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -26,6 +26,7 @@
 | 3.10 | Menu novo: barra de botões embaixo, grupos, ícones e contadores de pendência |
 | 3.11 | "Avisar no grupo": mensagem curta com prazo e link |
 | 3.12 | Tela Início: o que fazer agora, próximo horário, resumo da semana, mural de novidades e atalhos |
+| 3.13 | Perfil escolhido no link pessoal; uma linha por pessoa em Usuários; aviso de acesso duplicado |
 
 ---
 
@@ -288,3 +289,27 @@ O app passa a abrir na tela **Início** (primeiro botão da barra de baixo e pri
 - **Atalhos grandes:** Votar, Minha escala, Escala completa e Avisos no celular.
 
 Código: `public/js/telaInicio.js` (tela), `public/js/novidades.js` (regras do mural, testadas em `tests/novidades.test.mjs`). Coleção nova `novidades` no Firestore com regras próprias: todos com acesso leem; servos e administradores escrevem (**rodar `npm run deploy:regras`**).
+
+## v3.13 — Perfil no link pessoal, sem usuário duplicado (25/11/2026)
+
+**Por que duplicava.** Todo link pessoal criava um usuário **Votante** em cada aparelho que o abria. Quando um administrador promovia a pessoa a Servo em Usuários, só aquele aparelho mudava: o próximo celular (ou o app instalado) criava outro Votante. A tela Usuários mostrava uma linha por aparelho.
+
+**Links de acesso.**
+- Coluna nova **Perfil**: antes de tocar em **Gerar link**, escolha Votante, Servo Ministerial ou Administrador. Quem abrir o link já entra com esse perfil, em qualquer aparelho.
+- Num link que já existe, trocar o perfil vale na hora para o link e para todos os aparelhos que já entraram por ele. **Gerar novo** mantém o perfil do link antigo.
+- Link de **Administrador** pede confirmação (dá acesso a tudo sem senha). O app não deixa tirar o perfil do único administrador.
+- Se o publicador **já entra com e-mail e senha**, aparece "Já entra com e-mail (perfil)" e o app pergunta antes de gerar um link (seria um segundo acesso da mesma pessoa). **Gerar links para quem ainda não tem** pula essas pessoas.
+- A mensagem do WhatsApp de um link de Servo ou Administrador diz o perfil e reforça que não pode ser encaminhada.
+
+**Usuários.**
+- **Uma linha por pessoa:** os aparelhos do mesmo link ficam juntos ("Link pessoal · 3 aparelho(s)"). Salvar, Remover acesso, Reativar e Excluir valem para todos os aparelhos, e o perfil e o nome salvos também vão para o link.
+- Se os aparelhos da pessoa estavam com perfis diferentes (as duplicações antigas), a linha avisa: confira o perfil e toque em **Salvar** para igualar tudo.
+- Aviso "também entra pelo link pessoal" / "também entra com e-mail" quando a mesma pessoa tem os dois acessos.
+- **Unificação automática dos duplicados antigos:** na primeira vez que um administrador abre Usuários ou Links de acesso, o app iguala o perfil de todos os aparelhos de cada link (fica o maior: se um aparelho já tinha sido promovido a Servo, todos viram Servo) e grava esse perfil no link, para o próximo aparelho já entrar certo. Aparelhos com acesso removido continuam removidos. Fica registrado na Auditoria ("Unificou acessos duplicados do link pessoal"). Quem tem conta de e-mail **e** link continua com os dois acessos, só com o aviso.
+- **Remover acesso** de quem entra pelo link também desativa o link, para um celular novo não entrar de novo; **Reativar** liga o link de volta como Votante.
+
+**Regras do Firestore:** quem entra pelo link só pode gravar o perfil que o link dá (links antigos, sem o campo, continuam dando Votante). Teste novo em `tests-regras/regras.spec.mjs`.
+
+Código: `public/js/acessos.js` (regras puras: perfil do link, agrupar aparelhos, contas de e-mail do publicador), testado em `tests/acessos.test.mjs`; mudanças em `links.js`, `usuarios.js`, `data.js` (`atualizarConvite` e perfil vindo do link) e `firestore.rules`.
+
+**Para publicar:** merge no `master` **e `npm run deploy:regras`** (sem as regras novas, um link de Servo ou Administrador dá erro de permissão ao entrar). Depois, um administrador abre Menu > Usuários uma vez: os duplicados são unificados sozinhos.

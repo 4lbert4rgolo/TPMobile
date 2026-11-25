@@ -6,7 +6,7 @@ import { pedirTroca, cancelarTroca } from './telaMinha.js';
 import { abrirImportacao, previaImportacao, confirmarImportacao, baixarModeloImportacao, arquivoDeImportacao } from './publicadores.js';
 import { filtrarAuditoria, abrirHistoricoEscala } from './telaAuditoria.js';
 import { instalarApp } from './instalar.js';
-import { copiarLink, criarLinkPara, enviarLinkWhats, gerarTodosLinks, revogarLink } from './links.js';
+import { copiarLink, criarLinkPara, enviarLinkWhats, gerarTodosLinks, mudarPerfilDoLink, revogarLink } from './links.js';
 import { $, SEM_ACESSO, erroAmigavel, estado, fecharModal, fonteGrande, gravarPref, pubPorId, rotuloFonte, tentar, toast } from './nucleo.js';
 import { excluirPublicador, formularioPublicador, salvarPublicadorForm } from './publicadores.js';
 import { carregarBase, entrarComLink, iniciar, renderLogin } from './sessao.js';
@@ -173,6 +173,7 @@ const acoes = {
   'copiar-link': (el) => copiarLink(el.dataset.id),
   'whats-link': (el) => enviarLinkWhats(el.dataset.id),
   'revogar-link': (el) => revogarLink(el.dataset.id),
+  'perfil-link': (el) => mudarPerfilDoLink(el.dataset.id, el.value),
   'testar-link': async (el) => { await estado.backend.resgatarConvite(el.dataset.id); estado.aba = null; },
 };
 
