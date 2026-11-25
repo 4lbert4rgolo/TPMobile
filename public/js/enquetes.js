@@ -112,7 +112,7 @@ export async function renderEnquetes() {
           e.status === 'aberta' ? ['encerrar-votacao', 'Encerrar votação'] : ['abrir-votacao', e.status === 'rascunho' ? 'Abrir votação' : 'Reabrir votação'],
           ['ver-votos', 'Ver votos'],
           ['montar-escala', 'Montar escala'],
-          ['texto-whats', 'Texto do WhatsApp'],
+          ['texto-whats', 'Avisar no grupo'],
           ...(podeArquivar(e) ? [[e.arquivada ? 'desarquivar-enquete' : 'arquivar-enquete', e.arquivada ? 'Desarquivar' : 'Arquivar']] : []),
           ['excluir-enquete', 'Excluir'],
         ];
@@ -340,23 +340,34 @@ export async function excluirEnquete(id) {
   if (ok) { registrar({ area: 'enquetes', acao: 'Excluiu a enquete', alvo: e.titulo, enqueteId: id }); await recarregarEnquetes(); renderAba(); }
 }
 
-export function textoWhatsApp(e) {
-  const link = `${location.origin}${location.pathname.replace(/index\.html$/, '')}`;
-  const dias = e.dias.map((d) => `• ${nomeDia(d.data)} ${dataCurta(d.data)}${d.ativo === false ? ` — ${d.motivo || 'sem carrinho'}` : ''}`).join('\n');
-  const obs = (e.bloqueios || []).length
-    ? `\n*Atenção:*\n${e.bloqueios.map((b) => `• ${nomeDia(b.data)} ${dataCurta(b.data)}, ${b.turno === '*' ? 'dia todo' : b.turno}: ${b.motivo || 'sem carrinho'}${b.ponto ? ` (só em ${b.ponto})` : ''}`).join('\n')}\n`
-    : '';
-  return `🛒 *Enquete do carrinho — ${e.titulo}*\n\nPor favor, votem nos horários em que podem participar, pelo aplicativo:\n${link}\n\n*Pontos:* ${e.pontos.join(' · ')}\n\n*Dias:*\n${dias}\n\n*Horários:* ${e.turnos.join(' | ')}\n${obs}\n${e.prazo ? `⏰ *A votação fecha ${textoPrazo(e.prazo)}.* Até lá, o voto pode ser alterado.` : 'O voto pode ser alterado até a enquete ser encerrada.'}`;
+/**
+ * Mensagem curta para o grupo do WhatsApp: a enquete, o prazo e o link.
+ * Dias, horários e pontos o irmão já vê no app; aqui só entram os dias SEM carrinho (assembleia etc.).
+ */
+export function textoWhatsApp(e, link = `${location.origin}${location.pathname.replace(/index\.html$/, '')}`) {
+  const semCarrinho = e.dias.filter((d) => d.ativo === false)
+    .map((d) => `• ${nomeDia(d.data)} ${dataCurta(d.data)}: ${d.motivo || 'sem carrinho'}`);
+  return [
+    `🛒 *Enquete do carrinho — ${e.titulo}*`,
+    '',
+    e.prazo ? `⏰ Vote até *${textoPrazo(e.prazo)}*, pelo app:` : 'Vote pelo app:',
+    link,
+    ...(semCarrinho.length ? ['', '*Sem carrinho:*', ...semCarrinho] : []),
+    '',
+    'Dá para mudar o voto até a votação fechar.',
+  ].join('\n');
 }
 
 export function abrirTextoWhats(id) {
   const e = estado.enquetes.find((x) => x.id === id);
   if (!e) return;
   abrirModal(`
-    <h2 class="font-bold mb-2">Texto para o grupo</h2>
-    <textarea id="texto-whats" class="w-full border rounded-lg p-2 text-sm" rows="14" readonly>${esc(textoWhatsApp(e))}</textarea>
-    <div class="flex justify-end gap-2 mt-3">
+    <h2 class="font-bold mb-1">Avisar no grupo</h2>
+    <p class="text-sm text-slate-600 mb-2">Mensagem curta com o prazo e o link. Quem ativou os avisos no celular também recebe a notificação quando a votação abre.</p>
+    <textarea id="texto-whats" class="w-full border rounded-lg p-2 text-sm" rows="8" readonly>${esc(textoWhatsApp(e))}</textarea>
+    <div class="flex flex-wrap justify-end gap-2 mt-3">
       <button class="px-4 py-2 rounded-lg bg-slate-100" data-acao="fechar-modal">Fechar</button>
-      <button class="px-4 py-2 rounded-lg bg-blue-600 text-white font-semibold" data-acao="copiar-whats">Copiar</button>
+      <button class="px-4 py-2 rounded-lg bg-slate-100" data-acao="copiar-whats">Copiar</button>
+      <button class="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold" data-acao="abrir-whats-texto">Abrir no WhatsApp</button>
     </div>`);
 }

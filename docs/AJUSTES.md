@@ -24,6 +24,7 @@
 | 3.7 | Rodapé com copyright (e na cor do cabeçalho) |
 | 3.9 | Prazo da votação, lembrete na véspera e aviso quando a escala muda |
 | 3.10 | Menu novo: barra de botões embaixo, grupos, ícones e contadores de pendência |
+| 3.11 | "Avisar no grupo": mensagem curta com prazo e link |
 
 ---
 
@@ -271,3 +272,7 @@ As tarefas automáticas ficam no `Notificacoes.gs`, dentro da mesma rodada de 5 
 - **Menu em grupos**: Para mim, Organizar a semana, Cadastros, Administração, Preferências e Sobre, com **ícone** em cada item.
 - **Contadores** (só organizadores): "faltam N" em Votos (enquete aberta), "N troca(s)" em Escala (pedidos abertos na escala publicada) e "N aguardando" em Usuários (só administrador). São atualizados a cada troca de tela, sem atrapalhar se falhar.
 - Código: `public/js/menu.js` (grupos, atalhos e contadores, testados em `tests/menu.test.mjs`); desenho em `shell.js`; estilos `.barra-baixo`, `.menu-icone` e `.menu-contador` em `app.css`. Sem mudança nas regras do Firestore.
+
+## v3.11 — "Avisar no grupo" (25/11/2026)
+
+O botão "Texto do WhatsApp" da enquete passou a se chamar **Avisar no grupo** e a mensagem ficou curta: título da enquete, prazo ("Vote até domingo, 29/11 às 20h"), link do app e, se houver, os dias sem carrinho (assembleia, congresso). Dias, horários e pontos não vão mais na mensagem, porque o irmão já vê tudo no app. A janela ganhou o botão **Abrir no WhatsApp**, além de Copiar.

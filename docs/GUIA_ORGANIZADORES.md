@@ -22,7 +22,7 @@ Menu > **Pontos** (ou o botão **Configurar pontos** em Enquetes):
      - **Par fixo:** *De preferência com o par* (padrão: o casal sai junto sempre que os dois puderem; se o par não marcou o horário, a pessoa pode sair com alguém do mesmo gênero), *Só com o par* (sem o par, a pessoa fica de fora) ou *Não considerar o par fixo nesta enquete*.
      - Em qualquer opção, as equipes são **só de irmãos ou só de irmãs**; o casal é a exceção e pode completar um trio.
 3. Toque em **Salvar e abrir votação** (ou **Salvar**, para deixar como rascunho; rascunho só os organizadores veem).
-4. **Texto do WhatsApp** monta a mensagem para o grupo, com os bloqueios da semana.
+4. **Avisar no grupo** monta uma mensagem curta para o grupo do WhatsApp: a enquete, o prazo, o link e os dias sem carrinho. Dá para copiar ou abrir direto no WhatsApp.
 
 ## 2. Acompanhar os votos
 - Em **Enquetes**, cada enquete aberta mostra "12 de 40 já votaram". Toque em **ver quem falta e lembrar**.
