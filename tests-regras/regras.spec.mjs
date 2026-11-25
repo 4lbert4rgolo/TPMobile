@@ -268,6 +268,18 @@ test('link pessoal: não dá para usar o link de um e virar outro publicador', a
   await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Outro Nome', email: null, papel: 'votante', publicadorId: 'p1', conviteId: CONVITE }));
 });
 
+test('link pessoal: o perfil do usuário tem de ser o perfil que o link dá', async () => {
+  const db = como('anon1', 'anonymous');
+  // Link antigo, sem o campo papel: só Votante.
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'admin', publicadorId: 'p1', conviteId: CONVITE }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'servo', publicadorId: 'p1', conviteId: CONVITE }));
+  // Link de Servo Ministerial: entra como servo, e não como votante nem como administrador.
+  await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), 'convites', CONVITE), { papel: 'servo' }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'admin', publicadorId: 'p1', conviteId: CONVITE }));
+  await assertFails(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'votante', publicadorId: 'p1', conviteId: CONVITE }));
+  await assertSucceeds(setDoc(doc(db, 'usuarios', 'anon1'), { nome: 'Pub Um', email: null, papel: 'servo', publicadorId: 'p1', conviteId: CONVITE }));
+});
+
 test('link pessoal: convite revogado não cria acesso', async () => {
   await env.withSecurityRulesDisabled((ctx) => updateDoc(doc(ctx.firestore(), 'convites', CONVITE), { ativo: false }));
   const db = como('anon1', 'anonymous');

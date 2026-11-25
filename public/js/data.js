@@ -1,6 +1,7 @@
 // Camada de dados: o app só fala com este arquivo.
 // Há dois "backends" com a mesma interface: Firebase (de verdade) e demonstração (localStorage).
 
+import { papelDoConvite } from './acessos.js';
 import { toISO } from './escala.js';
 
 const FIREBASE_VERSAO = '10.14.1';
@@ -107,6 +108,7 @@ export async function criarBackendFirebase(cfg) {
     // Link pessoal: o código secreto do link é o próprio id do documento em "convites".
     listarConvites: () => lista('convites'),
     criarConvite: (token, dados) => F.setDoc(ref('convites', token), { ...dados, ativo: true, criadoEm: F.serverTimestamp() }),
+    atualizarConvite: (token, dados) => F.updateDoc(ref('convites', token), dados),
     async revogarConvite(token) {
       const q = F.query(col('usuarios'), F.where('conviteId', '==', token));
       for (const d of (await F.getDocs(q)).docs) await F.deleteDoc(d.ref);
@@ -132,10 +134,11 @@ export async function criarBackendFirebase(cfg) {
         u = (await A.signInAnonymously(auth)).user;
       }
 
+      // O perfil vem do próprio link (escolhido por quem gerou). Links antigos valem como Votante.
       await F.setDoc(ref('usuarios', u.uid), {
         nome: convite.nome,
         email: null,
-        papel: 'votante',
+        papel: papelDoConvite(convite),
         publicadorId: convite.publicadorId,
         conviteId: token,
         criadoEm: F.serverTimestamp(),
@@ -444,6 +447,11 @@ export function criarBackendDemo() {
       convites[token] = { ...dados, id: token, ativo: true };
       gravar('convites', convites);
     },
+    async atualizarConvite(token, dados) {
+      const convites = ler('convites', {});
+      if (convites[token]) convites[token] = { ...convites[token], ...dados };
+      gravar('convites', convites);
+    },
     async revogarConvite(token) {
       const convites = ler('convites', {});
       delete convites[token];
@@ -458,12 +466,13 @@ export function criarBackendDemo() {
         throw e;
       }
       const uid = `link-${convite.publicadorId}`;
+      const papel = papelDoConvite(convite);
       const usuarios = ler('usuarios', USUARIOS_DEMO);
       if (!usuarios.some((u) => u.id === uid)) {
-        usuarios.push({ id: uid, nome: convite.nome, email: null, papel: 'votante', publicadorId: convite.publicadorId, conviteId: token });
+        usuarios.push({ id: uid, nome: convite.nome, email: null, papel, publicadorId: convite.publicadorId, conviteId: token });
         gravar('usuarios', usuarios);
       }
-      gravar('sessao', { uid, email: '', nome: convite.nome, papel: 'votante', publicadorId: convite.publicadorId, conviteId: token });
+      gravar('sessao', { uid, email: '', nome: convite.nome, papel, publicadorId: convite.publicadorId, conviteId: token });
       if (ouvinte) ouvinte({ uid, email: '', nome: convite.nome, anonimo: true });
       return { uid };
     },

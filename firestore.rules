@@ -58,7 +58,9 @@ service cloud.firestore {
             && request.resource.data.publicadorId == null
             && request.resource.data.keys().hasOnly(['nome', 'email', 'papel', 'publicadorId', 'criadoEm']))
           ||
-          (request.resource.data.papel == 'votante'
+          // Entrada pelo link pessoal: o perfil tem de ser o que o link dá (links antigos, sem o campo, dão Votante).
+          (request.resource.data.papel == get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.get('papel', 'votante')
+            && request.resource.data.papel in ['votante', 'servo', 'admin']
             && request.resource.data.keys().hasOnly(['nome', 'email', 'papel', 'publicadorId', 'conviteId', 'criadoEm'])
             && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.ativo == true
             && get(/databases/$(database)/documents/convites/$(request.resource.data.conviteId)).data.publicadorId == request.resource.data.publicadorId
