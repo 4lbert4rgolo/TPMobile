@@ -53,13 +53,14 @@ export async function criarBackendFirebase(cfg, { chaveAppCheck = '' } = {}) {
 
   const app = initializeApp(cfg);
   // App Check: prova para o Firebase que o pedido vem do app TPMobile de verdade (e não de um programa
-  // feito para mexer no banco por fora). Usa o reCAPTCHA v3, que é invisível para o usuário.
+  // feito para mexer no banco por fora). Usa o reCAPTCHA do Google Cloud Fraud Defense (antigo
+  // reCAPTCHA Enterprise; o reCAPTCHA clássico foi descontinuado), invisível para o usuário.
   // Precisa vir ANTES de abrir o login e o banco. Sem chave, o app funciona como antes.
   if (chaveAppCheck) {
     try {
       if (ehEnderecoDeTeste(location.hostname)) self.FIREBASE_APPCHECK_DEBUG_TOKEN = true;
       const C = await import(`${base}firebase-app-check.js`);
-      C.initializeAppCheck(app, { provider: new C.ReCaptchaV3Provider(chaveAppCheck), isTokenAutoRefreshEnabled: true });
+      C.initializeAppCheck(app, { provider: new C.ReCaptchaEnterpriseProvider(chaveAppCheck), isTokenAutoRefreshEnabled: true });
     } catch (e) {
       console.warn('App Check não iniciou:', e);
     }

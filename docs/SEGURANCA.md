@@ -13,18 +13,20 @@ Resumo de como o app se protege e o que fazer para ativar o App Check.
 | Bibliotecas no próprio site | As bibliotecas de Excel vêm de `public/vendor` (copiadas do npm), e não de sites de terceiros. A leitura de planilhas usa a SheetJS 0.20.3, sem as falhas da 0.18.5. | `scripts/copiar-bibliotecas.mjs` |
 | Textos na tela | Tudo o que alguém digitou passa por `esc()` antes de aparecer (não vira código). | `nucleo.js` |
 
-## Ativar o App Check (uma vez)
+## App Check (ativado em 25/11/2026)
 
-1. **Firebase Console** > projeto `tpmobile-81727` > **Segurança > App Check** (ou "Criação > App Check") > aba **Apps** > o app da Web > **reCAPTCHA v3**.
-2. O Firebase mostra o link para criar a chave no reCAPTCHA (https://www.google.com/recaptcha/admin/create):
-   - Tipo: **reCAPTCHA v3** (baseado em pontuação).
-   - Domínios: `tpmobile-81727.web.app` e `tpmobile-81727.firebaseapp.com`.
-   - Ele gera duas chaves: a **chave do site** (pública) e a **chave secreta**.
-3. Cole a **chave secreta** no Firebase (passo 1) e salve.
-4. Cole a **chave do site** em `public/js/firebase-config.js`, em `chaveAppCheck = '...'`, e publique (commit no `master`).
-5. **Ainda não aplique.** Deixe uns 3 a 7 dias e olhe em App Check > **APIs > Cloud Firestore** as métricas: quase todos os pedidos devem aparecer como **verificados**. Se muita gente estiver com o app antigo aberto, espere mais.
-6. Então clique em **Aplicar** (Enforce) no Cloud Firestore. A partir daí, pedidos sem App Check são recusados.
-7. Logo depois, confira: entrar com e-mail, entrar por um link, votar, o **backup automático no Drive** e as **notificações** (os scripts do Google entram com a sua conta de dono do projeto e não deveriam ser afetados, mas confirme no dia). Se algo parar, em App Check > Cloud Firestore clique em **Desaplicar** e me avise.
+O reCAPTCHA clássico (v3 com chave secreta) foi descontinuado pelo Google. O TPMobile usa o **Google Cloud Fraud Defense** (antigo reCAPTCHA Enterprise), que pede só a chave do site.
+
+**O que já está feito:**
+- Chave criada no reCAPTCHA (projeto do Google Cloud **TPMOBILE**), tipo pontuação, domínios `tpmobile-81727.web.app` e `tpmobile-81727.firebaseapp.com`.
+- Firebase > App Check > Apps > TPmobile: **Registrado** com o provedor Fraud Defense (TTL do token: 1 hora).
+- `chaveAppCheck` preenchida em `firebase-config.js` (v3.15).
+- Custo: até 10.000 verificações por mês sem custo (cada aparelho verifica mais ou menos uma vez por hora de uso).
+
+**O que falta (depois de alguns dias):**
+1. Em App Check > **APIs > Cloud Firestore**, olhe as métricas: quase todos os pedidos devem aparecer como **verificados**. Se muita gente ainda estiver com o app antigo aberto, espere mais.
+2. Clique em **Aplicar** (Enforce) no Cloud Firestore. A partir daí, pedidos sem App Check são recusados.
+3. Logo depois, confira: entrar com e-mail, entrar por um link, votar, o **backup automático no Drive** e as **notificações** (os scripts do Google entram com a sua conta de dono do projeto e não deveriam ser afetados, mas confirme no dia). Se algo parar, em App Check > Cloud Firestore clique em **Desaplicar**.
 
 ### Testar no computador (localhost ou Laragon `.test`)
 

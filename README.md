@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.14 (reforço de segurança: App Check, política de conteúdo, bibliotecas de Excel no próprio site e regras mais rígidas; veja [docs/SEGURANCA.md](docs/SEGURANCA.md)) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.15 (App Check ligado; reforço de segurança da v3.14: App Check, política de conteúdo, bibliotecas de Excel no próprio site e regras mais rígidas; veja [docs/SEGURANCA.md](docs/SEGURANCA.md)) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis

@@ -24,7 +24,7 @@ export const firebaseConfig = {
 // Enquanto estiver vazia, o botão de avisos explica que falta configurar. Veja docs/NOTIFICACOES.md.
 export const chaveNotificacoes = 'BKgetvbdMr8uLGAHZVML0SModTRtAJj96OUb23DfVwkB2NV7aBEhaS3JkdcoWlUD22XPrGeZQ4KVGFgb6s_9rGg';
 
-// Chave do App Check (reCAPTCHA v3): prova que quem fala com o banco é o app TPMobile.
+// Chave de site do App Check (reCAPTCHA do Google Cloud Fraud Defense): prova que quem fala com o banco é o app TPMobile.
 // Como criar e ativar: docs/SEGURANCA.md. Enquanto estiver vazia, o app funciona sem App Check.
-// Esta chave é pública (fica no navegador de todos); a chave SECRETA do reCAPTCHA vai só no console do Firebase.
-export const chaveAppCheck = '';
+// Esta chave é pública (fica no navegador de todos). Ela foi criada no projeto do Google Cloud TPMOBILE.
+export const chaveAppCheck = '6LdCZzIuAAAAAJEDdTqnFK5IzsWJ8ljN0PS6LAZK';

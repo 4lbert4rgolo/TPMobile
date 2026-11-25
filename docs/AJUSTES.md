@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.14 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.15 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -28,6 +28,7 @@
 | 3.12 | Tela Início: o que fazer agora, próximo horário, resumo da semana, mural de novidades e atalhos |
 | 3.13 | Perfil escolhido no link pessoal; uma linha por pessoa em Usuários; aviso de acesso duplicado |
 | 3.14 | Segurança: App Check, CSP, bibliotecas de Excel no próprio site (SheetJS 0.20.3) e regras mais rígidas |
+| 3.15 | App Check ligado (Google Cloud Fraud Defense), ainda sem bloquear |
 
 ---
 
@@ -330,3 +331,9 @@ Nada muda na tela para os irmãos. Detalhes e passo a passo em [docs/SEGURANCA.m
   Testes novos em `tests-regras/regras.spec.mjs` e `tests/notificacoes.test.mjs`.
 
 **Para publicar:** merge no `master` (o deploy do GitHub instala e copia as bibliotecas) **e `npm run deploy:regras`**. No seu computador, rode `npm install` uma vez depois do `git pull` (cria `public/vendor`). Para ativar o App Check, siga o docs/SEGURANCA.md.
+
+## v3.15 — App Check ligado (25/11/2026)
+
+- Chave de site do App Check preenchida em `firebase-config.js` e app registrado no Firebase (App Check > Apps > TPmobile: **Registrado**).
+- O provedor passou a ser o **Google Cloud Fraud Defense** (antigo reCAPTCHA Enterprise, `ReCaptchaEnterpriseProvider`), porque o reCAPTCHA clássico foi descontinuado.
+- O Cloud Firestore continua **Não aplicado**: por enquanto o App Check só mede. Aplicar depois de alguns dias, conforme o docs/SEGURANCA.md.
