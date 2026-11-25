@@ -4,7 +4,7 @@ import { carregarBase } from './sessao.js';
 import { renderAba, renderApp } from './shell.js';
 import { PAPEIS, normalizarPapel } from './data.js';
 import { campoBusca } from './busca.js';
-import { agruparUsuarios, contasDeEmailDo, PAPEIS_LINK } from './acessos.js';
+import { agruparUsuarios, contasDeEmailDo, PAPEIS_LINK, planoDeUnificacao } from './acessos.js';
 
 /* ============================================================ usuários (administrador) */
 
@@ -52,6 +52,32 @@ export async function recarregarUsuarios() {
     }
   }
   estado.usuarios = lista.map((u) => ({ ...u, papel: normalizarPapel(u.papel) }));
+  await unificarDuplicados();
+}
+
+/**
+ * Acessos duplicados (antes da v3.13 cada aparelho do link virava um usuário separado):
+ * iguala o perfil de todos os aparelhos da mesma pessoa e grava esse perfil no link.
+ * Roda sozinho quando um administrador abre Usuários ou Links de acesso; quando não há nada a fazer, não grava nada.
+ */
+async function unificarDuplicados() {
+  if (estado.perfil?.papel !== 'admin') return;
+  let convites;
+  try { convites = await estado.backend.listarConvites(); } catch (e) { console.error(e); return; }
+  const plano = planoDeUnificacao(estado.usuarios, convites);
+  if (!plano.usuarios.length && !plano.convites.length) return;
+  try {
+    for (const u of plano.usuarios) await estado.backend.atualizarUsuario(u.id, { papel: u.papel });
+    for (const cv of plano.convites) await estado.backend.atualizarConvite(cv.id, { papel: cv.papel });
+  } catch (e) {
+    console.error(e); // sem permissão agora: tenta de novo na próxima vez que abrir a tela
+    return;
+  }
+  const pessoas = [...new Set([...plano.usuarios, ...plano.convites].map((x) => x.nome).filter(Boolean))];
+  registrar({ area: 'usuarios', acao: 'Unificou acessos duplicados do link pessoal', alvo: `${pessoas.length} pessoa(s)`, detalhe: pessoas.join(', ') });
+  const mudou = new Map(plano.usuarios.map((u) => [u.id, u.papel]));
+  estado.usuarios = estado.usuarios.map((u) => (mudou.has(u.id) ? { ...u, papel: mudou.get(u.id) } : u));
+  if (plano.usuarios.length) toast(`Acessos duplicados unificados: ${pessoas.join(', ')}.`);
 }
 
 export async function renderUsuarios() {

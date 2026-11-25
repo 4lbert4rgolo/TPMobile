@@ -53,3 +53,28 @@ export function contasDeEmailDo(publicadorId, usuarios) {
   if (!publicadorId) return [];
   return usuarios.filter((u) => u.publicadorId === publicadorId && !u.conviteId && u.papel !== 'removido');
 }
+
+/**
+ * Plano para unificar os acessos duplicados (feitos antes da v3.13).
+ * Para cada link pessoal:
+ *  - os aparelhos com perfis diferentes passam todos para o perfil do grupo (o maior entre eles);
+ *  - o link passa a guardar esse perfil, para o próximo aparelho já entrar certo.
+ * Aparelhos com acesso removido ficam como estão, a não ser que todos estejam removidos.
+ * Não grava nada: devolve a lista de mudanças, que a tela aplica.
+ */
+export function planoDeUnificacao(usuarios, convites) {
+  const usuariosMudar = [];
+  const convitesMudar = [];
+  const porId = new Map(convites.map((cv) => [cv.id, cv]));
+  for (const g of agruparUsuarios(usuarios.filter((u) => u.conviteId))) {
+    const ativos = usuarios.filter((u) => u.conviteId === g.conviteId && u.papel !== 'removido');
+    if (!ativos.length) continue;
+    const maior = agruparUsuarios(ativos)[0].papel;
+    const alvo = maior === 'anciao' ? 'admin' : maior;
+    if (!PAPEIS_LINK.includes(alvo)) continue;
+    for (const u of ativos) if (u.papel !== alvo) usuariosMudar.push({ id: u.id, papel: alvo, nome: u.nome });
+    const cv = porId.get(g.conviteId);
+    if (cv && cv.ativo !== false && papelDoConvite(cv) !== alvo) convitesMudar.push({ id: cv.id, papel: alvo, nome: cv.nome });
+  }
+  return { usuarios: usuariosMudar, convites: convitesMudar };
+}
