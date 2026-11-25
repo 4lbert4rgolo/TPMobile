@@ -404,9 +404,10 @@ test('notificações: organizador pede aviso para todos; votante só avisa troca
   // v3.14: o aviso de troca do votante tem id fixo ligado a um pedido aberto dele: um aviso por pedido.
   const avisoTroca = (extra = {}) => aviso({ uid: 'vot', tipo: 'troca-pedido', para: { organizadores: true }, ...extra });
   await env.withSecurityRulesDisabled(async (ctx) => {
-    await setDoc(doc(ctx.firestore(), 'enquetes', 'pub', 'trocas', 'p1_t'), troca('p1', { criadoEm: '2026-11-25T10:00:00.000Z' }));
-    await setDoc(doc(ctx.firestore(), 'enquetes', 'pub', 'trocas', 'p2_t'), troca('p2', { criadoEm: '2026-11-25T10:00:00.000Z' }));
-    await setDoc(doc(ctx.firestore(), 'enquetes', 'pub', 'trocas', 'p1_fechada'), troca('p1', { status: 'resolvida', criadoEm: '2026-11-25T10:00:00.000Z' }));
+    const db = ctx.firestore(); // abre uma vez só (abrir de novo dá erro no emulador)
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p1_t'), troca('p1', { criadoEm: '2026-11-25T10:00:00.000Z' }));
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p2_t'), troca('p2', { criadoEm: '2026-11-25T10:00:00.000Z' }));
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p1_fechada'), troca('p1', { status: 'resolvida', criadoEm: '2026-11-25T10:00:00.000Z' }));
   });
   const id = 'troca~pub~p1_t~2026-11-25T10:00:00.000Z';
   await assertFails(addDoc(collection(como('vot'), 'notificacoes'), avisoTroca())); // id automático: não
