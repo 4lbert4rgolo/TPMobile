@@ -1,4 +1,4 @@
-import { avisar, avisoEscalaPublicada, avisoSubstituto } from './notificacoes.js';
+import { avisar, avisoEscalaPublicada, avisoSubstituto, avisoMudancaCelula, avisoTrocaResolvida } from './notificacoes.js';
 import { recarregarEnquetes } from './enquetes.js';
 import { registrar } from './telaAuditoria.js';
 import { detalheTrocaCelula, lugarDaCelula } from './auditoria.js';
@@ -180,6 +180,7 @@ export async function resolverTroca(trocaId, subId) {
   await tentar(() => estado.backend.salvarTroca(e.id, { ...t, status: 'resolvida', substitutoId: sub.id, substitutoNome: sub.nome, resolvidoPor: estado.perfil.nome, resolvidoEm: new Date().toISOString() }));
   registrar({ area: 'trocas', acao: 'Resolveu um pedido de troca', alvo: e.titulo, enqueteId: e.id, detalhe: `${detalheTrocaCelula(t.ponto, t.data, t.turno, antes, depois)} (pedido de ${t.nome})` });
   avisar(estado.backend, avisoSubstituto(t, sub)); // notificação no celular do substituto
+  avisar(estado.backend, avisoTrocaResolvida(t, sub)); // e no de quem pediu a troca
   estado.trocas = await estado.backend.listarTrocas(e.id);
   desenharEscala();
   if (confirm(`Avisar ${sub.nome} também pelo WhatsApp agora?`)) {
@@ -283,6 +284,11 @@ export async function gravarCelula(pessoas) {
   );
   if (ok) {
     registrar({ area: 'escala', acao: 'Trocou pessoas', alvo: enqueteAtual().titulo, enqueteId: enqueteAtual().id, detalhe: detalheTrocaCelula(ponto, data, turno, antes, depois) });
+    // Escala já publicada: quem entrou e quem saiu do horário recebem aviso no celular.
+    if (enqueteAtual().status === 'publicada' && estado.escala?.publicada) {
+      const aviso = avisoMudancaCelula({ ponto, data, turno }, antes, depois);
+      if (aviso) avisar(estado.backend, aviso);
+    }
     fecharModal(); desenharEscala();
   }
 }

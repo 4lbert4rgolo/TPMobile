@@ -124,5 +124,5 @@ export async function votarPor(pubId) {
       <button class="text-slate-500 text-xl leading-none" data-acao="fechar-modal" aria-label="Fechar">×</button>
     </div>
     <p class="text-sm text-slate-500 mb-3">Você está lançando os votos em nome de ${esc(pub.nome)}. ${e.status !== 'aberta' ? 'A votação está encerrada, mas você pode ajustar.' : ''}</p>
-    <div id="area-voto">${htmlVoto({ ...e, status: 'aberta' })}</div>`, 'max-w-4xl');
+    <div id="area-voto">${htmlVoto({ ...e, status: 'aberta', prazo: null })}</div>`, 'max-w-4xl');
 }

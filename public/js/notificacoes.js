@@ -13,6 +13,7 @@
 // As funções "textoDe..." e "suporte" são puras (testadas em tests/notificacoes.test.mjs).
 
 import { nomeDia, dataCurta } from './escala.js';
+import { textoPrazo } from './prazo.js';
 
 /** Para quem vai o aviso. */
 export const PARA_TODOS = { todos: true };
@@ -27,7 +28,7 @@ export function avisoEnqueteAberta(enquete, reaberta = false) {
   return {
     tipo: 'enquete',
     titulo: reaberta ? '🛒 Votação reaberta' : '🛒 Nova enquete do carrinho',
-    corpo: `${enquete.titulo} (${periodo(enquete)}). Toque para marcar os horários que você pode.`,
+    corpo: `${enquete.titulo} (${periodo(enquete)}).${enquete.prazo ? ` Vote até ${textoPrazo(enquete.prazo)}.` : ''} Toque para marcar os horários que você pode.`,
     url: '?aba=votar',
     para: PARA_TODOS,
   };
@@ -75,6 +76,47 @@ export function avisoEscalaPublicada(enquete, matriz) {
     url: '?aba=minha',
     para: PARA_TODOS,
     porPublicador,
+  };
+}
+
+/**
+ * Mudança num horário de escala já publicada (ajuste manual de um organizador):
+ * quem entrou e quem saiu recebem um aviso com o próprio texto.
+ */
+export function avisoMudancaCelula({ ponto, data, turno }, antes, depois) {
+  const pessoas = (c) => (c?.tipo === 'equipe' ? c.pessoas : []);
+  const idsAntes = new Set(pessoas(antes).map((p) => p.id));
+  const idsDepois = new Set(pessoas(depois).map((p) => p.id));
+  const lugar = `${curto(data)}, ${turno} – ${ponto}`;
+  const porPublicador = {};
+  for (const p of pessoas(depois)) {
+    if (idsAntes.has(p.id)) continue;
+    const com = pessoas(depois).filter((x) => x.id !== p.id).map((x) => x.nome);
+    porPublicador[p.id] = `Você entrou na escala: ${lugar}${com.length ? `, com ${com.join(' e ')}` : ''}.`;
+  }
+  for (const p of pessoas(antes)) {
+    if (!idsDepois.has(p.id)) porPublicador[p.id] = `Você não está mais na escala em ${lugar}.`;
+  }
+  const ids = Object.keys(porPublicador);
+  if (!ids.length) return null;
+  return {
+    tipo: 'escala-mudou',
+    titulo: '📅 Mudança na sua escala',
+    corpo: `A escala de ${lugar} mudou.`,
+    url: '?aba=minha',
+    para: paraPublicadores(ids),
+    porPublicador,
+  };
+}
+
+/** Troca resolvida: avisa quem pediu. */
+export function avisoTrocaResolvida(troca, substituto) {
+  return {
+    tipo: 'troca-resolvida',
+    titulo: '✅ Troca resolvida',
+    corpo: `${substituto.nome} entra no seu lugar: ${curto(troca.data)}, ${troca.turno} – ${troca.ponto}.`,
+    url: '?aba=minha',
+    para: paraPublicadores([troca.publicadorId]),
   };
 }
 

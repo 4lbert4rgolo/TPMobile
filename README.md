@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.6 (voto mais simples: sem a opção de reserva) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.9 (prazo da votação, lembrete na véspera e aviso quando a escala muda) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
@@ -26,7 +26,8 @@ Não existe mais o perfil "Ancião": anciãos recebem o perfil **Administrador**
 - Vê a escala publicada, com os próprios horários destacados.
 - **Minha escala:** lista os próximos horários da pessoa, com os companheiros de equipe, o link do **Google Agenda** em cada horário e o botão **Levar tudo para o calendário** (arquivo `.ics`, com lembrete 1 hora antes).
 - **Preciso trocar:** na Minha escala, pede a troca de um horário (com motivo opcional) e acompanha o pedido.
-- **Avisos no celular** (barra de notificação): nova enquete, lembrete de votar, os próprios horários quando a escala é publicada e trocas. Ativa em Menu > 🔔 Avisos no celular.
+- **Avisos no celular** (barra de notificação): nova enquete, lembrete de votar, os próprios horários quando a escala é publicada, **lembrete na véspera** (às 18h), mudanças na escala e trocas. Ativa em Menu > 🔔 Avisos no celular.
+- **Prazo da votação:** a enquete fecha sozinha na data e hora marcadas; quem não votou recebe um lembrete às 18h da véspera do prazo.
 - **Letras maiores**, **app instalável** no celular e **app Android** (.apk enviado pelo WhatsApp).
 
 **Para os organizadores**
@@ -101,6 +102,7 @@ public/                    site (pasta publicada no Firebase Hosting)
     relatorios.js          texto das células e desenho do Excel com cores (testável)
     compartilhar.js        imagem e PDF da escala para enviar no grupo (testável)
     notificacoes.js        avisos no celular: textos, ativar, desativar (testável)
+    prazo.js               prazo da votação: formato, texto e "já passou?" (testável)
     telaNotificacoes.js    faixa e tela "Avisos no celular"
     auditoria.js           eventos de auditoria: montar, descrever, filtrar (testável)
     telaAuditoria.js       registrar eventos, tela Auditoria e histórico da escala

@@ -1,3 +1,4 @@
+import { votacaoAberta, prazoPassou, textoPrazo } from './prazo.js';
 import { $, STATUS, enqueteAtual, esc, estado, fecharModal, lerPref, pubPorId, tentar, toast } from './nucleo.js';
 import { registrar } from './telaAuditoria.js';
 import { renderAba } from './shell.js';
@@ -124,7 +125,8 @@ export function textoContagem() {
 
 export function htmlVoto(enquete, leitura = false) {
   const v = estado.voto;
-  const aberta = enquete.status === 'aberta' && !leitura;
+  // Aberta e dentro do prazo (o organizador que lança voto por alguém passa a enquete sem prazo).
+  const aberta = votacaoAberta(enquete) && !leitura;
 
   const permitidos = pontosDoPublicador(pubPorId(v.pubId), enquete.pontos);
   const visiveis = pontosVisiveis(enquete);
@@ -182,7 +184,7 @@ export function htmlVoto(enquete, leitura = false) {
         <span class="text-sm text-slate-600" id="contagem-voto">${textoContagem()}</span>
         <label class="flex items-center gap-2 text-sm text-slate-700"><input type="checkbox" data-acao="guardar-costume" ${v.guardarPadrao ? 'checked' : ''}> ${v.padrao ? 'Atualizar' : 'Guardar como'} meu costume (para já vir marcado nas próximas)</label>
       </div>`
-    : `<p class="text-sm text-slate-500">${enquete.status === 'aberta' ? '' : 'A votação desta enquete está encerrada.'}</p>`;
+    : `<p class="text-sm text-slate-500">${enquete.status === 'aberta' && !prazoPassou(enquete) ? '' : 'A votação desta enquete está encerrada.'}</p>`;
 
   const avisoCostume = aberta && v.preenchidoDoCostume && !v.salvo
     ? '<div class="bg-amber-50 text-amber-900 border border-amber-200 rounded-xl p-3 mb-3 text-sm"><strong>Marcamos os seus horários de costume.</strong> Confira, mude o que precisar e toque em <strong>Salvar meus votos</strong>.</div>'
@@ -268,7 +270,7 @@ export function renderAreaVoto() {
   const e = enqueteAtual();
   const area = $('#area-voto');
   // Organizador lançando voto por outra pessoa pode ajustar mesmo com a votação fechada.
-  if (e && area) area.innerHTML = htmlVoto(estado.voto?.forcarAberta ? { ...e, status: 'aberta' } : e);
+  if (e && area) area.innerHTML = htmlVoto(estado.voto?.forcarAberta ? { ...e, status: 'aberta', prazo: null } : e);
 }
 
 export async function renderVotar() {
@@ -297,6 +299,7 @@ export async function renderVotar() {
     <div class="mb-3">
       <p class="text-lg font-bold">Olá, ${esc((estado.perfil.nome || '').split(' ')[0])}!</p>
       <h2 class="text-base font-semibold text-blue-800">${esc(enquete.titulo)}</h2>
+      ${enquete.prazo ? `<p class="text-sm font-semibold ${prazoPassou(enquete) ? 'text-red-700' : 'text-amber-800'} mt-1">⏰ ${prazoPassou(enquete) ? 'A votação fechou' : 'A votação fecha'} ${esc(textoPrazo(enquete.prazo))}.</p>` : ''}
       <ol class="text-sm text-slate-700 list-decimal ml-5 mt-1">
         <li>Toque nos horários em que você pode participar.</li>
         <li>No final da página, toque em <strong>Salvar meus votos</strong>.</li>

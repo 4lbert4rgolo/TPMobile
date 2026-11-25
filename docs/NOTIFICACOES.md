@@ -9,6 +9,11 @@ O TPMobile manda avisos para a barra de notificação do celular:
 | 📅 Escala publicada | Todos; quem está escalado recebe os próprios horários | Quando a escala é publicada |
 | 🔁 Pedido de troca | Organizadores | Quando alguém toca em **Preciso trocar** |
 | 🛒 Você entrou na escala | O substituto escolhido | Quando o organizador resolve o pedido de troca |
+| ✅ Troca resolvida | Quem pediu a troca | Quando o organizador resolve o pedido |
+| 📅 Mudança na sua escala | Quem entrou e quem saiu do horário | Quando um organizador muda um horário de escala já publicada |
+| 🛒 Amanhã você está no carrinho | Quem está escalado amanhã (horário, ponto e dupla) | Todo dia, a partir das 18h (automático) |
+| ⏰ A votação fecha amanhã às 20h | Quem ainda não votou | Às 18h, quando o prazo vence nas próximas 30 horas (automático, uma vez) |
+| 🗳️ Votação encerrada | Organizadores | Quando o prazo da enquete passa e o script encerra a votação |
 
 Tocar no aviso abre o app direto na aba certa (Votar, Minha escala ou Escala).
 

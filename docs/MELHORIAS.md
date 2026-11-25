@@ -6,6 +6,7 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Prazo da votação, lembrete na véspera (18h) e aviso quando a escala publicada muda | v3.9 |
 | Voto mais simples: opção de reserva ("só se precisar") removida | v3.6 |
 | Notificações no celular (FCM + script do Google) e app Android (.apk pelo PWABuilder) | v3.5 |
 | Uma vez por dia por pessoa; escala enviada no grupo como imagem ou PDF | v3.4 |
@@ -33,21 +34,18 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 ## 🟢 Ideias para depois
 
-Guardadas em 22/11/2026, em ordem de prioridade sugerida. As três primeiras usam as notificações da v3.5.
+Guardadas em 22/11/2026. Lembrete na véspera, prazo da votação e aviso de mudança foram feitos na v3.9.
 
 | Ideia | Observação |
 |---|---|
-| **Lembrete na véspera** | Todo dia à tarde, quem está escalado amanhã recebe "Amanhã: 06:00 às 08:00 – Bairro Novo, com Ana". Mais uma tarefa diária no script do Google. Ajuda a evitar faltas e trocas de última hora. |
-| **Prazo da votação** | A enquete ganha data e hora para fechar. Um dia antes, quem não votou recebe "a votação fecha amanhã às 20h"; no horário, encerra sozinha. |
-| **Aviso quando a escala muda depois de publicada** | Se o organizador troca alguém num horário já publicado, quem entrou e quem saiu recebem notificação. |
 | Tela "Hoje" | Quem está em cada ponto agora e nos próximos horários. |
 | Relatório de participação do mês | Quantas vezes cada um participou, para conversar sobre equilíbrio (planilha ou imagem). |
 | Restaurar dados a partir de um backup | O backup diário já está no Drive; restaurar ainda é manual. Botão só para administrador, com prévia. |
 
 ## Ordem sugerida
 
-1. Atualizar o vídeo do votante e fazer a apresentação para anciãos e servos ministeriais.
-2. Começar pelo lembrete na véspera e pelo prazo da votação.
+1. Acompanhar o uso do prazo e do lembrete da véspera nas próximas semanas.
+2. Avaliar a tela "Hoje" e o relatório do mês.
 
 ## Fora do TPMobile
 

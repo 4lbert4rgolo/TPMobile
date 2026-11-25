@@ -21,6 +21,8 @@
 | 3.4 | Cada pessoa no máximo uma vez por dia; enviar a escala no grupo como imagem ou PDF |
 | 3.5 | Notificações no celular e app Android (.apk) |
 | 3.6 | Voto mais simples: sem a opção de reserva ("só se precisar") |
+| 3.7 | Rodapé com copyright (e na cor do cabeçalho) |
+| 3.9 | Prazo da votação, lembrete na véspera e aviso quando a escala muda |
 
 ---
 
@@ -246,3 +248,18 @@ Sem mudança nas regras do Firestore. Testes novos em `tests/escala.test.mjs`.
 ## v3.7 — Rodapé com copyright (23/11/2026)
 
 Rodapé no mesmo modelo do AlpDesk: faixa escura com linha verde no topo, "TPMobile © 2026" e "Desenvolvido por Albert Argolo". Aparece na tela de entrada e dentro do app, e não sai na impressão. Fica no `index.html` (um só lugar), com o estilo `.rodape-site` em `app.css`. Sem mudança nas regras do Firestore.
+
+## v3.9 — Prazo da votação, lembrete na véspera e aviso de mudança (25/11/2026)
+
+**Prazo da votação.** No editor da enquete, campo novo **"A votação fecha em"** (data e hora; opcional). Enquete nova já vem com a véspera do primeiro dia às 20h; ao duplicar, o prazo anda 7 dias junto com as datas.
+- O votante vê "⏰ A votação fecha domingo, 29/11 às 20h"; o card da enquete e o texto do WhatsApp também mostram o prazo.
+- No horário, o app trava a votação na hora e o script do Google muda a enquete para **encerrada** em até 5 minutos, registra no histórico como "TPMobile (automático)" e avisa os organizadores ("10 de 12 votaram. Já dá para gerar a escala").
+- A partir das **18h**, quem ainda não votou numa enquete que fecha nas próximas 30 horas recebe "⏰ A votação fecha amanhã às 20h" (uma vez por enquete).
+- Reabrir uma votação com o prazo vencido pede para mudar o prazo antes. O organizador continua podendo lançar votos por alguém depois do prazo.
+- Guardado na enquete como `prazo` (texto ISO em UTC; `null` = sem prazo). `public/js/prazo.js` tem as contas (testadas).
+
+**Lembrete na véspera.** Todo dia, a partir das 18h, quem está escalado no dia seguinte recebe "🛒 Amanhã você está no carrinho: 06:00 às 08:00 – Bairro Novo, com Ana." Só vale para escalas publicadas.
+
+**Aviso quando a escala muda.** Se um organizador troca alguém num horário de escala **já publicada**, quem entrou recebe "Você entrou na escala: …, com Fulano" e quem saiu recebe "Você não está mais na escala em …". Quem pediu troca também é avisado quando ela é resolvida ("✅ Troca resolvida: Gil entra no seu lugar").
+
+As tarefas automáticas ficam no `Notificacoes.gs`, dentro da mesma rodada de 5 minutos (não precisa de gatilho novo): `encerrarPorPrazo_`, `rotinaDiaria_` (`lembrarVespera_` e `avisarPrazo_`). Para testar o lembrete sem esperar as 18h: executar `testarLembreteVespera`. **Para valer, copie o `Notificacoes.gs` novo para o projeto do Apps Script.** Sem mudança nas regras do Firestore. Testes novos em `tests/prazo.test.mjs`.

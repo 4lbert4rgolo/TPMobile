@@ -66,12 +66,20 @@ Sugestão para o grupo, depois de publicar:
 
 **Enquetes passadas:** depois de encerrada ou publicada, use **Arquivar** para tirar a enquete da lista (nada é apagado). "Mostrar as enquetes arquivadas" traz de volta.
 
+## Prazo da votação
+No editor da enquete, **A votação fecha em** define até quando dá para votar (já vem a véspera do primeiro dia, às 20h; deixe vazio para encerrar à mão).
+- Às **18h** da véspera do prazo, quem ainda não votou recebe um lembrete no celular.
+- No horário, a votação **encerra sozinha** (em até 5 minutos) e os organizadores recebem "Votação encerrada: X de Y votaram".
+- Para reabrir depois do prazo: **Editar**, mude o prazo e **Salvar e abrir votação**. Lançar votos por alguém continua funcionando depois do prazo.
+
 ## Avisos automáticos no celular
 Quem ativou os avisos (Menu > 🔔 Avisos no celular) recebe sozinho, sem você fazer nada além do normal:
 - **Abrir votação** → todos recebem "Nova enquete do carrinho".
 - **Publicar para todos** → cada escalado recebe os próprios horários; os outros, "Escala publicada".
 - **Preciso trocar** → os organizadores recebem o pedido.
-- **Resolver o pedido** → o substituto recebe "Você entrou na escala" (o WhatsApp continua oferecido também).
+- **Resolver o pedido** → o substituto recebe "Você entrou na escala" e quem pediu recebe "Troca resolvida" (o WhatsApp continua oferecido também).
+- **Mudar um horário depois de publicar** → quem entrou e quem saiu daquele horário recebem aviso.
+- **Todo dia, a partir das 18h** → quem está escalado amanhã recebe o lembrete com horário, ponto e dupla.
 
 Configuração e problemas: [NOTIFICACOES.md](NOTIFICACOES.md).
 

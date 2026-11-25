@@ -1,3 +1,4 @@
+import { paraCampo, doCampo, prazoSugerido, prazoPassou, textoPrazo } from './prazo.js';
 import { avisar, avisoEnqueteAberta } from './notificacoes.js';
 import { $, STATUS, abrirModal, ehOrganizador, esc, estado, tentar, toast } from './nucleo.js';
 import { registrar } from './telaAuditoria.js';
@@ -46,6 +47,7 @@ export function novoEditor() {
     turnosTexto: cfg.turnos.join('\n'),
     pontos: new Set(pontosAtivos(cfg)),
     bloqueios: [], maxIrmas: 3, maxIrmaos: '', parFixo: 'preferencia', equilibrarSemanas: true, umPorDia: true,
+    prazo: paraCampo(prazoSugerido(inicio)), // véspera do primeiro dia, às 20h
   };
   aplicarBloqueiosPadrao(ed);
   ed.titulo = tituloSugerido(ed);
@@ -70,6 +72,8 @@ export function editorDe(e, copia = false) {
     parFixo: modoParFixo(e.regras),
     umPorDia: e.regras?.umPorDia !== false,
     equilibrarSemanas: e.regras?.equilibrarSemanas ?? true,
+    // Na cópia, o prazo anda 7 dias junto com as datas.
+    prazo: e.prazo ? paraCampo(copia ? new Date(new Date(e.prazo).getTime() + desloc * 864e5).toISOString() : e.prazo) : '',
   };
   return ed;
 }
@@ -115,7 +119,8 @@ export async function renderEnquetes() {
         return `<article class="bg-white rounded-xl shadow-sm border p-4">
           <div class="flex flex-wrap items-center justify-between gap-2">
             <div><h3 class="font-bold">${esc(e.titulo)}</h3>
-              <p class="text-sm text-slate-500">${dataCurta(e.inicio)} a ${dataCurta(e.fim)} · ${e.pontos.length} ponto(s) · ${e.tipo === 'evento' ? 'Evento' : 'Semana'}</p></div>
+              <p class="text-sm text-slate-500">${dataCurta(e.inicio)} a ${dataCurta(e.fim)} · ${e.pontos.length} ponto(s) · ${e.tipo === 'evento' ? 'Evento' : 'Semana'}</p>
+              ${e.prazo && e.status === 'aberta' ? `<p class="text-sm text-amber-800">⏰ Fecha ${esc(textoPrazo(e.prazo))}</p>` : ''}</div>
             <span class="text-xs font-semibold px-3 py-1 rounded-full ${cor}">${rotuloStatus}${e.arquivada ? ' · arquivada' : ''}</span>
           </div>
           ${progresso.has(e.id) ? `<p class="text-sm mt-2"><strong>${progresso.get(e.id)} de ${ativosIds.size}</strong> já votaram · <button class="text-green-700 underline font-semibold" data-acao="ver-votos" data-id="${esc(e.id)}">ver quem falta e lembrar</button></p>` : ''}
@@ -149,6 +154,9 @@ export function renderEditor() {
           <div><label class="text-sm font-medium" for="ed-fim">Fim</label>
             <input id="ed-fim" type="date" class="w-full border rounded-lg p-2" value="${esc(ed.fim)}" data-campo="fim"></div>
         </div>
+        <div class="sm:col-span-2"><label class="text-sm font-medium" for="ed-prazo">A votação fecha em (opcional)</label>
+          <input id="ed-prazo" type="datetime-local" class="w-full border rounded-lg p-2" value="${esc(ed.prazo || '')}" data-campo="prazo">
+          <p class="text-xs text-slate-500 mt-1">No prazo, a votação encerra sozinha (em até 5 minutos) e os organizadores são avisados. Às 18h da véspera do prazo, quem ainda não votou recebe um lembrete no celular. Deixe vazio para encerrar à mão.</p></div>
       </section>
 
       <section class="bg-white rounded-xl border p-4">
@@ -250,6 +258,7 @@ export function campoMudou(el, digitando = false) {
     case 'parFixo': ed.parFixo = el.value; break;
     case 'equilibrarSemanas': ed.equilibrarSemanas = el.checked; break;
     case 'umPorDia': ed.umPorDia = el.checked; break;
+    case 'prazo': ed.prazo = el.value; break;
     default: break;
   }
 }
@@ -265,6 +274,8 @@ export async function salvarEditor(alvo) {
   if (!ed.dias.length) return toast('Confira as datas de início e fim.', 'erro');
   if (!turnos.length) return toast('Informe pelo menos um horário.', 'erro');
   if (!ed.pontos.size) return toast('Marque pelo menos um ponto.', 'erro');
+  const prazo = doCampo(ed.prazo);
+  if (alvo === 'aberta' && prazo && new Date(prazo) <= new Date()) return toast('O prazo da votação já passou. Mude a data ou deixe vazio.', 'erro');
 
   const enquete = {
     id: ed.id || undefined,
@@ -278,6 +289,7 @@ export async function salvarEditor(alvo) {
     pontos: [...ed.pontos],
     bloqueios: ed.bloqueios.filter((b) => (b.turno === '*' || turnos.includes(b.turno)) && (!b.ponto || ed.pontos.has(b.ponto))),
     regras: { maxIrmas: Number(ed.maxIrmas) || 3, maxIrmaos: Number(ed.maxIrmaos) || null, parFixo: ed.parFixo, equilibrarSemanas: ed.equilibrarSemanas, umPorDia: ed.umPorDia },
+    prazo,
   };
 
   const ok = await tentar(async () => {
@@ -298,6 +310,9 @@ export async function salvarEditor(alvo) {
 export async function mudarStatus(id, status, mensagem) {
   const e = estado.enquetes.find((x) => x.id === id);
   if (!e) return;
+  if (status === 'aberta' && prazoPassou(e)) {
+    return toast('O prazo desta votação já passou. Toque em Editar e mude o prazo (ou deixe vazio) antes de abrir.', 'erro');
+  }
   const ok = await tentar(() => estado.backend.salvarEnquete({ ...e, status }), mensagem);
   if (ok) {
     const acoes = { aberta: 'Abriu a votação', fechada: 'Encerrou a votação', publicada: 'Publicou a escala', rascunho: 'Voltou para rascunho' };
@@ -331,7 +346,7 @@ export function textoWhatsApp(e) {
   const obs = (e.bloqueios || []).length
     ? `\n*Atenção:*\n${e.bloqueios.map((b) => `• ${nomeDia(b.data)} ${dataCurta(b.data)}, ${b.turno === '*' ? 'dia todo' : b.turno}: ${b.motivo || 'sem carrinho'}${b.ponto ? ` (só em ${b.ponto})` : ''}`).join('\n')}\n`
     : '';
-  return `🛒 *Enquete do carrinho — ${e.titulo}*\n\nPor favor, votem nos horários em que podem participar, pelo aplicativo:\n${link}\n\n*Pontos:* ${e.pontos.join(' · ')}\n\n*Dias:*\n${dias}\n\n*Horários:* ${e.turnos.join(' | ')}\n${obs}\nO voto pode ser alterado até a enquete ser encerrada.`;
+  return `🛒 *Enquete do carrinho — ${e.titulo}*\n\nPor favor, votem nos horários em que podem participar, pelo aplicativo:\n${link}\n\n*Pontos:* ${e.pontos.join(' · ')}\n\n*Dias:*\n${dias}\n\n*Horários:* ${e.turnos.join(' | ')}\n${obs}\n${e.prazo ? `⏰ *A votação fecha ${textoPrazo(e.prazo)}.* Até lá, o voto pode ser alterado.` : 'O voto pode ser alterado até a enquete ser encerrada.'}`;
 }
 
 export function abrirTextoWhats(id) {
