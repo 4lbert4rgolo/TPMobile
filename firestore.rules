@@ -153,6 +153,24 @@ service cloud.firestore {
       allow delete: if administrador();
     }
 
+    // Mural de novidades da tela Início: todos com acesso leem; servos e administradores escrevem.
+    match /novidades/{id} {
+      function novidadeValida(d) {
+        return d.keys().hasOnly(['titulo', 'texto', 'ate', 'autorNome', 'uid', 'criadoEm', 'criadoISO'])
+          && d.titulo is string && d.titulo.size() > 0 && d.titulo.size() <= 80
+          && d.texto is string && d.texto.size() <= 600
+          && (d.ate == null || (d.ate is string && d.ate.size() == 10))
+          && d.autorNome is string && d.autorNome.size() <= 80;
+      }
+      allow read: if aprovado();
+      allow create: if organizador() && novidadeValida(request.resource.data)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.criadoEm == request.time;
+      allow update: if organizador() && novidadeValida(request.resource.data)
+        && request.resource.data.criadoEm == resource.data.criadoEm;
+      allow delete: if organizador();
+    }
+
     match /enquetes/{enqueteId} {
       // Rascunhos só os organizadores veem.
       allow read: if organizador()

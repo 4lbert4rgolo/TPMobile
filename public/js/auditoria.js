@@ -13,6 +13,7 @@ export const AREAS = {
   escala: 'Escala',
   trocas: 'Trocas',
   enquetes: 'Enquetes',
+  novidades: 'Novidades',
   votos: 'Votos',
   publicadores: 'Publicadores',
   pontos: 'Pontos',

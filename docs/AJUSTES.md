@@ -25,6 +25,7 @@
 | 3.9 | Prazo da votação, lembrete na véspera e aviso quando a escala muda |
 | 3.10 | Menu novo: barra de botões embaixo, grupos, ícones e contadores de pendência |
 | 3.11 | "Avisar no grupo": mensagem curta com prazo e link |
+| 3.12 | Tela Início: o que fazer agora, próximo horário, resumo da semana, mural de novidades e atalhos |
 
 ---
 
@@ -276,3 +277,14 @@ As tarefas automáticas ficam no `Notificacoes.gs`, dentro da mesma rodada de 5 
 ## v3.11 — "Avisar no grupo" (25/11/2026)
 
 O botão "Texto do WhatsApp" da enquete passou a se chamar **Avisar no grupo** e a mensagem ficou curta: título da enquete, prazo ("Vote até domingo, 29/11 às 20h"), link do app e, se houver, os dias sem carrinho (assembleia, congresso). Dias, horários e pontos não vão mais na mensagem, porque o irmão já vê tudo no app. A janela ganhou o botão **Abrir no WhatsApp**, além de Copiar.
+
+## v3.12 — Tela Início (25/11/2026)
+
+O app passa a abrir na tela **Início** (primeiro botão da barra de baixo e primeiro item do menu):
+- **O que fazer agora:** "⏰ Falta o seu voto" com o prazo e o botão **Votar agora**, ou "✅ Você já votou" com **Mudar meu voto**.
+- **Seu próximo horário** na escala publicada (dia, horário, ponto e dupla), com atalho para a Minha escala e o pedido de troca.
+- **Resumo da semana** (servos e administradores): quantos votaram, votação encerrada esperando a escala, escala publicada com trocas abertas e acessos aguardando aprovação; cada linha leva para a tela certa. Atalhos: Nova enquete, Avisar no grupo, Gerar escala e Enviar escala.
+- **Mural de novidades:** servos e administradores escrevem (**+ Escrever**): título, texto e "mostrar até" (opcional, depois some sozinha); podem avisar todos no celular na hora. Mostra as 5 mais recentes, com o selo **Novo** para quem ainda não viu (marca por pessoa, neste aparelho). Editar e apagar ficam registrados no histórico (área "Novidades").
+- **Atalhos grandes:** Votar, Minha escala, Escala completa e Avisos no celular.
+
+Código: `public/js/telaInicio.js` (tela), `public/js/novidades.js` (regras do mural, testadas em `tests/novidades.test.mjs`). Coleção nova `novidades` no Firestore com regras próprias: todos com acesso leem; servos e administradores escrevem (**rodar `npm run deploy:regras`**).

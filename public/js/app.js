@@ -16,6 +16,7 @@ import { excluirRegistroUsuario, reativarUsuario, removerAcesso, salvarUsuario }
 import { alternarPontoVoto, alternarVoto, copiarPonto, votoPorPonto, votoSimples, marcarPonto, renderAreaVoto, salvarVoto, usarCostume } from './votar.js';
 import { abrirLembreteGrupo, avisarQuemFalta, lembrar, votarPor } from './votos.js';
 import { abrirAvisos, ativarAvisos, desativarAvisos, dispensarFaixa } from './telaNotificacoes.js';
+import { abrirNovidade, salvarNovidade, excluirNovidade } from './telaInicio.js';
 import { abrirPrivacidade, baixarBackup, limparDadosAntigos } from './dados.js';
 import { normalizarPapel } from './data.js';
 import { filtrarLinhas } from './busca.js';
@@ -94,6 +95,11 @@ const acoes = {
   'excluir-publicador': (el) => excluirPublicador(el.dataset.id),
 
   'nova-enquete': () => { estado.ed = novoEditor(); renderAba(); },
+  'ir-nova-enquete': () => { estado.aba = 'enquetes'; estado.ed = novoEditor(); renderApp(); },
+  'nova-novidade': () => abrirNovidade(),
+  'editar-novidade': (el) => abrirNovidade(el.dataset.id),
+  'salvar-novidade': (el) => salvarNovidade(el.dataset.id),
+  'excluir-novidade': (el) => excluirNovidade(el.dataset.id),
   'arquivar-enquete': (el) => arquivarEnquete(el.dataset.id, true),
   'desarquivar-enquete': (el) => arquivarEnquete(el.dataset.id, false),
   'mostrar-arquivadas': () => { estado.verArquivadas = !estado.verArquivadas; renderAba(); },

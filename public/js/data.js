@@ -229,6 +229,15 @@ export async function criarBackendFirebase(cfg) {
     },
     salvarTroca: (enqueteId, troca) => F.setDoc(ref('enquetes', enqueteId, 'trocas', troca.id), semId(troca)),
 
+    /* ---------- mural de novidades (tela Início) */
+    listarNovidades: async () => (await F.getDocs(F.query(col('novidades'), F.orderBy('criadoEm', 'desc'), F.limit(20)))).docs.map(comId),
+    async salvarNovidade(n) {
+      const dados = { titulo: n.titulo, texto: n.texto || '', ate: n.ate || null, autorNome: n.autorNome || '', uid: auth.currentUser?.uid || null };
+      if (n.id) return F.updateDoc(ref('novidades', n.id), dados);
+      return F.addDoc(col('novidades'), { ...dados, criadoEm: F.serverTimestamp(), criadoISO: new Date().toISOString() });
+    },
+    excluirNovidade: (id) => F.deleteDoc(ref('novidades', id)),
+
     /* ---------- notificações no celular (ver notificacoes.js) */
     // O "token" é o endereço deste aparelho no Firebase Cloud Messaging. A biblioteca de mensagens
     // só é baixada aqui, quando a pessoa ativa os avisos (quem não ativa não carrega nada a mais).
@@ -293,6 +302,10 @@ function abrirArmazenamento() {
     };
   }
 }
+
+const NOVIDADES_DEMO = [
+  { id: 'nv1', titulo: 'Agora a votação tem prazo', texto: 'Cada enquete mostra até quando dá para votar. Na véspera do prazo, quem ainda não votou recebe um lembrete no celular.', ate: null, autorNome: 'Administrador (demo)', criadoISO: '2026-11-25T10:00:00.000Z' },
+];
 
 const USUARIOS_DEMO = [
   { id: 'demo-admin', nome: 'Administrador (demo)', email: 'admin@demo.local', papel: 'admin', publicadorId: 'p3' },
@@ -536,6 +549,13 @@ export function criarBackendDemo() {
       todas[enqueteId] = { ...(todas[enqueteId] || {}), [troca.id]: troca };
       gravar('trocas', todas);
     },
+    async listarNovidades() { return ler('novidades', NOVIDADES_DEMO); },
+    async salvarNovidade(n) {
+      const lista = ler('novidades', NOVIDADES_DEMO);
+      if (n.id) gravar('novidades', lista.map((x) => (x.id === n.id ? { ...x, ...n } : x)));
+      else gravar('novidades', [{ ...n, id: `nv${Date.now()}`, uid: sessao()?.uid, criadoISO: new Date().toISOString() }, ...lista]);
+    },
+    async excluirNovidade(id) { gravar('novidades', ler('novidades', NOVIDADES_DEMO).filter((x) => x.id !== id)); },
     // Notificações na demonstração: nada é enviado; o pedido de aviso fica guardado para conferir.
     async obterTokenPush() { return ler('tokenPush', null) || (gravar('tokenPush', `demo-${Date.now()}`), ler('tokenPush', null)); },
     async apagarTokenPush() { gravar('tokenPush', null); },

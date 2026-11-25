@@ -369,3 +369,18 @@ test('notificações: organizador pede aviso para todos; votante só avisa troca
   await assertFails(getDocs(collection(como('vot'), 'notificacoes')));
   await assertSucceeds(getDocs(collection(como('servo'), 'notificacoes')));
 });
+
+/* ---------------------------------------------------------------- mural de novidades */
+
+const novidade = (uid, extra = {}) => ({ titulo: 'Carrinho suspenso', texto: 'Sábado sem carrinho no Atacadão.', ate: null, autorNome: 'Servo', uid, criadoEm: serverTimestamp(), criadoISO: new Date().toISOString(), ...extra });
+
+test('novidades: servo e administrador escrevem; votante só lê', async () => {
+  await assertSucceeds(addDoc(collection(como('servo'), 'novidades'), novidade('servo')));
+  await assertSucceeds(addDoc(collection(como('adm'), 'novidades'), novidade('adm', { ate: '2026-12-31' })));
+  await assertFails(addDoc(collection(como('vot'), 'novidades'), novidade('vot')));
+  await assertFails(addDoc(collection(como('servo'), 'novidades'), novidade('adm')), 'em nome de outro');
+  await assertFails(addDoc(collection(como('servo'), 'novidades'), novidade('servo', { titulo: '' })));
+  await assertFails(addDoc(collection(como('servo'), 'novidades'), novidade('servo', { extra: 1 })));
+  await assertSucceeds(getDocs(collection(como('vot'), 'novidades')));
+  await assertFails(getDocs(collection(como('pend'), 'novidades')));
+});

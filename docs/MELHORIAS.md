@@ -6,6 +6,8 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Tela Início com mural de novidades escrito pelos servos e administradores | v3.12 |
+| "Avisar no grupo" com mensagem curta | v3.11 |
 | Menu novo: barra de botões embaixo, grupos, ícones e contadores | v3.10 |
 | Prazo da votação, lembrete na véspera (18h) e aviso quando a escala publicada muda | v3.9 |
 | Voto mais simples: opção de reserva ("só se precisar") removida | v3.6 |

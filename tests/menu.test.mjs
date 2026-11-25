@@ -2,19 +2,19 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { gruposDoMenu, itensBarra, textoContador, calcularContadores, ICONES } from '../public/js/menu.js';
 
-const votante = [['votar', 'Votar'], ['escala', 'Escala'], ['minha', 'Minha escala']];
+const votante = [['inicio', 'Início'], ['votar', 'Votar'], ['escala', 'Escala'], ['minha', 'Minha escala']];
 const admin = [...votante, ['enquetes', 'Enquetes'], ['votos', 'Votos'], ['publicadores', 'Publicadores'], ['pontos', 'Pontos'], ['usuarios', 'Usuários'], ['links', 'Links de acesso'], ['auditoria', 'Auditoria']];
 
 test('menu: grupos na ordem, só com o que a pessoa pode ver', () => {
-  assert.deepEqual(gruposDoMenu(votante), [['Para mim', [['votar', 'Votar'], ['minha', 'Minha escala'], ['escala', 'Escala']]]]);
-  assert.deepEqual(gruposDoMenu(admin).map(([t, i]) => [t, i.length]), [['Para mim', 3], ['Organizar a semana', 2], ['Cadastros', 2], ['Administração', 3]]);
+  assert.deepEqual(gruposDoMenu(votante), [['Para mim', [['inicio', 'Início'], ['votar', 'Votar'], ['minha', 'Minha escala'], ['escala', 'Escala']]]]);
+  assert.deepEqual(gruposDoMenu(admin).map(([t, i]) => [t, i.length]), [['Para mim', 4], ['Organizar a semana', 2], ['Cadastros', 2], ['Administração', 3]]);
   for (const [id] of admin) assert.ok(ICONES[id], `ícone de ${id}`);
 });
 
 test('barra de baixo: atalhos de cada perfil', () => {
-  assert.deepEqual(itensBarra(votante, false).map(([id]) => id), ['votar', 'minha', 'escala']);
-  assert.deepEqual(itensBarra(admin, true).map(([id]) => id), ['enquetes', 'votos', 'escala']);
-  assert.deepEqual(itensBarra([['votar', 'Votar'], ['escala', 'Escala']], false).map(([id]) => id), ['votar', 'escala'], 'sem publicador ligado: sem Minha escala');
+  assert.deepEqual(itensBarra(votante, false).map(([id]) => id), ['inicio', 'votar', 'minha', 'escala']);
+  assert.deepEqual(itensBarra(admin, true).map(([id]) => id), ['inicio', 'enquetes', 'votos', 'escala']);
+  assert.deepEqual(itensBarra([['inicio', 'Início'], ['votar', 'Votar'], ['escala', 'Escala']], false).map(([id]) => id), ['inicio', 'votar', 'escala'], 'sem publicador ligado: sem Minha escala');
 });
 
 test('contadores: textos e cálculo', () => {

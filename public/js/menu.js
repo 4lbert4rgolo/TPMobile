@@ -3,13 +3,13 @@
 
 /** Ícone de cada seção (ajuda a achar pela figura, principalmente com letra grande). */
 export const ICONES = {
-  votar: '🗳️', minha: '📅', escala: '📋', enquetes: '📝', votos: '✅',
+  inicio: '🏠', votar: '🗳️', minha: '📅', escala: '📋', enquetes: '📝', votos: '✅',
   publicadores: '👥', pontos: '📍', usuarios: '🔑', links: '🔗', auditoria: '🕘',
 };
 
 /** Grupos do menu, na ordem. Cada um só aparece se a pessoa tiver alguma seção dele. */
 export const GRUPOS = [
-  ['Para mim', ['votar', 'minha', 'escala']],
+  ['Para mim', ['inicio', 'votar', 'minha', 'escala']],
   ['Organizar a semana', ['enquetes', 'votos']],
   ['Cadastros', ['publicadores', 'pontos']],
   ['Administração', ['usuarios', 'links', 'auditoria']],
@@ -23,11 +23,11 @@ export function gruposDoMenu(abas) {
     .filter(([, itens]) => itens.length);
 }
 
-/** Botões fixos embaixo (celular): os 3 lugares mais usados de cada perfil, mais o Menu. */
+/** Botões fixos embaixo (celular): Início e os 3 lugares mais usados de cada perfil, mais o Menu. */
 export function itensBarra(abas, organizador) {
   const tem = new Set(abas.map(([id]) => id));
-  const preferidos = organizador ? ['enquetes', 'votos', 'escala'] : ['votar', 'minha', 'escala'];
-  const curto = { votar: 'Votar', minha: 'Minha escala', escala: 'Escala', enquetes: 'Enquetes', votos: 'Votos' };
+  const preferidos = organizador ? ['inicio', 'enquetes', 'votos', 'escala'] : ['inicio', 'votar', 'minha', 'escala'];
+  const curto = { inicio: 'Início', votar: 'Votar', minha: 'Minha escala', escala: 'Escala', enquetes: 'Enquetes', votos: 'Votos' };
   return preferidos.filter((id) => tem.has(id)).map((id) => [id, curto[id]]);
 }
 

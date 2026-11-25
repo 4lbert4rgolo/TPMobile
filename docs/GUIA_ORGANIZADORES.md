@@ -66,6 +66,11 @@ Sugestão para o grupo, depois de publicar:
 
 **Enquetes passadas:** depois de encerrada ou publicada, use **Arquivar** para tirar a enquete da lista (nada é apagado). "Mostrar as enquetes arquivadas" traz de volta.
 
+## Tela Início e mural de novidades
+O app abre no **Início**, com o **Resumo da semana** (quantos votaram, escala, trocas e acessos aguardando) e atalhos.
+- Para escrever um aviso no mural: **+ Escrever** em Novidades. Coloque um título (ex.: "Carrinho do Atacadão suspenso no sábado"), o texto e, se quiser, **Mostrar até**: depois dessa data o aviso sai sozinho. Deixe marcado **Avisar todos no celular** para quem ativou os avisos receber na hora.
+- **Editar** e **Apagar** aparecem em cada novidade para servos e administradores.
+
 ## Prazo da votação
 No editor da enquete, **A votação fecha em** define até quando dá para votar (já vem a véspera do primeiro dia, às 20h; deixe vazio para encerrar à mão).
 - Às **18h** da véspera do prazo, quem ainda não votou recebe um lembrete no celular.

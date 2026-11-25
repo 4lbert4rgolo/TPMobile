@@ -13,6 +13,7 @@ import { telaAceitePrivacidade } from './dados.js';
 import { renderUsuarios } from './usuarios.js';
 import { renderVotar } from './votar.js';
 import { renderVotos } from './votos.js';
+import { renderInicio } from './telaInicio.js';
 import { PAPEIS, ORGANIZADORES } from './data.js';
 import { ICONES, gruposDoMenu, itensBarra, textoContador, calcularContadores } from './menu.js';
 
@@ -21,7 +22,7 @@ import { ICONES, gruposDoMenu, itensBarra, textoContador, calcularContadores } f
 export function abasDoPerfil() {
   const papel = estado.perfil.papel;
   if (SEM_ACESSO.includes(papel) || !estado.perfil.privacidadeAceitaEm) return [];
-  const abas = [['votar', 'Votar'], ['escala', 'Escala']];
+  const abas = [['inicio', 'Início'], ['votar', 'Votar'], ['escala', 'Escala']];
   if (estado.perfil.publicadorId) abas.push(['minha', 'Minha escala']);
   if (ORGANIZADORES.includes(papel)) abas.push(['enquetes', 'Enquetes'], ['votos', 'Votos'], ['publicadores', 'Publicadores'], ['pontos', 'Pontos']);
   if (papel === 'admin') abas.push(['usuarios', 'Usuários'], ['links', 'Links de acesso'], ['auditoria', 'Auditoria']);
@@ -66,7 +67,7 @@ export function renderApp() {
     if (abasDoPerfil().some(([id]) => id === pedida)) estado.aba = pedida;
     history.replaceState(null, '', location.pathname + location.hash);
   }
-  if (!estado.aba) estado.aba = ehOrganizador() ? 'enquetes' : 'votar';
+  if (!estado.aba) estado.aba = 'inicio';
   estado.menuAberto = false;
   const abas = abasDoPerfil();
   const nomeAba = (abas.find(([id]) => id === estado.aba) || [])[1] || '';
@@ -171,7 +172,7 @@ export async function renderAba() {
   if (!c) return;
   c.innerHTML = '<p class="text-slate-500">Carregando…</p>';
   try {
-    const telas = { votar: renderVotar, escala: renderEscala, minha: renderMinha, pontos: renderPontos, auditoria: renderAuditoria, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
+    const telas = { inicio: renderInicio, votar: renderVotar, escala: renderEscala, minha: renderMinha, pontos: renderPontos, auditoria: renderAuditoria, enquetes: renderEnquetes, votos: renderVotos, publicadores: renderPublicadores, usuarios: renderUsuarios, links: renderLinks };
     await telas[estado.aba]();
   } catch (e) {
     console.error(e);

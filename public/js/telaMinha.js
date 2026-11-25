@@ -11,7 +11,7 @@ import { gerarICS, linkGoogleAgenda, meusHorarios, rotuloDia } from './agenda.js
 /* ============================================================ minha escala */
 
 /** Busca as escalas publicadas e monta a lista de horários da pessoa. */
-async function carregarMeusHorarios() {
+export async function carregarMeusHorarios() {
   const publicadas = estado.enquetes.filter((e) => e.status === 'publicada');
   const escalas = new Map();
   await Promise.all(publicadas.map(async (e) => {
