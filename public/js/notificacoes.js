@@ -120,9 +120,17 @@ export function avisoTrocaResolvida(troca, substituto) {
   };
 }
 
+/**
+ * Id fixo do aviso de um pedido de troca: um aviso por pedido (as regras do Firestore conferem
+ * que o pedido existe, é da pessoa e está aberto). Assim ninguém consegue mandar avisos repetidos.
+ * Se o pedido for cancelado e feito de novo, criadoEm muda e sai um aviso novo.
+ */
+export const idAvisoTroca = (enqueteId, troca) => `troca~${enqueteId}~${troca.id}~${troca.criadoEm}`;
+
 /** Pedido de troca: vai para os organizadores. */
-export function avisoPedidoTroca(troca) {
+export function avisoPedidoTroca(troca, enqueteId = null) {
   return {
+    ...(enqueteId ? { id: idAvisoTroca(enqueteId, troca) } : {}),
     tipo: 'troca-pedido',
     titulo: '🔁 Pedido de troca',
     corpo: `${troca.nome} não pode ir: ${curto(troca.data)}, ${troca.turno} – ${troca.ponto}.${troca.motivo ? ` Motivo: ${troca.motivo}` : ''}`.slice(0, 300),

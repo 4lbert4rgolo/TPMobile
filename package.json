@@ -9,7 +9,13 @@
     "verificar": "node scripts/verificar-publicacao.mjs",
     "deploy": "npm run verificar && firebase deploy --only hosting",
     "deploy:regras": "firebase deploy --only firestore:rules",
-    "test:regras": "npx --yes firebase-tools@13 emulators:exec --only firestore --project demo-tpmobile \"node --test tests-regras/regras.spec.mjs\""
+    "test:regras": "npx --yes firebase-tools@13 emulators:exec --only firestore --project demo-tpmobile \"node --test tests-regras/regras.spec.mjs\"",
+    "postinstall": "node scripts/copiar-bibliotecas.mjs",
+    "bibliotecas": "node scripts/copiar-bibliotecas.mjs"
+  },
+  "dependencies": {
+    "xlsx": "https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz",
+    "xlsx-js-style": "1.2.0"
   },
   "devDependencies": {
     "@firebase/rules-unit-testing": "^3.0.4",

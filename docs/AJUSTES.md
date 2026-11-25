@@ -1,6 +1,6 @@
 # Histórico de versões do TPMobile
 
-**Versão atual: v3.13 (publicada em 25/11/2026).** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
+**Versão atual: v3.14 (em revisão), anterior publicada: v3.13.** As versões aparecem da mais antiga (no começo) para a mais nova (no fim). Os passos "Para publicar" de cada versão já foram feitos; ficam aqui só como registro.
 
 | Versão | Resumo |
 |---|---|
@@ -27,6 +27,7 @@
 | 3.11 | "Avisar no grupo": mensagem curta com prazo e link |
 | 3.12 | Tela Início: o que fazer agora, próximo horário, resumo da semana, mural de novidades e atalhos |
 | 3.13 | Perfil escolhido no link pessoal; uma linha por pessoa em Usuários; aviso de acesso duplicado |
+| 3.14 | Segurança: App Check, CSP, bibliotecas de Excel no próprio site (SheetJS 0.20.3) e regras mais rígidas |
 
 ---
 
@@ -313,3 +314,19 @@ Código: `public/js/telaInicio.js` (tela), `public/js/novidades.js` (regras do m
 Código: `public/js/acessos.js` (regras puras: perfil do link, agrupar aparelhos, contas de e-mail do publicador), testado em `tests/acessos.test.mjs`; mudanças em `links.js`, `usuarios.js`, `data.js` (`atualizarConvite` e perfil vindo do link) e `firestore.rules`.
 
 **Para publicar:** merge no `master` **e `npm run deploy:regras`** (sem as regras novas, um link de Servo ou Administrador dá erro de permissão ao entrar). Depois, um administrador abre Menu > Usuários uma vez: os duplicados são unificados sozinhos.
+
+## v3.14 — Reforço de segurança (25/11/2026)
+
+Nada muda na tela para os irmãos. Detalhes e passo a passo em [docs/SEGURANCA.md](SEGURANCA.md).
+
+- **App Check (reCAPTCHA v3, invisível):** o app prova para o Firebase que é o TPMobile de verdade. Só liga quando a chave for colada em `chaveAppCheck` (`firebase-config.js`); a aplicação (Enforce) é feita no console depois de alguns dias olhando as métricas.
+- **Política de conteúdo (CSP)** e `Permissions-Policy` nos cabeçalhos do site (`firebase.json`): o navegador só roda scripts do próprio site, do Firebase e do reCAPTCHA. O script de "o app não conseguiu iniciar" saiu de dentro do `index.html` para `js/falha-inicio.js`.
+- **Bibliotecas de Excel no próprio site:** saem do cdnjs/jsdelivr e passam para `public/vendor`, copiadas do npm por `scripts/copiar-bibliotecas.mjs` (roda sozinho no `npm install` e no deploy do GitHub). A **leitura** de planilhas (importar publicadores) usa a SheetJS **0.20.3**, que corrige as falhas da 0.18.5; a xlsx-js-style continua só para **gerar** a escala em Excel e o modelo.
+- **Regras do Firestore mais rígidas:**
+  - voto do votante: só os campos do voto (`disponibilidade`, `nome`), com tamanho limitado;
+  - pedido de troca do votante: só os campos do pedido, motivo até 200 letras (também ao pedir de novo);
+  - auditoria: o perfil gravado tem de ser o perfil real de quem fez; textos com limite;
+  - aviso de pedido de troca: um por pedido (id `troca~enquete~pedido~criadoEm`, conferido pelas regras), sem avisos repetidos.
+  Testes novos em `tests-regras/regras.spec.mjs` e `tests/notificacoes.test.mjs`.
+
+**Para publicar:** merge no `master` (o deploy do GitHub instala e copia as bibliotecas) **e `npm run deploy:regras`**. No seu computador, rode `npm install` uma vez depois do `git pull` (cria `public/vendor`). Para ativar o App Check, siga o docs/SEGURANCA.md.

@@ -18,6 +18,8 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      # Instala só as bibliotecas do app (Excel) e copia para public/vendor.
+      - run: npm install --omit=dev --no-audit --no-fund
       - run: npm run verificar
 
   regras:

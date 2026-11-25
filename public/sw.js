@@ -1,11 +1,12 @@
 // Service worker do TPMobile.
 // Faz o app ser instalável e abrir mais rápido. Sempre tenta a internet primeiro, para que
 // uma versão nova do app apareça logo; a cópia guardada só entra se a internet falhar.
-// As bibliotecas de outros endereços (Firebase, Excel, fontes) têm a versão no endereço, então
+// As bibliotecas de Excel ficam em vendor/ (próprio site) e são guardadas na primeira vez que abrem.
+// As bibliotecas de outros endereços (Firebase, fontes) têm a versão no endereço, então
 // são guardadas na primeira vez e usadas do aparelho depois: assim o app abre mesmo sem internet.
 // Os dados (Firestore) e o login não passam por aqui: o próprio Firebase guarda o cache deles.
 
-const VERSAO = 'tpmobile-v3.13';
+const VERSAO = 'tpmobile-v3.14';
 const BIBLIOTECAS = 'tpmobile-bibliotecas-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
@@ -16,7 +17,7 @@ const ARQUIVOS = [
   'js/votoUnico.js',
   'js/relatorios.js', 'js/auditoria.js', 'js/telaAuditoria.js', 'js/trocas.js', 'js/importar.js', 'js/compartilhar.js',
   'js/notificacoes.js', 'js/telaNotificacoes.js', 'js/prazo.js', 'js/menu.js',
-  'js/novidades.js', 'js/telaInicio.js', 'js/acessos.js',
+  'js/novidades.js', 'js/telaInicio.js', 'js/acessos.js', 'js/falha-inicio.js',
   'js/data.js', 'js/escala.js', 'js/firebase-config.js',
   'css/tailwind.css', 'css/app.css', 'icons/icon-192.png',
 ];
@@ -36,7 +37,7 @@ self.addEventListener('activate', (e) => {
 /** Endereços de bibliotecas com versão fixa (não muda o conteúdo sem mudar o endereço). */
 function ehBiblioteca(url) {
   return (url.hostname === 'www.gstatic.com' && url.pathname.startsWith('/firebasejs/'))
-    || ['cdnjs.cloudflare.com', 'cdn.jsdelivr.net', 'fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname);
+    || ['fonts.googleapis.com', 'fonts.gstatic.com'].includes(url.hostname);
 }
 
 self.addEventListener('fetch', (e) => {

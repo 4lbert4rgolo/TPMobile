@@ -16,6 +16,8 @@ jobs:
         with:
           node-version: 22
       - run: npm test
+      # Instala só as bibliotecas do app (Excel) e copia para public/vendor.
+      - run: npm install --omit=dev --no-audit --no-fund
       - run: npm run verificar
 
   build_and_deploy:
@@ -28,6 +30,13 @@ jobs:
     steps:
       - name: Checkout do código
         uses: actions/checkout@v3
+
+      # Bibliotecas de Excel servidas pelo próprio site: copia de node_modules para public/vendor.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Bibliotecas do app
+        run: npm install --omit=dev --no-audit --no-fund
 
       - name: Deploy no Firebase Hosting
         uses: FirebaseExtended/action-hosting-deploy@v0

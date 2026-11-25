@@ -176,9 +176,15 @@ export async function arquivoDeImportacao(input) {
   try {
     let linhas;
     if (/\.(xlsx|xls)$/i.test(arquivo.name)) {
-      if (typeof XLSX === 'undefined') return toast('A biblioteca do Excel não carregou. Verifique a internet ou cole as linhas.', 'erro');
-      const wb = XLSX.read(await arquivo.arrayBuffer(), { type: 'array' });
-      linhas = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false })
+      // Para LER planilhas usa a SheetJS 0.20.3 (corrige falhas de segurança na leitura de arquivos),
+      // carregada só agora. A xlsx-js-style (global XLSX) fica só para gerar planilhas.
+      let L;
+      try { L = await import('../vendor/xlsx.mjs'); } catch (e) {
+        console.error(e);
+        return toast('A biblioteca do Excel não carregou. Verifique a internet ou cole as linhas.', 'erro');
+      }
+      const wb = L.read(await arquivo.arrayBuffer(), { type: 'array' });
+      linhas = L.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { header: 1, defval: '', raw: false })
         .map((l) => l.map((c) => String(c ?? '').trim()));
     } else {
       linhas = lerTexto(await arquivo.text());

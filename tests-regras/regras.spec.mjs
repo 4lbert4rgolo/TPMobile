@@ -120,6 +120,11 @@ test('votante: não cria, altera nem apaga enquetes', async () => {
 
 test('votante: grava o próprio voto com a votação aberta', async () => {
   await assertSucceeds(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: { x: 1 } }));
+  // v3.14: só os campos do voto, com tamanho limitado.
+  await assertSucceeds(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', nome: 'Pub Um', disponibilidade: { A: ['2026-11-23|T'] }, atualizadoEm: serverTimestamp() }));
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: {}, extra: 'x' }));
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', disponibilidade: 'tudo' }));
+  await assertFails(setDoc(doc(como('vot'), 'enquetes', 'aberta', 'votos', 'p1'), { publicadorId: 'p1', nome: 'x'.repeat(101), disponibilidade: {} }));
 });
 
 test('votante: não grava voto de outra pessoa', async () => {
@@ -312,8 +317,9 @@ test('privacidade: a pessoa grava o próprio aceite, e só isso', async () => {
   await assertSucceeds(updateDoc(doc(como('pend'), 'usuarios', 'pend'), { privacidadeAceitaEm: '2026-11-20T12:00:00.000Z', privacidadeVersao: 1 }));
 });
 
+const PAPEL_DE = { adm: 'admin', servo: 'servo', anc: 'anciao', vot: 'votante', pend: 'pendente' };
 const evento = (uid, nome, area, extra = {}) => ({
-  area, acao: 'Ação', alvo: '', detalhe: '', enqueteId: null, uid, nome, papel: 'x', quando: serverTimestamp(), quandoISO: '2026-11-20T12:00:00.000Z', ...extra,
+  area, acao: 'Ação', alvo: '', detalhe: '', enqueteId: null, uid, nome, papel: PAPEL_DE[uid] || 'x', quando: serverTimestamp(), quandoISO: '2026-11-20T12:00:00.000Z', ...extra,
 });
 
 test('auditoria: cada um registra em nome próprio; votante só privacidade e trocas', async () => {
@@ -325,6 +331,14 @@ test('auditoria: cada um registra em nome próprio; votante só privacidade e tr
   await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { quando: '2020-01-01' }))); // hora inventada
   await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { extra: 1 })));
   await assertFails(addDoc(collection(como('pend'), 'auditoria'), evento('pend', 'Pendente', 'privacidade')));
+});
+
+test('auditoria (v3.14): o perfil gravado é o real e os textos têm limite', async () => {
+  await assertFails(addDoc(collection(como('vot'), 'auditoria'), evento('vot', 'Votante', 'trocas', { papel: 'admin' }))); // perfil falso
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { papel: 'admin' })));
+  await assertSucceeds(addDoc(collection(como('anc'), 'auditoria'), evento('anc', 'Ancião (perfil antigo)', 'escala', { papel: 'admin' }))); // antigo vale como admin
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { alvo: 'x'.repeat(161) })));
+  await assertFails(addDoc(collection(como('servo'), 'auditoria'), evento('servo', 'Servo', 'escala', { area: 'x'.repeat(41) })));
 });
 
 test('auditoria: organizadores leem; ninguém edita; só o administrador apaga', async () => {
@@ -352,6 +366,17 @@ test('trocas: votante pede e cancela só os próprios; organizador resolve', asy
   await assertSucceeds(getDocs(collection(como('servo'), 'enquetes', 'pub', 'trocas')));
 });
 
+test('trocas (v3.14): o pedido do votante só tem os campos do pedido, com tamanho limitado', async () => {
+  const dbv = como('vot');
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_a'), troca('p1', { substitutoId: 'p2' }))); // campo a mais
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_b'), troca('p1', { motivo: 'x'.repeat(201) })));
+  await assertSucceeds(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_c'), troca('p1', { motivo: 'Viagem' })));
+  // Cancelar e pedir de novo: o pedido novo também é conferido.
+  await assertSucceeds(updateDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_c'), { status: 'cancelada' }));
+  await assertFails(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_c'), troca('p1', { resolvidoPor: 'eu' })));
+  await assertSucceeds(setDoc(doc(dbv, 'enquetes', 'pub', 'trocas', 'p1_c'), troca('p1', { criadoEm: '2026-11-21' })));
+});
+
 test('enquete arquivada: organizador arquiva; votante não', async () => {
   await assertSucceeds(updateDoc(doc(como('servo'), 'enquetes', 'pub'), { arquivada: true }));
   await assertFails(updateDoc(doc(como('vot'), 'enquetes', 'pub'), { arquivada: false }));
@@ -376,8 +401,23 @@ test('notificações: organizador pede aviso para todos; votante só avisa troca
   await assertSucceeds(addDoc(collection(como('servo'), 'notificacoes'), aviso()));
   await assertFails(addDoc(collection(como('servo'), 'notificacoes'), aviso({ status: 'enviada' })));
   await assertFails(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot' })));
-  await assertSucceeds(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot', tipo: 'troca-pedido', para: { organizadores: true } })));
-  await assertFails(addDoc(collection(como('vot'), 'notificacoes'), aviso({ uid: 'vot', tipo: 'troca-pedido', para: { todos: true } })));
+  // v3.14: o aviso de troca do votante tem id fixo ligado a um pedido aberto dele: um aviso por pedido.
+  const avisoTroca = (extra = {}) => aviso({ uid: 'vot', tipo: 'troca-pedido', para: { organizadores: true }, ...extra });
+  await env.withSecurityRulesDisabled(async (ctx) => {
+    const db = ctx.firestore(); // abre uma vez só (abrir de novo dá erro no emulador)
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p1_t'), troca('p1', { criadoEm: '2026-11-25T10:00:00.000Z' }));
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p2_t'), troca('p2', { criadoEm: '2026-11-25T10:00:00.000Z' }));
+    await setDoc(doc(db, 'enquetes', 'pub', 'trocas', 'p1_fechada'), troca('p1', { status: 'resolvida', criadoEm: '2026-11-25T10:00:00.000Z' }));
+  });
+  const id = 'troca~pub~p1_t~2026-11-25T10:00:00.000Z';
+  await assertFails(addDoc(collection(como('vot'), 'notificacoes'), avisoTroca())); // id automático: não
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', id), avisoTroca({ para: { todos: true } })));
+  await assertSucceeds(setDoc(doc(como('vot'), 'notificacoes', id), avisoTroca()));
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', id), avisoTroca())); // repetir o mesmo aviso: não
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', 'troca~pub~p2_t~2026-11-25T10:00:00.000Z'), avisoTroca())); // pedido de outra pessoa
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', 'troca~pub~p1_fechada~2026-11-25T10:00:00.000Z'), avisoTroca())); // pedido já resolvido
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', 'troca~pub~p1_t~2020-01-01'), avisoTroca())); // data que não confere
+  await assertFails(setDoc(doc(como('vot'), 'notificacoes', 'troca~pub~nao-existe~x'), avisoTroca()));
   await assertFails(getDocs(collection(como('vot'), 'notificacoes')));
   await assertSucceeds(getDocs(collection(como('servo'), 'notificacoes')));
 });
