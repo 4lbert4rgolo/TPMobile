@@ -6,6 +6,7 @@ Atualizado em 18/11/2026, com a v2.9 publicada. Critério: o que protege os dado
 
 | O quê | Versão |
 |---|---|
+| Menu novo: barra de botões embaixo, grupos, ícones e contadores | v3.10 |
 | Prazo da votação, lembrete na véspera (18h) e aviso quando a escala publicada muda | v3.9 |
 | Voto mais simples: opção de reserva ("só se precisar") removida | v3.6 |
 | Notificações no celular (FCM + script do Google) e app Android (.apk pelo PWABuilder) | v3.5 |

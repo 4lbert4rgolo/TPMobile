@@ -5,7 +5,7 @@
 // são guardadas na primeira vez e usadas do aparelho depois: assim o app abre mesmo sem internet.
 // Os dados (Firestore) e o login não passam por aqui: o próprio Firebase guarda o cache deles.
 
-const VERSAO = 'tpmobile-v3.9';
+const VERSAO = 'tpmobile-v3.10';
 const BIBLIOTECAS = 'tpmobile-bibliotecas-v1';
 const ARQUIVOS = [
   './', 'index.html', 'manifest.webmanifest', 'favicon.png',
@@ -15,7 +15,7 @@ const ARQUIVOS = [
   'js/pontos.js', 'js/telaPontos.js',
   'js/votoUnico.js',
   'js/relatorios.js', 'js/auditoria.js', 'js/telaAuditoria.js', 'js/trocas.js', 'js/importar.js', 'js/compartilhar.js',
-  'js/notificacoes.js', 'js/telaNotificacoes.js', 'js/prazo.js',
+  'js/notificacoes.js', 'js/telaNotificacoes.js', 'js/prazo.js', 'js/menu.js',
   'js/data.js', 'js/escala.js', 'js/firebase-config.js',
   'css/tailwind.css', 'css/app.css', 'icons/icon-192.png',
 ];

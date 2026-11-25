@@ -3,7 +3,7 @@
 App web da congregação Parque das Palmeiras para montar a escala dos carrinhos do testemunho público. Os publicadores votam nos horários em que podem, e o app monta a escala sozinho, respeitando as regras da congregação. Depois, os organizadores ajustam a escala e a publicam para todos.
 
 - **Endereço:** https://tpmobile-81727.web.app
-- **Versão atual:** v3.9 (prazo da votação, lembrete na véspera e aviso quando a escala muda) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
+- **Versão atual:** v3.10 (menu novo: barra de botões embaixo, grupos, ícones e contadores) (o que mudou em cada versão está em [docs/AJUSTES.md](docs/AJUSTES.md))
 - **Tecnologia:** HTML, JavaScript (módulos, sem framework) e Tailwind CSS no navegador; Firebase (Authentication, Firestore e Hosting) como servidor.
 
 ## Perfis
@@ -103,6 +103,7 @@ public/                    site (pasta publicada no Firebase Hosting)
     compartilhar.js        imagem e PDF da escala para enviar no grupo (testável)
     notificacoes.js        avisos no celular: textos, ativar, desativar (testável)
     prazo.js               prazo da votação: formato, texto e "já passou?" (testável)
+    menu.js                grupos do menu, barra de baixo e contadores de pendência (testável)
     telaNotificacoes.js    faixa e tela "Avisos no celular"
     auditoria.js           eventos de auditoria: montar, descrever, filtrar (testável)
     telaAuditoria.js       registrar eventos, tela Auditoria e histórico da escala

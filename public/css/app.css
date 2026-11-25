@@ -71,7 +71,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: #0f7a68; }
 .botao-menu:hover { background: rgba(255,255,255,0.25); }
 .botao-menu-barras { display: inline-flex; flex-direction: column; gap: 4px; }
 .botao-menu-barras i { display: block; width: 20px; height: 2px; background: #fff; border-radius: 2px; }
-.menu-fundo { position: fixed; inset: 0; z-index: 40; background: rgba(15,23,42,0.45); display: flex; justify-content: flex-end; }
+.menu-fundo { position: fixed; inset: 0; z-index: 50; background: rgba(15,23,42,0.45); display: flex; justify-content: flex-end; }
 .menu-painel { width: 18rem; max-width: 86vw; height: 100%; background: #fff; color: #1e293b; display: flex; flex-direction: column; padding: 0.75rem; overflow-y: auto; box-shadow: -8px 0 24px rgba(0,0,0,0.2); animation: menu-entra 160ms ease-out; }
 @keyframes menu-entra { from { transform: translateX(24px); opacity: 0; } }
 .menu-topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 0.5rem; padding: 0.25rem 0.25rem 0.75rem; border-bottom: 1px solid #e2e8f0; margin-bottom: 0.25rem; }
@@ -119,3 +119,25 @@ button[data-acao][disabled]:not(.chip-turno) { opacity: .45; cursor: not-allowed
 .rodape-nome strong { color: #ffffff; font-weight: 700; }
 .rodape-autor { color: #c9ebe5; font-size: 12px; margin-top: 6px; font-weight: 600; }
 @media print { .rodape-site { display: none !important; } }
+
+/* ---------- Menu agrupado: ícone, rótulo e contador de pendências ---------- */
+.menu-item { display: flex; align-items: center; gap: 0.6rem; }
+.menu-icone { width: 1.5rem; text-align: center; font-size: 1.1rem; flex: none; }
+.menu-rotulo { flex: 1; }
+.menu-contador { flex: none; background: #fdf3e2; color: #8a5a12; border: 1px solid #f0d3a0; border-radius: 999px; padding: 0.05rem 0.5rem; font-size: 0.75rem; font-weight: 700; white-space: nowrap; }
+.menu-contador[hidden] { display: none; }
+
+/* ---------- Barra de botões fixa embaixo (só no celular) ---------- */
+.barra-baixo { display: none; }
+@media (max-width: 767px) {
+  .barra-baixo { display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 30; background: #fff; border-top: 1px solid #d3dedb; box-shadow: 0 -4px 16px rgba(12,59,52,0.08); padding: 0.25rem 0.25rem calc(0.25rem + env(safe-area-inset-bottom)); }
+  .barra-item { position: relative; flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.1rem; min-height: 3.5rem; padding: 0.35rem 0.1rem; border-radius: 0.7rem; color: #475569; font-size: 0.72rem; font-weight: 600; line-height: 1.1; }
+  .barra-item.ativo { color: #0b5f51; background: #e6f6f3; }
+  .barra-icone { font-size: 1.35rem; line-height: 1.2; }
+  .barra-ponto { position: absolute; top: 0.35rem; right: calc(50% - 1.1rem); width: 0.65rem; height: 0.65rem; border-radius: 999px; background: #d97706; border: 2px solid #fff; }
+  .barra-ponto[hidden] { display: none; }
+  body.com-barra { padding-bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
+  /* a barra "Salvar meus votos" fica acima da barra de baixo */
+  body.com-barra .sticky.bottom-0 { bottom: calc(4.25rem + env(safe-area-inset-bottom)); }
+}
+@media print { .barra-baixo { display: none !important; } body.com-barra { padding-bottom: 0; } }

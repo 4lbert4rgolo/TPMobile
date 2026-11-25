@@ -23,6 +23,7 @@
 | 3.6 | Voto mais simples: sem a opção de reserva ("só se precisar") |
 | 3.7 | Rodapé com copyright (e na cor do cabeçalho) |
 | 3.9 | Prazo da votação, lembrete na véspera e aviso quando a escala muda |
+| 3.10 | Menu novo: barra de botões embaixo, grupos, ícones e contadores de pendência |
 
 ---
 
@@ -263,3 +264,10 @@ Rodapé no mesmo modelo do AlpDesk: faixa escura com linha verde no topo, "TPMob
 **Aviso quando a escala muda.** Se um organizador troca alguém num horário de escala **já publicada**, quem entrou recebe "Você entrou na escala: …, com Fulano" e quem saiu recebe "Você não está mais na escala em …". Quem pediu troca também é avisado quando ela é resolvida ("✅ Troca resolvida: Gil entra no seu lugar").
 
 As tarefas automáticas ficam no `Notificacoes.gs`, dentro da mesma rodada de 5 minutos (não precisa de gatilho novo): `encerrarPorPrazo_`, `rotinaDiaria_` (`lembrarVespera_` e `avisarPrazo_`). Para testar o lembrete sem esperar as 18h: executar `testarLembreteVespera`. **Para valer, copie o `Notificacoes.gs` novo para o projeto do Apps Script.** Sem mudança nas regras do Firestore. Testes novos em `tests/prazo.test.mjs`.
+
+## v3.10 — Menu novo (25/11/2026)
+
+- **Barra de botões fixa embaixo** (só no celular): votante tem **Votar · Minha escala · Escala · Menu**; organizador tem **Enquetes · Votos · Escala · Menu**. A tela aberta fica em verde e um pontinho laranja indica pendência. No computador continua só o botão Menu do alto. A barra "Salvar meus votos" fica logo acima dela, e ela não sai na impressão.
+- **Menu em grupos**: Para mim, Organizar a semana, Cadastros, Administração, Preferências e Sobre, com **ícone** em cada item.
+- **Contadores** (só organizadores): "faltam N" em Votos (enquete aberta), "N troca(s)" em Escala (pedidos abertos na escala publicada) e "N aguardando" em Usuários (só administrador). São atualizados a cada troca de tela, sem atrapalhar se falhar.
+- Código: `public/js/menu.js` (grupos, atalhos e contadores, testados em `tests/menu.test.mjs`); desenho em `shell.js`; estilos `.barra-baixo`, `.menu-icone` e `.menu-contador` em `app.css`. Sem mudança nas regras do Firestore.
